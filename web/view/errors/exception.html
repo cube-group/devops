@@ -1,0 +1,29 @@
+{{define "errors/exception.html"}}
+    {{template "layout/top.html" .}}
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content" style="padding: 20px;">
+        <h3>{{.title}}</h3>
+        <br>
+        <p>
+            {{or .content .appErr}}
+        </p>
+        <br>
+        {{if .trace}}
+            <div>
+                <pre>{{.trace}}</pre>
+            </div>
+        {{end}}
+    </div>
+
+    {{template "layout/footer.html" . }}
+{{end}}
+
+
+
+
+
+
+
+
+

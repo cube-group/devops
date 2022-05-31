@@ -1,0 +1,48 @@
+{{define "tool/urlencode.html"}}
+
+    <div class="row main-url">
+        <select class="form-control" style="padding: 0;">
+            <option value="0">encodeURIComponent</option>
+            <option value="1">encodeURI</option>
+        </select>
+        <div class="col-md-6 core-url" style="height: 500px;padding: 0;">
+            <textarea id="left-url" style="padding:10px;width:100%;height: 100%;"></textarea>
+        </div>
+        <div class="col-md-6 core-url" style="height: 500px;padding: 0;">
+            <textarea id="right-url" style="padding:10px;width:100%;height: 100%;background-color: #eeeeee"></textarea>
+        </div>
+    </div>
+
+    <br>
+    <div class="row">
+        <button class="btn btn-primary" id="btn-encode-url">编码</button>
+        <button class="btn btn-primary" id="btn-decode-url">解码</button>
+    </div>
+
+    <script>
+        $(function () {
+            $(window).bind("resize", windowResizeUrl);
+            windowResizeUrl();
+
+            $('#btn-encode-url').click(function () {
+                if ($('select[name=encode]').val() == 0) {
+                    $('#right-url').val(encodeURIComponent($('#left-url').val()));
+                } else {
+                    $('#right-url').val(encodeURI($('#left-url').val()));
+                }
+            });
+
+            $('#btn-decode-url').click(function () {
+                if ($('select[name=encode]').val() == 0) {
+                    $('#left-url').val(decodeURIComponent($('#right-url').val()));
+                } else {
+                    $('#left-url').val(decodeURI($('#right-url').val()));
+                }
+            });
+        });
+
+        function windowResizeUrl() {
+            $('.core-url').height($(window).height() - 200 - 125);
+        }
+    </script>
+{{end}}

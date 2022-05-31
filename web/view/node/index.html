@@ -1,0 +1,130 @@
+{{define "node/index.html"}}
+    {{template "layout/top.html" .}}
+    <script>
+        redirectTLS();
+    </script>
+
+    <div class="panel">
+        <div class="panel-heading">
+            <div class="panel-title">宿主机列表</div>
+            <div class="right">
+                <a href="/node/create" class="btn btn-sm btn-success">
+                    <span class="lnr lnr-plus-circle"></span>
+                    创建
+                </a>
+            </div>
+        </div>
+        <div class="panel-body">
+            {{ template "node/search.html" .}}
+            <table class="table table-hover" style="margin-top: 10px;">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>名称</th>
+                    <th>IP</th>
+                    <th>连接方式</th>
+                    <th>时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="v in list">
+                    <td>
+                        ${v.id}
+                    </td>
+                    <td>
+                        <div><a data-toggle="tooltip" data-placement="bottom" :title="v.desc"
+                                :href="baseURL('/node/i',v.id)">${v.name}</a></div>
+                    </td>
+                    <td>
+                        ${v.ip}
+                    </td>
+                    <td>
+                        <span class="badge layui-bg-blue" v-if="v.sshKey">auth</span>
+                        <span class="badge layui-bg-green" v-if="v.sshUsername && v.sshPassword">password</span>
+                    </td>
+                    <td>
+                        ${v.createdAt}
+                    </td>
+                    <td>
+                        <a class="btn btn-xs btn-primary" @click="onNodeTty(v)">
+                            连接
+                        </a>
+                        <a class="btn btn-xs btn-danger">
+                            移除
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- 分页  -->
+    <div class="panel-body navbar-right">
+        {{ .pages.rendering }}
+    </div>
+    <!-- TTY Layer -->
+    <div id="tty-container"
+         style="width:100%;height:100%;background-color:#0C0C0C;padding: 10px;display: none;" hidden>
+        <iframe id="tty" style="width: 100%;height:100%;border: medium none;"></iframe>
+    </div>
+
+
+    <script>
+        vueMixin = {
+            data: {
+                list:{{.list}},
+                search:{{.search}},
+                envList:{{.envList}},
+                location: '/node',
+                openTtyIndex: 0,
+            },
+            methods: {
+                onSearch() {
+                    window.location = this.location + '?' + $.param(this.search);
+                },
+                onNodeTty(v) {//node tty enter
+                    this.onTty(
+                        `Node: ${v.name} IP：${v.ip} 端口：${v.sshPort}`,
+                        `/tty/node?id=${v.id}`
+                    );
+                },
+                onTty(title, src) {
+                    this.openTtyIndex = layui.layer.open({
+                        type: 1, anim: 2, content: $('#tty-container'), title: title,
+                        area: [$(window).width() + 'px', $(window).height() + 'px'],
+                        success: () => {
+                            this.onResize();
+                            $('#tty').attr('src', src);
+                        },
+                        cancel: () => {
+                            this.openTtyIndex = 0;
+                            $('#tty').attr('src', 'about:blank');
+                        }
+                    });
+                },
+                onResize() {//window resize
+                    if (this.openTtyIndex) {
+                        layui.layer.style(this.openTtyIndex, {
+                            left: 0, top: 0, width: $(window).width(), height: $(window).height()
+                        });
+                    }
+                },
+            },
+            mounted() {
+                $(window).resize(this.onResize);
+            }
+        };
+    </script>
+
+    {{template "layout/footer.html" . }}
+{{end}}
+
+
+
+
+
+
+
+
+

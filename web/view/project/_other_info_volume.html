@@ -1,0 +1,50 @@
+{{define "project/_other_info_volume.html"}}
+
+    <div v-show="tab.name=='volume'">
+        <div class="form-group">
+            <label>Project Volume Data</label>
+            <div v-for="(v,i) in project.volume"
+                 style="border: 1px solid transparent;border-color: #0a6aa1;border-radius: 3px;">
+                <div class="input-group">
+                    <div class="input-group-addon">
+                        <div style="width:70px;">Type</div>
+                    </div>
+                    <select class="form-control" v-model.number="v.type">
+                        <option value="content">Content</option>
+                        <option value="url">URL</option>
+                    </select>
+                    <div class="input-group-addon">
+                        Path
+                    </div>
+                    <input class="form-control" v-model="v.path" placeholder="/a/b/c.json">
+                    <div class="input-group-btn">
+                        <a class="btn btn-success" v-if="i==0"
+                           @click="objectArrayAdd(project.volume,{type:'content'})"
+                           style="width:80px;">ADD</a>
+                        <a class="btn btn-danger" v-if="i>0" @click="objectArrayDel(project.volume,i)"
+                           style="width:80px;">DEL</a>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <div class="input-group-addon">
+                        <div style="width:70px;">Value</div>
+                    </div>
+                    <textarea class="form-control" v-model="v.content" placeholder="file content"
+                              v-show="v.type=='content'" rows="8"></textarea>
+                    <input class="form-control" v-model="v.content"
+                           placeholder="url for example: https://a.com/abc.json"
+                           v-show="v.type=='url'">
+                </div>
+            </div>
+        </div>
+    </div>
+{{end}}
+
+
+
+
+
+
+
+
+

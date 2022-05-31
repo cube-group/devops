@@ -1,0 +1,16 @@
+{{define "user/search.html"}}
+
+    <div class="form-inline">
+        <div class="input-group">
+            <div class="input-group-addon">模糊搜索</div>
+            <input type="text" class="form-control" style="width: 250px;"
+                   v-model="search.name" @keyup.enter="onSearch"
+                   placeholder="输入用户名或username或邮箱">
+            <div class="input-group-btn">
+                <a class="btn btn-primary" @click="onSearch"><i class="fa fa-search"></i>搜索</a>
+            </div>
+        </div>
+    </div>
+
+
+{{end}}

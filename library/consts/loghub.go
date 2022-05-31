@@ -1,0 +1,17 @@
+// 基础与大数据部
+// Author: linyang
+// Date: 2019-05
+// 关于项目日志流量的相关枚举
+package consts
+
+const (
+	LOGHUB_PROJECT_1D = 0
+	LOGHUB_PROJECT_3D = 1
+	LOGHUB_PROJECT_1W = 2
+	LOGHUB_PROJECT_1M = 3
+
+	LOGHUB_PROJECT_QUERY_REQ_NUM  = 0
+	LOGHUB_PROJECT_QUERY_REQ_SLOW = 1
+	LOGHUB_PROJECT_QUERY_REQ_40X  = 2
+	LOGHUB_PROJECT_QUERY_REQ_50X  = 3
+)

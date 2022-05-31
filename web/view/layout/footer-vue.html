@@ -1,0 +1,10 @@
+{{define "layout/footer-vue.html"}}
+    <script>
+        vueMixinList.push(vueMixin);
+        vue = new Vue({
+            delimiters: ['${', '}'],
+            el: '#vue-app',
+            mixins: vueMixinList
+        });
+    </script>
+{{end}}

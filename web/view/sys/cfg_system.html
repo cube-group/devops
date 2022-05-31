@@ -1,0 +1,43 @@
+{{define "sys/cfg_system.html"}}
+    <div class="row" v-show="cfgSelect=='系统配置'">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <div class="panel-title">
+                    Web Address & DingTalk
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label>系统地址</label>
+                    <input class="form-control" placeholder="例如: https://corecd.xx.com" v-model="data.system.address">
+                </div>
+                <div class="form-group">
+                    <label>钉钉机器人</label>
+                    <input class="form-control" placeholder="钉钉webhook链接" v-model="data.system.ding">
+                </div>
+            </div>
+        </div>
+
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <div class="panel-title">
+                    SSH Key
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label>ssh private key for node management</label>
+                    <textarea class="form-control" placeholder="用于k8s node ssh管理" rows="5"
+                              v-model="data.system.privateKey"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>ssh public key for git clone</label>
+                    <textarea class="form-control" placeholder="用于git仓库拉取clone" rows="5"
+                              v-model="data.system.publicKey"></textarea>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+{{end}}

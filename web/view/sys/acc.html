@@ -1,0 +1,131 @@
+{{define "sys/acc.html"}}
+    {{template "layout/top.html" .}}
+    <div class="panel">
+        <div class="panel-heading">
+            <h3 class="panel-title">系统权限列表</h3>
+            <div class="right">
+                <button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i>
+                </button>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="搜索权限或路由" v-model="search.name"
+                               @keyup.enter="onSearch()">
+                        <span class="input-group-btn">
+                            <button class="btn btn-primary" type="button" @click="onSearch()">Go!</button>
+                            <button class="btn btn-success" type="button" @click="onCreate()">新建</button>
+                        </span>
+                    </div><!-- /input-group -->
+                </div><!-- /.col-lg-6 -->
+            </div>
+            <br><br>
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>名称</th>
+                                <th>Method:Path</th>
+                                <th>创建时间/操作</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr v-for="(v,i) in list">
+                                <td>
+                                    ${v.Name}
+                                </td>
+                                <td>
+                                    ${v.Method} : ${v.Path}
+                                </td>
+                                <td>
+                                    ${v.CreatedAt}
+                                    <button class="btn btn-sm btn-primary" @click="onEdit(v)">编辑</button>
+                                    <button class="btn btn-sm btn-danger" @click="onDel(v)">移除</button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <!-- END TABLE NO PADDING -->
+                        {{.rendering}}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 编辑弹框 -->
+        <div class="display form-group" style="padding: 20px;" hidden>
+            <div class="form-group">
+                <label>权限名称</label>
+                <input type="string" class="form-control" placeholder="权限名称" v-model="edit.Name">
+            </div>
+            <div class="form-group">
+                <label>路由Method</label>
+                <select class="form-control" v-model="edit.Method">
+                    <option value="">选择路由</option>
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="DELETE">DELETE</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>权限赋值</label>
+                <textarea class="form-control" placeholder="权限赋值" rows="3" v-model="edit.Path"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" @click="onEditSubmit">提交</button>
+        </div>
+    </div>
+    <script>
+        vueMixin = {
+            data: {
+                baseURL: '/sys/acc',
+                list: {{.list}},
+                search: {{.search}},
+                edit: {},
+            },
+            methods: {
+                onSearch() {//搜索
+                    window.location = `${this.baseURL}?` + $.param(this.search);
+                },
+                onCreate() {//创建
+                    this.edit = {Method: ''};
+                    layer.open({
+                        type: 1,
+                        title: `创建权限`,
+                        area: ['500px', '400px'],
+                        content: $('.display') //这里content是一个DOM
+                    });
+                },
+                onEdit(v) {//编辑
+                    this.edit = deepCloneObject(v, 'DeletedAt');//深度拷贝
+                    layer.open({
+                        type: 1,
+                        title: `权限编辑 (${v.Name})`,
+                        area: ['500px', '400px'],
+                        content: $('.display') //这里content是一个DOM
+                    });
+                },
+                onDel(v) {//移除
+                    displayConfirm('确认移除？', '确认', '取消', () => {
+                        reqDelWithoutData(`${this.baseURL}?id=${v.ID}`)
+                    });
+                },
+                onEditSubmit() {//提交编辑
+                    if (!this.edit.Name || !this.edit.Method || !this.edit.Path) {
+                        layer.alert('参数不能为空');
+                        return;
+                    }
+                    displayConfirm('确认操作？', '确认', '取消', () => {
+                        reqPost(
+                            this.baseURL,
+                            this.edit,
+                        )
+                    });
+                }
+            }
+        }
+    </script>
+    {{template "layout/footer.html" .}}
+{{end}}

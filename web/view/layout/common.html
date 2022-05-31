@@ -1,0 +1,1198 @@
+{{define "layout/common.html"}}
+    <script>
+        var ProjectKindDeployment = 'deployment';
+        var ProjectKindJob = 'job';
+        var ProjectKindCronjob = 'cronjob';
+        var ProjectKinds = [
+            ProjectKindDeployment,
+            ProjectKindJob,
+            ProjectKindCronjob,
+        ];
+
+        function IsProjectKindDeployment(v) {
+            return v === ProjectKindDeployment;
+        }
+    </script>
+    <script>
+        var layer = null;
+
+        $(function () {
+            layui.use(['layer', 'form', 'layedit', 'element', 'transfer', 'util'], function () {
+                layer = layui.layer;
+                layui.form.render();
+            });
+            $("[data-toggle='tooltip']").tooltip();
+        });
+
+        function getQueryString(name) {
+            var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+            var r = window.location.search.substr(1).match(reg);
+            if (r != null) return unescape(r[2]);
+            return null;
+        }
+
+        /**
+         * 获取当前页面web socket 所需协议类型
+         * @returns {string}
+         */
+        function getWsSchema(path) {
+            var res = 'https:' == document.location.protocol ? 'wss' : 'ws';
+            if (path) {
+                return res + '://' + path;
+            }
+            return res;
+        }
+
+        /**
+         * 获取当前页面议类型
+         * @returns {string}
+         */
+        function getSchema() {
+            var res = 'https:' == document.location.protocol ? 'https' : 'http';
+            if (path) {
+                return res + '://' + path;
+            }
+            return res;
+        }
+
+        //获取url get参数
+        function getUrlParam(name) {
+            var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+            var r = window.location.search.substr(1).match(reg);
+            if (r != null) {
+                return decodeURIComponent(r[2]);
+            }
+            return null;
+        }
+
+        function updateQueryStringParameter(uri, key, value) {
+            if (!value) {
+                return uri;
+            }
+            var re = new RegExp("([?&])" + key + "=.*?(&|$)", "i");
+            var separator = uri.indexOf('?') !== -1 ? "&" : "?";
+            if (uri.match(re)) {
+                return uri.replace(re, '$1' + key + "=" + value + '$2');
+            } else {
+                return uri + separator + key + "=" + value;
+            }
+        }
+
+        function isDebugPage() {
+            return getUrlParam('debug') == '1';
+        }
+
+        function getDebugUri(uri) {
+            if (isDebugPage()) {
+                return updateQueryStringParameter(uri, 'debug', '1');
+            }
+            return uri;
+        }
+
+        /**
+         * 判断是否请求成功
+         *
+         * @param data 接口返回数据
+         * @returns {boolean}
+         */
+        function isDataSuccess(data) {
+            if (data && data.hasOwnProperty("code")) {
+                if (data.code == '0') {
+                    return true
+                }
+                //检测如果未登录，重定向到登录页
+                if (data.code == '9999') {
+                    showDataError(data);
+                    jumpUrl(window.location.href)
+                }
+            }
+            return false
+        }
+
+        function isDataReturnNotLogtin(data) {
+            if (data && data.hasOwnProperty("code")) {
+                return data.code == '9999'
+            }
+            return false
+        }
+
+        /**
+         * 是否是强提示
+         *
+         * @param data 接口返回数据
+         * @returns {boolean}
+         */
+        function isDataForceError(data) {
+            if (data && data.hasOwnProperty("code")) {
+                if (data.code == '3001') {
+                    return true
+                }
+            }
+            return false
+        }
+
+
+        /**
+         * 延时1秒跳转到某个地址(为了看到弹出的提示)
+         *
+         * @param url 要跳转的地址
+         * @param delaySecond 延时时间(默认1秒)
+         */
+        function jumpUrl(url, delaySecond) {
+            if (delaySecond == undefined) {
+                delaySecond = 1;
+            }
+            if (url == undefined) {
+                url = window.location.href;
+            }
+            setTimeout("history.go(0);window.location.href='" + url + "'", 1000 * delaySecond);
+        }
+
+        /**
+         * 显示接口的成功信息,传了defaultMsg如果msg不存在展示defaultMsg
+         *
+         * @param data
+         * @param defaultMsg
+         */
+        function showDataSuccess(data, defaultMsg) {
+            var msg = '';
+            if (data.msg != undefined) {
+                msg = data.msg;
+            } else if (defaultMsg != undefined) {
+                msg = defaultMsg
+            } else {
+                msg = "服务器异常"
+            }
+            showSuccess(msg)
+        }
+
+        //获取接口中的msg
+        function getDataMsg(data, defaultMsg) {
+            var msg = '';
+            if (data && data.hasOwnProperty('msg')) {
+                msg = data.msg;
+            } else if (defaultMsg != undefined) {
+                msg = defaultMsg
+            } else {
+                msg = '服务器异常'
+            }
+            return msg;
+        }
+
+        /**
+         * 显示接口的失败信息,传了defaultMsg如果msg不存在展示defaultMsg
+         *
+         * @param data
+         * @param defaultMsg
+         */
+        function showDataError(data, defaultMsg) {
+            var msg = getDataMsg(data, defaultMsg);
+            //如果是强提示,弹出强提示
+            if (isDataForceError(data)) {
+                showForceError(msg);
+                return
+            }
+            showError(msg)
+        }
+
+        /**
+         * 提示信息
+         */
+        function showMsg(msg) {
+            layui.layer.msg(msg);
+        }
+
+
+        /**
+         * 弹出成功
+         */
+        function showSuccess(msg) {
+            layui.layer.msg(msg, {
+                icon: 1,
+                time: 2000
+            });
+        }
+
+        /**
+         * 弹出强制提示失败
+         * @param msg
+         */
+        function showForceError(msg) {
+            layui.use('layer', function () {
+                var content = '<div style="padding: 50px;background-color: #ff1513;opacity: 0.8;color:#fff;font-size:30px; overflow:auto;width:1008px;height:350px;" class="text-center">' + msg + '</div>';
+                //示范一个公告层
+                layui.layer.open({
+                    type: 1
+                    , title: false //不显示标题栏
+                    , closeBtn: true
+                    , area: '1008px;'
+                    , shade: 0.8
+                    , id: 'LAY_layuipro' //设定一个id，防止重复弹出
+                    , resize: false
+                    , btnAlign: 'c'
+                    , moveType: 1 //拖拽模式，0或者1
+                    , content: content
+                    , time: 5000
+                    , shadeClose: true
+                });
+            });
+        }
+
+        /**
+         * 根据div class/id name
+         */
+        function showDiv(ele, title, area, option) {
+            if (!option) {
+                option = {};
+            }
+            if (ele.indexOf('#') === -1 && ele.indexOf('.') === -1) {
+                ele = '#' + ele;
+            }
+            option.type = 1;
+            option.title = title;
+            option.area = area;
+            option.content = $(ele);
+            layui.layer.open(option);
+        }
+
+        function showAlert(value, options) {
+            layui.layer.alert(value, options);
+        }
+
+        function showPrompt(title, area, callback) {
+            var defaultArea = ['300px', '80px'];
+            if (area) {
+                defaultArea = area;
+            }
+            layer.prompt({formType: 2, title: title, area: defaultArea}, (param) => {
+                callback(param);
+            });
+        }
+
+        /**
+         * 弹出失败
+         * @param msg
+         */
+        function showError(msg) {
+            layui.use('layer', function () {
+                layui.layer.msg(msg, {
+                    icon: 5,
+                    time: 3000
+                });
+            });
+
+        }
+
+
+        /**
+         * 设置模态框的值
+         *
+         * @param prefix 表单名字前缀
+         * @param dataObj 存放字段的对象
+         * @param attributes 设置的对象属性数组
+         */
+        function setInputValue(prefix, dataObj, attributes) {
+            for (var i = 0; i < attributes.length; i++) {
+                var attribute = attributes[i];
+                var inputId = prefix + ucfirst(attribute);
+                $("#" + inputId).val(dataObj.data(attribute))
+            }
+        }
+
+        /**
+         * 获取模态框的form参数值
+         *
+         * @param prefix 表单名字前缀
+         * @param attributes 获取的对象属性数组
+         * @returns
+         */
+        function getInputParams(prefix, attributes) {
+            var params = {};
+            for (var i = 0; i < attributes.length; i++) {
+                var attribute = attributes[i];
+                var inputId = prefix + ucfirst(attribute);
+                params[attribute] = $("#" + inputId).val()
+            }
+            return params
+        }
+
+
+        /**
+         * 成功展示信息后跳转，失败展示信息
+         *
+         * @param data
+         * @param modalId 成功隐藏模态框的ID
+         * @param url 跳转的地址，如果没传，当前页面刷新
+         */
+        function showMsgJump(data, url, modalId) {
+            if (isDataSuccess(data)) {
+                showDataSuccess(data);
+                if (modalId) {
+                    $('#' + modalId).modal("hide");
+                }
+                if (url === false) {
+                    return
+                }
+                jumpUrl(url ? url : window.location.href)
+            } else {
+                showDataError(data);
+            }
+        }
+
+
+        /**
+         * 展示接口返回的信息
+         *
+         * @param data
+         * @param modalId 成功隐藏模态框的ID
+         */
+        function showDataMsg(data, modalId) {
+            if (isDataSuccess(data)) {
+                showDataSuccess(data);
+                if (modalId != undefined) {
+                    $('#' + modalId).modal("hide");
+                }
+            } else {
+                showDataError(data);
+            }
+        }
+
+
+        /**
+         * 首字母大小
+         * @param str
+         */
+        function ucfirst(str) {
+            return str.substring(0, 1).toUpperCase() + str.substring(1)
+        }
+
+        var loadingIndex = 0;
+        var loadingStarted = false;
+
+        function loadingStart() {
+            loading();
+            loadingStarted = true;
+        }
+
+        function loadingStop() {
+            loadingStarted = false;
+            layui.layer.close(loadingIndex);
+        }
+
+        function loading() {
+            if (loadingStarted) {
+                return;
+            }
+            var timeout = isNaN(arguments[0]) ? 120000 : arguments[0];
+            //如果传了超时时间，用传入的时间
+            loadingIndex = layui.layer.load(1, {
+                shade: [0.1, '#000000'], //0.1透明度的白色背景
+                time: timeout
+            });
+        }
+
+
+        function closeLoading(i) {
+            layui.layer.close(i ? i : loadingIndex);
+        }
+
+        function closeLoadingAll() {
+            layui.layer.closeAll()
+        }
+
+
+        /**
+         * 判断是否是https
+         * @returns {boolean}
+         */
+        function isHttps() {
+            var protocolStr = document.location.protocol;
+            if (protocolStr == "https:") {
+                return true
+            }
+            return false;
+        }
+
+
+        //展示通知提示
+        function noticeTop(msg) {
+            toastr.options.icon = "";
+            toastr.options.closeButton = true;
+            toastr.options.positionClass = "toast-top-full-width";
+            toastr['error'](msg);
+        }
+
+
+        //展示通知提示
+        function notice(msg) {
+            toastr.options.icon = "";
+            toastr.options.closeButton = true;
+            toastr['info'](msg);
+        }
+
+
+        //获取get参数
+        function getParam(paras) {
+            var url = location.href;
+            var paraString = url.substring(url.indexOf("?") + 1, url.length).split("&");
+            var paraObj = {}
+            for (i = 0; j = paraString[i]; i++) {
+                paraObj[j.substring(0, j.indexOf("=")).toLowerCase()] = j.substring(j.indexOf("=") + 1, j.length);
+            }
+            var returnValue = paraObj[paras.toLowerCase()];
+            if (typeof (returnValue) == "undefined") {
+                return "";
+            } else {
+                return returnValue;
+            }
+        }
+
+
+        /**
+         * 获取 blob
+         *
+         * @param  {String} url 目标文件地址
+         * @return {Promise}
+         */
+        function getBlob(url) {
+            return new Promise(resolve => {
+                const xhr = new XMLHttpRequest();
+
+                xhr.open('GET', url, true);
+                xhr.responseType = 'blob';
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        resolve(xhr.response);
+                    }
+                };
+
+                xhr.send();
+            });
+        }
+
+        /**
+         * 保存
+         * @param  {Blob} blob
+         * @param  {String} filename 想要保存的文件名称
+         */
+        function saveAs(blob, filename) {
+            if (window.navigator.msSaveOrOpenBlob) {
+                navigator.msSaveBlob(blob, filename);
+            } else {
+                const link = document.createElement('a');
+                const body = document.querySelector('body');
+
+                link.href = window.URL.createObjectURL(blob);
+                link.download = filename;
+
+                // fix Firefox
+                link.style.display = 'none';
+                body.appendChild(link);
+
+                link.click();
+                body.removeChild(link);
+
+                window.URL.revokeObjectURL(link.href);
+            }
+        }
+
+        /**
+         * 下载
+         * @param  {String} url 目标文件地址
+         * @param  {String} filename 想要保存的文件名称
+         */
+        function downloadFile(url, filename) {
+            getBlob(url).then(blob => {
+                saveAs(blob, filename);
+            });
+        }
+
+        //滚动到界面底部
+        function scrollBottom() {
+            $('html, body').animate({scrollTop: $(document).height()}, 'fast');
+        }
+
+
+        function HTMLEncode(html) {
+            var temp = document.createElement("div");
+            (temp.textContent != null) ? (temp.textContent = html) : (temp.innerText = html);
+            var output = temp.innerHTML;
+            temp = null;
+            return output;
+        }
+
+        function HTMLDecode(text) {
+            var temp = document.createElement("div");
+            temp.innerHTML = text;
+            var output = temp.innerText || temp.textContent;
+            temp = null;
+            return output;
+        }
+
+
+        function base64Encode(str) {
+            return (new Base64()).encode(str)
+        }
+
+
+        function base64Decode(str) {
+            return (new Base64()).decode(str)
+        }
+
+        /**
+         *
+         * Base64 encode / decode
+         *
+         * @author haitao.tu
+         * @date  2010-04-26
+         * @email tuhaitao@foxmail.com
+         *
+         */
+        function Base64() {
+
+            // private property
+            _keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+
+            // public method for encoding
+            this.encode = function (input) {
+                var output = "";
+                var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+                var i = 0;
+                input = _utf8_encode(input);
+                while (i < input.length) {
+                    chr1 = input.charCodeAt(i++);
+                    chr2 = input.charCodeAt(i++);
+                    chr3 = input.charCodeAt(i++);
+                    enc1 = chr1 >> 2;
+                    enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+                    enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+                    enc4 = chr3 & 63;
+                    if (isNaN(chr2)) {
+                        enc3 = enc4 = 64;
+                    } else if (isNaN(chr3)) {
+                        enc4 = 64;
+                    }
+                    output = output +
+                        _keyStr.charAt(enc1) + _keyStr.charAt(enc2) +
+                        _keyStr.charAt(enc3) + _keyStr.charAt(enc4);
+                }
+                return output;
+            }
+
+            // public method for decoding
+            this.decode = function (input) {
+                var output = "";
+                var chr1, chr2, chr3;
+                var enc1, enc2, enc3, enc4;
+                var i = 0;
+                input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+                while (i < input.length) {
+                    enc1 = _keyStr.indexOf(input.charAt(i++));
+                    enc2 = _keyStr.indexOf(input.charAt(i++));
+                    enc3 = _keyStr.indexOf(input.charAt(i++));
+                    enc4 = _keyStr.indexOf(input.charAt(i++));
+                    chr1 = (enc1 << 2) | (enc2 >> 4);
+                    chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+                    chr3 = ((enc3 & 3) << 6) | enc4;
+                    output = output + String.fromCharCode(chr1);
+                    if (enc3 != 64) {
+                        output = output + String.fromCharCode(chr2);
+                    }
+                    if (enc4 != 64) {
+                        output = output + String.fromCharCode(chr3);
+                    }
+                }
+                output = _utf8_decode(output);
+                return output;
+            }
+
+            // private method for UTF-8 encoding
+            _utf8_encode = function (string) {
+                string = string.replace(/\r\n/g, "\n");
+                var utftext = "";
+                for (var n = 0; n < string.length; n++) {
+                    var c = string.charCodeAt(n);
+                    if (c < 128) {
+                        utftext += String.fromCharCode(c);
+                    } else if ((c > 127) && (c < 2048)) {
+                        utftext += String.fromCharCode((c >> 6) | 192);
+                        utftext += String.fromCharCode((c & 63) | 128);
+                    } else {
+                        utftext += String.fromCharCode((c >> 12) | 224);
+                        utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+                        utftext += String.fromCharCode((c & 63) | 128);
+                    }
+
+                }
+                return utftext;
+            }
+
+            // private method for UTF-8 decoding
+            _utf8_decode = function (utftext) {
+                var string = "";
+                var i = 0;
+                var c = c1 = c2 = 0;
+                while (i < utftext.length) {
+                    c = utftext.charCodeAt(i);
+                    if (c < 128) {
+                        string += String.fromCharCode(c);
+                        i++;
+                    } else if ((c > 191) && (c < 224)) {
+                        c2 = utftext.charCodeAt(i + 1);
+                        string += String.fromCharCode(((c & 31) << 6) | (c2 & 63));
+                        i += 2;
+                    } else {
+                        c2 = utftext.charCodeAt(i + 1);
+                        c3 = utftext.charCodeAt(i + 2);
+                        string += String.fromCharCode(((c & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63));
+                        i += 3;
+                    }
+                }
+                return string;
+            }
+        }
+
+    </script>
+
+    <script>
+        function displayConfirm(content, btn1, btn2, func1, func2, area, padding) {
+            var index = layui.layer.open({
+                type: 1,
+                title: false, //不显示标题栏
+                closeBtn: false,
+                area: '450px;',
+                shade: 0.8,
+                id: 'LAY_layuipro', //设定一个id，防止重复弹出
+                btn: [btn1, btn2],
+                btnAlign: 'c',
+                moveType: 1, //拖拽模式，0或者1
+                content: '<div style="padding: 20px; line-height: 22px; background-color: #393D49; color: #fff; font-weight: 300;">' + content + '</div>',
+                btn1: function () {
+                    closeLoading(index);
+                    if (func1) {
+                        func1()
+                    }
+                },
+                btn2: function () {
+                    closeLoading(index);
+                    if (func2) {
+                        func2()
+                    }
+                }
+            });
+        }
+
+        function display(content, func, func2) {
+            closeLoadingAll();
+            var index = layui.layer.confirm(content, {
+                title: '提示',
+                btn: func2 ? ['确认', '取消'] : ['确认'],
+                closeBtn: false,
+            }, function () {
+                if (func) {
+                    func();
+                }
+                closeLoading(index);
+            }, function () {
+                if (func2) {
+                    func2();
+                }
+                closeLoading(index);
+            });
+        }
+
+        //根据标准json结构提示且支持跳转url
+        function displayJumpUrl(data, url) {
+            closeLoading();
+            var i = layui.layer.confirm(data.msg, {
+                title: '提示',
+                btn: ['确认'],
+                closeBtn: false,
+                icon: data.code ? 2 : 1,
+            }, function () {
+                if (!data.code && url) {
+                    window.location = url;
+                }
+                closeLoading(i);
+            });
+        }
+
+        function displayErr(content, closeLayerIndex, func) {
+            if (!closeLayerIndex) {
+                closeLayerIndex = loadingIndex;
+            }
+            if (closeLayerIndex) {
+                layui.layer.close(closeLayerIndex);
+            } else {
+                layui.layer.closeAll();
+            }
+
+            // 示范一个公告层
+            var index = layui.layer.confirm(content, {
+                btn: ['确认'],
+                icon: 2,
+            }, function () {
+                if (func) {
+                    func();
+                }
+                layui.layer.close(index);
+            });
+        }
+
+        //生成树形数据结构
+        function getTreeStructureByData(nodes) {
+            for (let i = 0; i < nodes.length; i++) {
+                nodes[i].text = nodes[i].desc + ' ' + nodes[i].name;
+                nodes[i].children = [];
+                if (!nodes[i].hasOwnProperty('state')) {
+                    nodes[i].state = {};
+                }
+            }
+
+            while (true) {
+                var find = null;
+                for (let i = 0; i < nodes.length; i++) {
+                    if (nodes[i].parent_id > 0) {
+                        find = nodes[i];
+                        console.log(nodes.splice(i, 1))
+                        break
+                    }
+                }
+
+                if (find) {
+                    for (let i = 0; i < nodes.length; i++) {
+                        rel(nodes[i], find)
+                    }
+                } else {
+                    break
+                }
+            }
+
+            function rel(target, find) {
+                if (target.id == find.parent_id) {
+                    target.children.push(find);
+                    target.state.opened = true;
+                    return
+                }
+                if (target.children.length > 0) {
+                    for (var i = 0; i < target.children.length; i++) {
+                        rel(target.children[i], find)
+                    }
+                }
+            }
+
+            return nodes;
+        }
+
+
+        function inArray(find, arr) {
+            if (!arr) {
+                return false
+            }
+            for (i = 0; i < arr.length; i++) {
+                if (find === arr[i]) {
+                    return true
+                }
+            }
+            return false
+        }
+    </script>
+
+    <!-- 进入和退出宽屏 -->
+    <script>
+        var fullWidthToggleTimer = 0;
+
+        //进入宽屏
+        function toggleFullWidthMode() {
+            $('.btn-toggle-fullwidth').trigger('click');
+        }
+    </script>
+
+    <!-- 请求工具 -->
+    <script>
+        function reqGet(url, success, options) {
+            req('get', url, null, success, options);
+        }
+
+        function reqPost(url, data, success, options) {
+            req('post', url, data, success, options);
+        }
+
+        function reqPostJson(url, data, success, options) {
+            if (!options) {
+                options = {};
+            }
+            options['contentType'] = 'application/json';
+            req('post', url, JSON.stringify(data), success, options);
+        }
+
+        function reqDel(url, data, success, options) {
+            if (!options) {
+                options = {};
+            }
+            options['contentType'] = 'application/json';
+            req('delete', url, JSON.stringify(data), success, options);
+        }
+
+        function reqDelWithoutData(url, success, options) {
+            req('delete', url, success, options);
+        }
+
+        function reqFile(url, data, success, options) {
+            var newOptions = {
+                cache: false,
+                processData: false,
+                contentType: false,
+            };
+            if (!options) {
+                options = {};
+            }
+            for (var key in newOptions) {
+                options[key] = newOptions[key];
+            }
+            req('post', url, data, success, options);
+        }
+
+        function req(method, url, data, successFunc, options) {
+            if (!options) {
+                options = {};
+            }
+            var loadingFlag = false;
+            if (!options.hasOwnProperty("loading") || options.loading) {
+                loadingFlag = true;
+            }
+            if (loadingFlag) {
+                loading();
+            }
+            var request = {
+                url: url,
+                crossDomain: true,
+                xhrFields: {
+                    withCredentials: true
+                },
+                data: data,
+                dataType: 'json',
+                type: method,
+                success: (res) => {
+                    if (loadingFlag) {
+                        closeLoading();
+                    }
+                    if (!options.noCatch && res.code) {
+                        layer.alert(res.msg ? res.msg : '未知错误');
+                    } else if (successFunc) {
+                        if (typeof successFunc == 'function') {
+                            successFunc(res.data, res.code, res.msg);
+                        } else if (typeof successFunc == 'string') {
+                            layer.alert(res.msg, null, () => {
+                                window.location.href = successFunc;
+                            });
+                        } else {
+                            layer.alert(res.msg, null, () => {
+                                window.location.reload();
+                            });
+                        }
+                    } else {
+                        layer.alert(res.msg, null, () => {
+                            window.location.reload();
+                        });
+                    }
+                },
+                error: () => {
+                    if (loadingFlag) {
+                        closeLoading();
+                    }
+                    layer.alert('服务器错误，请稍后再试');
+                }
+            };
+
+            if (options) {
+                for (var key in options) {
+                    request[key] = options[key];
+                }
+            }
+            if (request.headers) {
+                request.headers['x-corecd-ajax'] = "1";
+            } else {
+                request.headers = {"x-corecd-ajax": "1"};
+            }
+            $.ajax(request);
+        }
+    </script>
+
+    <!-- 深度clone -->
+    <script>
+        function deepCloneObject(origin, withCancel) {
+            var res = JSON.parse(JSON.stringify(origin));
+            if (withCancel) {
+                if (typeof withCancel == 'string') {
+                    delete res[withCancel];
+                } else {
+                    for (var key in withCancel) {
+                        delete res[withCancel[key]];
+                    }
+                }
+            }
+            return res;
+        }
+    </script>
+
+    <!-- gitlab公共渲染 -->
+    <script>
+        function componentProjectName(v) {
+            return `<a href="/project/info?id=${v.id}"><span class="badge layui-bg-black">${v.env}</span> <span class="badge">${v.use}</span> ${v.name}</a>`;
+        }
+
+        //公共组件-gitlab name
+        function componentGitlabName(v) {
+            if (!v) {
+                return '<span>空</span>';
+            }
+            var html = `<a href="${v.web_url}" target="_blank" class="btn-link" style="height: 10px;"><span class="text text-info">`;
+            if (v.avatar_url) {
+                html += `<img width="23" height="23" src="${v.avatar_url}" class="img-circle" alt="Avatar">`;
+            } else {
+                html += '<img width="23" height="23" src="/public/assets/img/gitlab-logo.png" class="img-circle" alt="Avatar">';
+            }
+            html += `&nbsp;${v.namespace}/${v.name}</span></a>`;
+            return html;
+        }
+
+        //公共组件-域名
+        function componentDomain(project) {
+            var html = '';
+            if (!project) {
+                return html;
+            }
+            if (project.Domains) {
+                for (var i in project.Domains) {
+                    if (i > 2) {
+                        html += '...<br>';
+                        break;
+                    }
+                    var v = project.Domains[i];
+                    var webLink = v.Domain + v.DomainPath;
+                    html += `<a href="http://${webLink}" target="_blank"><button type="button" class="btn-link">${webLink}</button></a>`;
+                    if (v.lock === 1) {
+                        html += '<i class="fa fa-lock"></i>';
+                    }
+                    html += '<br>';
+                }
+            }
+            if (project.Rel.IsUseInner) {
+                return `<a class="badge layui-bg-blue" onclick="layer.alert('集群内域')">${project.name}.inner<a>`;
+            }
+            if (project.Rel.IsUseJob) {
+                return `<a class="badge" onclick="layer.alert('任务类项目')">job<a>`;
+            }
+            if (project.Rel.IsUseCronJob) {
+                return `<a class="badge layui-bg-black" onclick="layer.alert('任务频率类项目')">cronjob<a>`;
+            }
+            if (project.Rel.IsUseBuild) {
+                return `<a class="badge bg-danger" onclick="layer.alert('镜像构建类项目')">镜像<a>`;
+            }
+            return html;
+        }
+
+        //开发者信息
+        function componentDeveloper(user, disabledClickMaps) {
+            var name = '';
+            var avatarURL = '';
+            var aCss = '';
+            if (user) {
+                name = user.RealName;
+                if (!name) {
+                    name = user.Name;
+                }
+                if (!name) {
+                    name = user.UserName;
+                }
+                if (!name) {
+                    name = user.ID;
+                }
+                avatarURL = user.AvatarUrl;
+                aCss = disabledClickMaps[user.ID] ? 'style="pointer-events:none;"' : '';
+            }
+            var html = `<a @click="onDisplayDeveloper(${user.ID})" href="javascript:" ${aCss}>`;
+            if (avatarURL) {
+                html += `<img width="23" height="23" src="${user.AvatarUrl}" class="img-circle" alt="Avatar">&nbsp;`;
+            }
+            html += name;
+            if (user.IsBlock) {//block
+                html += `<span class="label label-danger">Blocked</span>`;
+            }
+            html += '</a>';
+            return html;
+        }
+
+        //默认开发者not found
+        function componentDeveloperNone() {
+            var html = `<a href="javascript:" style="pointer-events:none;">`;
+            html += `<img width="23" height="23" style="background-color: #cccccc" class="img-circle""> N/A</a>`;
+            return html;
+        }
+
+        //截取字符
+        function ellipsis(v, count) {
+            if (v.length > count) {
+                return v.substr(0, count) + '...';
+            }
+            return v;
+        }
+
+        //utc转本地时间
+        function dateUtc2Local(dateStr) {
+            var date1 = new Date();
+            var offsetMinute = date1.getTimezoneOffset();
+            var offsetHours = offsetMinute / 60;
+            var date2 = new Date(dateStr);
+            date2.setHours(date2.getHours() - offsetHours);
+            return date2;
+        }
+
+        //时间格式化
+        function dateFormat(fmt, date) {
+            let ret;
+            const opt = {
+                "Y+": date.getFullYear().toString(),        // 年
+                "m+": (date.getMonth() + 1).toString(),     // 月
+                "d+": date.getDate().toString(),            // 日
+                "H+": date.getHours().toString(),           // 时
+                "M+": date.getMinutes().toString(),         // 分
+                "S+": date.getSeconds().toString()          // 秒
+                // 有其他格式化字符需求可以继续添加，必须转化成字符串
+            };
+            for (let k in opt) {
+                ret = new RegExp("(" + k + ")").exec(fmt);
+                if (ret) {
+                    fmt = fmt.replace(ret[1], (ret[1].length == 1) ? (opt[k]) : (opt[k].padStart(ret[1].length, "0")));
+                }
+            }
+            return fmt;
+        }
+
+        //k8s Ki/Mi/Gi/Ti/K/M/G/T转为标准字节
+        function getK8sBytesString(value) {
+            var size = getK8sMemBytes(value);
+            var num = 1024.00; //byte
+            if (size < num)
+                return size + "B";
+            if (size < Math.pow(num, 2))
+                return (size / num).toFixed(2) + "Kb"; //kb
+            if (size < Math.pow(num, 3))
+                return (size / Math.pow(num, 2)).toFixed(2) + "Mb"; //M
+            if (size < Math.pow(num, 4))
+                return (size / Math.pow(num, 3)).toFixed(2) + "Gb"; //G
+            return (size / Math.pow(num, 4)).toFixed(2) + "Tb"; //T
+        }
+
+        //k8s Ki/Mi/Gi/Ti/K/M/G/T转为标准字节
+        function getK8sMemBytes(value) {
+            try {
+                if (value.indexOf('Ki') !== -1) {
+                    value = parseInt(value.split("Ki")[0]) * 1024;
+                } else if (value.indexOf('Mi') !== -1) {
+                    value = parseInt(value.split("Mi")[0]) * 1024 * 1024;
+                } else if (value.indexOf('Gi') !== -1) {
+                    value = parseInt(value.split("Gi")[0]) * 1024 * 1024 * 1024;
+                } else if (value.indexOf('Ti') !== -1) {
+                    value = parseInt(value.split("Ti")[0]) * 1024 * 1024 * 1024 * 1024;
+                }
+                // else if (value.indexOf('K') !== -1) {
+                //     value = parseInt(value.split("K")[0]) * 1e3;
+                // } else if (value.indexOf('M') !== -1) {
+                //     value = parseInt(value.split("M")[0]) * 1e6;
+                // } else if (value.indexOf('G') !== -1) {
+                //     value = parseInt(value.split("G")[0]) * 1e9;
+                // } else if (value.indexOf('T') !== -1) {
+                //     value = parseInt(value.split("T")[0]) * 1e12;
+                // }
+            } catch (e) {
+            }
+            return parseInt(value);
+        }
+
+        //k8s m/n转为标准核数
+        function getK8sCpu(value) {
+            if (value.indexOf('m') !== -1) {
+                value = parseFloat(value.split("m")[0]) / 1e3;
+            } else if (value.indexOf('u') !== -1) {
+                value = parseFloat(value.split("m")[0]) / 1e6;
+            } else if (value.indexOf('n') !== -1) {
+                value = parseFloat(value.split("n")[0]) / 1e9;
+            } else {
+                value = parseFloat(value);
+            }
+            return value.toFixed(5);
+        }
+    </script>
+
+    <!-- force redirect https -->
+    <script>
+        function redirectTLS() {
+            var reg = /^(192.168.)|(127.0.0.1)|(localhost)/;
+            if (window.location.hostname !== 'localhost' && !reg.test(window.location.hostname)) {
+                // 判断非本地server时 http强制转换成https
+                var targetProtocol = "https:";
+                if (window.location.protocol !== targetProtocol)
+                    window.location.href = targetProtocol +
+                        window.location.href.substring(window.location.protocol.length);
+            }
+        }
+    </script>
+
+    <script>
+        function baseURL() {
+            var newArguments = [];
+            for (let arg of arguments) {
+                arg = arg + '';
+                if (arg.charAt(0) === '/') {
+                    arg = arg.substr(1)
+                }
+                if (arg.charAt(arg.length - 1) === '/') {
+                    arg = arg.substr(0, arg.length - 1)
+                }
+                newArguments.push(arg)
+            }
+            var result = newArguments.join('/');
+            return result.charAt(0) === '/' ? result : ('/' + result)
+        }
+
+        function objectArrayAdd(arr, obj) {
+            arr.push(obj);
+        }
+
+        function objectArrayDel(arr, i) {
+            arr.splice(i, 1);
+        }
+
+        //数组检测初始化则
+        function objectArrayInitForRender(data, key, value) {
+            if (!data || !key) {
+                return;
+            }
+            let keys = key.split('.');
+            if (!keys.length) {
+                return;
+            }
+            let arrayKey = keys.pop();
+            var dataObject = data;
+            for (let i = 0; i < keys.length; i++) {
+                let k = keys[i];
+                if (!k) {
+                    continue;
+                }
+                if (!dataObject.hasOwnProperty(k) || !dataObject[k]) {
+                    dataObject[k] = {};
+                }
+                dataObject = dataObject[k];
+            }
+            if (!dataObject.hasOwnProperty(arrayKey) || !dataObject[arrayKey]) {
+                dataObject[arrayKey] = [];
+            }
+            dataObject = dataObject[arrayKey];
+            if (!dataObject.length) {
+                dataObject.push(value);
+            }
+        }
+    </script>
+{{end}}

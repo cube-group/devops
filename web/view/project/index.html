@@ -1,0 +1,92 @@
+{{define "project/index.html"}}
+    {{template "layout/top.html" .}}
+    {{/*<script src="/public/assets/js/grayscale.js"></script>*/}}
+    {{/*<style>*/}}
+    {{/*body{*/}}
+    {{/*-webkit-filter: grayscale(100%);*/}}
+    {{/*-moz-filter: grayscale(100%);*/}}
+    {{/*-ms-filter: grayscale(100%);*/}}
+    {{/*-o-filter: grayscale(100%);*/}}
+    {{/*filter: progid:DXImageTransform.Microsoft.BasicImage(grayscale=1);*/}}
+    {{/*_filter: none;*/}}
+    {{/*}*/}}
+    {{/*</style>*/}}
+    <!-- MAIN CONTENT -->
+    <script>
+        redirectTLS();
+    </script>
+
+    <div class="panel">
+        <div class="panel-heading">
+            <div class="panel-title">项目列表</div>
+            <div class="right">
+                <a href="/project/create" class="btn btn-sm btn-success">
+                    <span class="lnr lnr-plus-circle"></span>
+                    创建
+                </a>
+            </div>
+        </div>
+        <div class="panel-body">
+            {{ template "project/search.html" .}}
+            <table class="table table-hover" style="margin-top: 10px;">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>名称</th>
+                    <th>状态</th>
+                    <th>上线时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="v in list">
+                    <td>${v.id}</td>
+                    <td>
+                        <a data-toggle="tooltip" data-placement="bottom" :title="v.desc"
+                           :href="baseURL('/project/i',v.id)">${v.name}</a>
+                    </td>
+                    <td>
+                    </td>
+                    <td>
+                    </td>
+                    <td>
+                        <a :href="baseURL('/project/i',v.id,'/apply')" class="btn btn-xs btn-default">
+                            部署
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- 分页  -->
+    <div class="panel-body navbar-right">
+        {{ .rendering }}
+    </div>
+
+    <script>
+        vueMixin = {
+            data: {
+                list:{{.list}},
+                search:{{.search}},
+                location: '/project',
+            },
+            methods: {
+                onSearch() {
+                    window.location = this.location + '?' + $.param(this.search);
+                },
+            }
+        };
+    </script>
+
+    {{template "layout/footer.html" . }}
+{{end}}
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,55 @@
+{{define "tool/json.html"}}
+
+    <link rel="stylesheet" href="/public/assets/json-viewer/jquery.json-viewer.css"/>
+    <script src="/public/assets/json-viewer/jquery.json-viewer.js"></script>
+
+    <div class="row main-json">
+        <div class="col-md-6 core-json" style="height: 500px;padding: 0;">
+            <textarea id="original" style="padding:10px;width:100%;height: 100%;">{"hello":"world"}</textarea>
+        </div>
+        <div class="col-md-6 core-json" style="height: 500px;padding: 0;">
+            <div style="width:100%;height: 100%;background-color: #eeeeee;" id="json-renderer"></div>
+        </div>
+    </div>
+    <br>
+    <div class="row">
+        <button class="btn btn-primary" id="btn-format">json格式化</button>
+    </div>
+
+    <script>
+        $(function () {
+            $(window).bind("resize", windowResizeJson);
+            windowResizeJson();
+            renderJson();
+            renderJsonViewer();
+
+            $('#btn-format').click(function () {
+                renderJson();
+            });
+
+            $('#original').keyup(function () {
+                renderJsonViewer();
+            });
+        });
+
+        function windowResizeJson() {
+            $('.core-json').height($(window).height() - 200 - 125);
+        }
+
+        function renderJson() {
+            var input = eval('(' + $('#original').val() + ')');
+            $('#original').val(JSON.stringify(input, null, 4));
+        }
+
+        function renderJsonViewer() {
+            try {
+                var input = eval('(' + $('#original').val() + ')');
+            } catch (error) {
+                $('#json-renderer').text(error);
+                return;
+            }
+
+            $('#json-renderer').jsonViewer(input, {collapsed: false, withQuotes: true, withLinks: true});
+        }
+    </script>
+{{end}}

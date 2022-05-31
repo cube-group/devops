@@ -1,0 +1,33 @@
+{{define "project/_other_info_dockerfile.html"}}
+
+<div v-show="tab.name=='dockerfile'">
+    <!-- Dockerfile内容 -->
+        <div class="form-group">
+        <div class="layui-tab layui-tab-card">
+            <ul class="layui-tab-title">
+                <li class="layui-this">
+                    Dockerfile&nbsp;
+                </li>
+            </ul>
+
+            <div class="layui-tab-content" style="height: auto;min-height: 200px;">
+                <div class="layui-tab-item layui-show" lay-tips="标准Dockerfile内容, 如RUN、COPY、ENV等">
+                        <textarea style="height: 200px;" class="form-control codeValue"
+                                  placeholder="若为空则以宿主机模式运行"
+                                  v-model="project.dockerfile"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{end}}
+
+
+
+
+
+
+
+
+

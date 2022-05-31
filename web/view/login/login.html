@@ -1,0 +1,92 @@
+{{define "login/login.html"}}
+    <!doctype html>
+    <html lang="en" class="fullscreen-bg">
+
+    <head>
+        <title>Gitlab Oauth Service</title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+        <!-- VENDOR CSS -->
+        <link rel="stylesheet" href="/public/assets/vendor/bootstrap/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/public/assets/vendor/font-awesome/css/font-awesome.min.css">
+        <link rel="stylesheet" href="/public/assets/vendor/linearicons/style.css">
+        <!-- ICONS -->
+        <link rel="apple-touch-icon" sizes="76x76" href="/public/assets/img/apple-icon.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="/public/assets/img/favicon.png">
+        {{/*        <script src="/public/assets/vendor/jquery/jquery.min.js"></script>*/}}
+        {{/*<script src="/public/assets/js/grayscale.js"></script>*/}}
+        {{/*<style>*/}}
+        {{/*body{*/}}
+        {{/*-webkit-filter: grayscale(100%);*/}}
+        {{/*-moz-filter: grayscale(100%);*/}}
+        {{/*-ms-filter: grayscale(100%);*/}}
+        {{/*-o-filter: grayscale(100%);*/}}
+        {{/*filter: progid:DXImageTransform.Microsoft.BasicImage(grayscale=1);*/}}
+        {{/*_filter: none;*/}}
+        {{/*}*/}}
+        {{/*</style>*/}}
+        {{template "layout/main-css.html"}}
+        <script src="/public/assets/vendor/jquery/jquery.min.js"></script>
+        <script src="/public/bootstrap-3.4.1/js/bootstrap.min.js"></script>
+        <script src="/public/layui/layui.all.js"></script>
+        <script src="/public/vue/2.6.12/vue.js"></script>
+        {{template "layout/common.html"}}
+        {{template "layout/top-vue.html"}}
+    </head>
+
+    <body>
+    <div id="vue-app">    {{/*style="background: #6ea1ba;"*/}}
+        <div class="vertical-align-wrap">
+            <div class="vertical-align-middle">
+                <div class="auth-box lockscreen clearfix">
+                    <form class="content" method="post" action="/login" enctype="application/x-www-form-urlencoded">
+                        {{ if eq "" .pic }}
+                            <h3 style="text-align: center">CoreCD K8s Devops :)</h3>
+                        {{else}}
+                            <div class="user text-center">
+                                {{ if ne "" .pic }}
+                                    <img src="{{.pic}}" style="width: 100%;">
+                                {{end}}
+                            </div>
+                        {{end}}
+                        <br>
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input class="form-control" v-model="form.username" name="username">
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input class="form-control" v-model="form.password" name="password">
+                        </div>
+                        <div class="user text-center">
+                            <input type="submit" class="btn btn-danger btn-block"
+                                   style="overflow: hidden;text-overflow: ellipsis;" value="Sign In">
+                        </div>
+                        <a :href="auth.gitlab" style="color: #99a1a7;font-size: 10px;">
+                            Gitlab
+                        </a>
+                        <a :href="auth.gitee" style="color: #99a1a7;font-size: 10px;margin-left: 10px">
+                            Gitee
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        vueMixinList.push({
+            data: {
+                disableButton: false,
+                auth: {},
+                form: {},
+            },
+            methods: {
+            }
+        });
+    </script>
+
+    {{template "layout/footer-vue.html"}}
+    </body>
+    </html>
+{{end}}

@@ -1,0 +1,294 @@
+{{define "layout/footer.html"}}
+    <!-- END main -->
+
+    <!-- global-notice -->
+    <div id="global-notice" style="padding: 10px;background-color: #FFFFFF;" hidden>
+        <div class="fr-wrapper" dir="auto">
+            <div class="fr-element fr-view" id="global-notice-container" dir="auto" aria-disabled="false"
+                 spellcheck="false"
+                 style="font-family: sans-serif;color: #414141;line-height: 1.6;padding: 20px;min-height: 60px;"
+                 v-html="notice">
+            </div>
+        </div>
+    </div>
+    </div>
+    <!-- vue app end -->
+
+    {{/*    <footer>*/}}
+    {{/*        <div class="container-fluid">*/}}
+    {{/*            <p class="copyright">&copy; 2019-2021 CORECD SYS. {{ .appName }} {{ .appVersion }}</p>*/}}
+    {{/*        </div>*/}}
+    {{/*    </footer>*/}}
+    <!-- END wrapper div -->
+    </div>
+    {{template "layout/my.html" .}}
+    <!-- END vue-app div -->
+    </div>
+
+    <!-- vue instance -->
+    <script>
+        vueMixinList.push({
+            data: {
+                user:{{._u}},
+                assist: vueAssist,
+                messageCount: 0,
+                notice: '',
+                developers: {},
+                developersHtml: {},
+                leftButtons: [
+                    {name: 'Project', href: '/project', relRegExp: ["^\/project","^\/project\/[A-Za-z].*$"]},
+                    {name: 'Node', href: '/node', relRegExp: ["^\/node\/[A-Za-z].*$"]},
+                    {name: 'Config', href: '/cfg', relRegExp: ["^\/cfg\/[A-Za-z].*$"]},
+                    // {
+                    //     name: '我的项目',
+                    //     href: '/project',
+                    //     relRegExp: ["^\/project\/[A-za-z]+$", "\/projectGroup.*$"]
+                    // },
+                    // {name: '上线历史', href: '/history'},
+                    // {name: '配置中心', href: '/cfg'},
+                    // {name: '日志查询', href: '/loghub'},
+                    // {
+                    //     name: '微服务', href: '/bas', relRegExp: ["\/bas\/[A-Za-z]+\/.*$"]
+                    // },
+                    // {name: '快捷压测', href: '/gtester', relRegExp: ["\/gtester\/[A-Za-z/]+$"]},
+                    // {
+                    //     name: '信息统计', children: [
+                    //         {name: '代码统计', href: '/codeStats', relRegExp: ["\/codeStats\/[A-Za-z]+$"]},
+                    //         {name: '质量统计', href: '/sonar'},
+                    //     ]
+                    // },
+                    // {
+                    //     name: '便捷工具', children: [
+                    //         {name: 'CDN管理', href: '/tool/cdn'},
+                    //         {
+                    //             name: '镜像模板',
+                    //             href: '/tool/dockerfile',
+                    //             relRegExp: ["\/tool\/dockerfile\/[A-Za-z0-9\/]+$"]
+                    //         },
+                    //         {
+                    //             name: '秘钥工具',
+                    //             href: '/tool/password',
+                    //             relRegExp: ["\/tool\/password\/[A-Za-z0-9\/]+$"]
+                    //         },
+                    //         {
+                    //             name: '证书工具',
+                    //             href: '/tool/certificate',
+                    //             relRegExp: ["\/tool\/certificate\/[A-Za-z0-9\/]+$"]
+                    //         },
+                    //         {
+                    //             name: '常用工具',
+                    //             href: '/tool/common',
+                    //             relRegExp: ["\/tool\/common\/[A-Za-z0-9\/]+$"]
+                    //         },
+                    //         {
+                    //             name: 'wiki帮助',
+                    //             href: '/tool/wiki',
+                    //             relRegExp: ["\/tool\/wiki\/[A-Za-z0-9\/]+$"]
+                    //         }
+                    //     ]
+                    // },
+                    // {
+                    //     name: '系统管理', children: [
+                    //         {name: '操作日志', href: '/sys/log'},
+                    //         {
+                    //             name: '系统设置',
+                    //             href: '/sys/config',
+                    //             relRegExp: ["\/sys\/config\/[A-Za-z0-9\/]+$"]
+                    //         },
+                    //         {name: '集群管理', href: '/sys/cluster'},
+                    //         {name: '磁盘管理', href: '/sys/volume'},
+                    //         {name: '任务管理', href: '/sys/crontab'},
+                    //         {name: '权限管理', href: '/sys/acc'},
+                    //         {name: 'gitlab用户', href: '/sys/user', relRegExp: ["\/sys\/user\/[A-Za-z0-9\/]+$"]},
+                    //         {
+                    //             name: 'gitlab项目',
+                    //             href: '/sys/project',
+                    //             relRegExp: ["\/sys\/project\/[A-Za-z0-9\/]+$"]
+                    //         },
+                    //         {name: '基础配置', href: '/sys/cfg'},
+                    //     ]
+                    // },
+                ]
+            },
+            methods: {
+                isAdmin() {//是否为管理员
+                    return this.user.Adm === 1;
+                },
+                isMe(uid) {
+                    return this.user.ID === uid;
+                },
+                onDisplayDeveloper(id) {//展示开发者信息
+                    if (!this.developers[id]) {
+                        layui.alert('未找到开发者信息');
+                        return;
+                    }
+                    var user = this.developers[id];
+                    console.log(user)
+                    layui.layer.open({
+                        type: 1, area: ['480px', '250px'], title: false, closeBtn: false, shadeClose: true,
+                        content: "<div style='width：100%;height:100%;text-align:center;background-color: #EEEEEE'> " +
+                            `<br><img src='${user.AvatarUrl}' class='layui-circle' style='width:120px;height:120px;background-color: #CCCCCC;'/>` +
+                            `<br><br><h4>${user.Username} ${user.RealName}（GID: ${user.ID}）</h4><br>` +
+                            `<a class='btn btn-primary' target='_blank' href='${user.WebUrl}'>点击查看</a></div>`,
+                    });
+                },
+                getQueryString: getQueryString,
+                getWsSchema: getWsSchema,
+                getSchema: getSchema,
+                componentGitlabName: componentGitlabName,
+                leftHit(path, itemHref) {
+                    return itemHref == path || itemHref + '/' == path;
+                },
+                leftHitInRel(path, item) {
+                    if (!path) {
+                        return false;
+                    }
+                    if (item.rel) {//关联全等匹配
+                        for (var key in item.rel) {
+                            if (item.rel[key] == path || item.rel[key] + '/' == path) {
+                                return true;
+                            }
+                        }
+                    }
+                    if (item.relRegExp) {//关联正则匹配
+                        try {
+                            for (var key in item.relRegExp) {
+                                var reg = new RegExp(item.relRegExp[key]);
+                                if (reg.test(path)) {
+                                    return true;
+                                }
+                            }
+                        } catch (e) {
+                            return false;
+                        }
+                    }
+                    return false;
+                },
+                onLoadMessage() {//初始化系统消息
+                    reqGet("/message/list", (resData) => {
+                        this.messageCount = resData.pages.length;
+                    }, {loading: 0});
+                },
+                onInitLeftButton() {//初始化左侧栏按钮
+                    var pathName = window.location.pathname;
+                    for (var i in this.leftButtons) {
+                        var selected = false;
+                        var item = this.leftButtons[i];
+                        if (item.href) {
+                            if (this.leftHit(pathName, item.href)) {//href命中
+                                selected = true;
+                            } else if (this.leftHitInRel(pathName, item)) {
+                                selected = true;
+                            }
+                            if (selected) {
+                                this.leftButtons[i].active = true;
+                            }
+                        } else if (item.children) {
+                            for (var j in item.children) {
+                                var item2 = item.children[j];
+                                if (this.leftHit(pathName, item2.href)) {
+                                    selected = true;
+                                } else if (this.leftHitInRel(pathName, item2)) {
+                                    selected = true;
+                                }
+                                if (selected) {
+                                    this.leftButtons[i].active = true;
+                                    this.leftButtons[i].children[j].active = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                },
+                onInitLeftButtonClick() {//初始化左侧栏按钮点击
+                    var pathName = window.location.pathname;
+                    var had = false;
+                    $('.left-list').find('a').each(function () {
+                        if (had) {
+                            return;
+                        }
+                        var href = $(this).attr('href');
+                        if (pathName === href || pathName.indexOf(href) === 0) {
+                            $(this).closest('div').prev().click();
+                            had = true;
+                        }
+                    });
+                },
+                onLoadNotice() {//初始化notice
+                    reqGet("/global/notice", (resData) => {
+                        this.notice = resData.notice;
+                        if (!this.notice) {
+                            return;
+                        }
+                        layer.open({
+                            type: 1, title: false, closeBtn: false
+                            , area: ['800px', '400px'], shade: 0.8
+                            , id: 'global_notice' //设定一个id，防止重复弹出
+                            , resize: false, btnAlign: 'c', moveType: 1 //拖拽模式，0或者1
+                            , content: $('#global-notice')
+                            , time: 0, shadeClose: true
+                            , end: (layero) => {
+                                reqPost('/global/notice', null, () => {
+                                }, {loading: 0});
+                                return true;
+                            }
+                        });
+                    }, {loading: 0});
+                },
+                onRenderDeveloper(dataName) {//渲染页面有关的开发者信息
+                    if (!dataName) {
+                        dataName = 'developer';
+                    }
+                    var list = [];
+                    var listDisabled = {};
+                    $(`[data-${dataName}]`).each((i, ele) => {
+                        var uid = parseInt($(ele).data(dataName));
+                        list.push(uid);
+                        listDisabled[uid] = ($(ele).attr('disabled') == 'disabled');
+                    });
+                    if (!list.length) {
+                        return;
+                    }
+                    reqPostJson(`/global/gid/list`, list, (resData) => {
+                        for (var i in resData) {
+                            this.developers[i] = resData[i];
+                            this.developersHtml[i] = componentDeveloper(resData[i], listDisabled);
+                        }
+                        for (var uid in list) {
+                            if (!this.developers[uid]) {
+                                this.developersHtml[uid] = componentDeveloperNone();
+                            }
+                        }
+                        this.$forceUpdate();
+                    });
+                },
+                onCopy(text, event) {//复制功能
+                    var clipboard = new ClipboardJS(event.target, {text: () => text});
+                    clipboard.on("success", (e) => {
+                        layui.layer.msg("复制成功！");
+                    });
+                    clipboard.on("error", (e) => {// 不支持复制
+                        layui.layer.msg("复制失败！该浏览器不支持复制！");
+                    });
+                    clipboard.onClick(event);
+                }
+            },
+            created() {
+                this.onInitLeftButton();
+            },
+            mounted() {
+                // this.onLoadMessage();
+                $('#vue-app').show();
+                this.onInitLeftButtonClick();
+                // this.onLoadNotice();
+                // this.onRenderDeveloper();
+            }
+        });
+    </script>
+
+    <!-- vue -->
+    {{template "layout/footer-vue.html"}}
+
+    </body>
+    </html>
+{{end}}

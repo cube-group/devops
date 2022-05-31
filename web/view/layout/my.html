@@ -1,0 +1,44 @@
+{{define "layout/my.html"}}
+
+    <div id="my-container" style="padding: 20px;" hidden>
+        <div class="form-group">
+            <span class="badge">GID: ${user.ID}</span> Username: ${user.Username} ${user.RealName} ${user.Email}
+            ExpiredTime: ${user.TokenExpiredAt}
+        </div>
+        <div class="form-group">
+            <div class="bs-example" data-example-id="simple-jumbotron">
+                <div class="jumbotron" style="padding: 10px;">
+                    <h1>Oauth User</h1>
+                    <br>
+                    <p>adopt https://corecd.xx.com/oauth/user?code=xx Developer information can be obtained, which
+                        is mainly used for the docking of micro service interfaces.</p>
+                    <p>
+                        <a class="btn btn-primary btn-lg" href="#" role="button" @click="onCreateUserCode">Create
+                            Code</a>
+                        <a class="btn btn-default btn-lg" href="/bas">Service Gateway</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div>${userCode}</div>
+    </div>
+
+    <script>
+        vueMixinList.push({
+            data: {
+                userCode: '',
+            },
+            methods: {
+                onMy() {
+                    showDiv('#my-container', '我的资料', ['800px', '400px']);
+                },
+                onCreateUserCode() {
+                    this.userCode = '';
+                    reqGet('/user/code', (resData) => {
+                        this.userCode = resData;
+                    })
+                }
+            }
+        })
+    </script>
+{{end}}

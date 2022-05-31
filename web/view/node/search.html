@@ -1,0 +1,13 @@
+{{define "node/search.html"}}
+    <div class="form-inline">
+        <input type="text" class="form-control" name="id" placeholder="宿主机ID或名称或IP"
+               v-model="search.name" @keyup.enter="onSearch">
+        <div class="input-group">
+            <div class="input-group-btn">
+                <button type="submit" class="btn btn-primary" @click="onSearch">
+                    <i class="fa fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+{{end}}

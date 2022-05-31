@@ -1,0 +1,119 @@
+{{define "user/index.html"}}
+    {{template "layout/top.html" .}}
+
+    <div class="panel">
+        <div class="panel-heading">
+            <h3 class="panel-title">
+                gitlab用户列表
+            </h3>
+        </div>
+        <div class="panel-body">
+            {{ template "user/search.html" .}}
+            <br>
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username(蓝色为超管)</th>
+                    <th>姓名</th>
+                    <th>邮箱</th>
+                    <th>最近登录</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="v in list">
+                    <td class="col-md-1">${v.ID}</td>
+                    <td class="col-md-1">
+                        <span v-if="!v.Adm">${v.Username}</span>
+                        <span class="label label-primary" v-if="v.Adm">${v.Username}</span></td>
+                    <td class="col-md-1">
+                        <span v-html="developersHtml[v.ID]" :data-developer="v.ID" @click="onDisplayDeveloper(v.ID)">
+                        </span>
+                    </td>
+                    <td class="col-md-1">
+                        ${v.Email}
+                    </td>
+                    <td class="col-md-1">${v.TokenCreateAt}</td>
+                    <td class="col-md-1">
+                        <div class="btn-group">
+                            <a class="btn btn-default dropdown-toggle" data-toggle="dropdown"
+                               aria-haspopup="true" aria-expanded="false">
+                                Action <span class="caret"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a :href="baseURL+'/projects?uid='+v.ID">
+                                        所属项目
+                                    </a>
+                                </li>
+                                <li>
+                                    <a :href="baseURL+'/createProjects?uid='+v.ID">
+                                        已建项目
+                                    </a>
+                                </li>
+                                <li>
+                                    <a :href="'/sys/log?uid='+v.ID">操作日志
+                                    </a>
+                                </li>
+                                <li role="separator" class="divider"></li>
+                                <li>
+                                    <a :href="baseURL+'/acc?uid='+v.ID">权限
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="javascript:" @click="onCreateTotp(v)">无障碍部署totp码
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- 分页  -->
+        <div class="panel-body navbar-right">
+            {{ .rendering }}
+        </div>
+    </div>
+    {{/*    {{template "user/edit.html" . }}*/}}
+
+    <script>
+        vueMixin = {
+            data: {
+                baseURL: '/sys/user',
+                list:{{.list}},
+                search:{{.search}},
+            },
+            methods: {
+                onSearch() {
+                    this.search.page = 1;
+                    window.location = this.baseURL + '?' + $.param(this.search);
+                },
+                onCreateTotp(v) {//激活用户畅通部署totp码
+                    displayConfirm('确认开通无障碍部署totp码?', '全局类秘钥', '用户类秘钥', () => {
+                        reqPost(`${this.baseURL}/totp`, {uid:v.ID,type:1}, (resData) => {
+                            layer.alert(`totp秘钥：${resData.secret}`, {title: 'totp资料'});
+                        });
+                    }, () => {
+                        reqPost(`${this.baseURL}/totp`, {uid:v.ID}, (resData) => {
+                            layer.alert(`totp秘钥：${resData.secret}`, {title: 'totp资料'});
+                        });
+                    })
+                }
+            }
+        }
+    </script>
+
+    {{template "layout/footer.html" . }}
+{{end}}
+
+
+
+
+
+
+
+
+

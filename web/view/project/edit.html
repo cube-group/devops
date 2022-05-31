@@ -1,0 +1,106 @@
+{{define "project/edit.html"}}
+    {{template "layout/top.html" .}}
+    <!-- 基础信息 -->
+    <div class="panel">
+        <div class="panel-heading">
+            <div class="panel-title">
+                <a href="/project">< 返回 |</a>
+                <span v-if="!project.id">Project Create</span>
+                <span v-if="project.id">Project Edit</span>
+            </div>
+            <div class="right">
+                <button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i>
+                </button>
+            </div>
+        </div>
+        <div class="panel-body" style="padding-left: 40px;">
+            <div class="form-group">
+                <label>名称<span style="color: #FF1717">*</span></label>
+                <input type="text" class="form-control" v-model="project.name" placeholder="项目名称">
+            </div>
+            <div class="form-group">
+                <label>描述</label>
+                <input type="text" class="form-control" v-model="project.desc" placeholder="项目描述">
+            </div>
+            <div class="form-group">
+                <label>钉钉Webhook</label>
+                <input type="text" class="form-control" v-model="project.ding" placeholder="ding ding webhook url">
+            </div>
+        </div>
+    </div>
+    <!-- 核心配置 -->
+    <div class="panel">
+        <div class="panel-heading">
+            <h2 class="panel-title">核心配置</h2>
+            <div class="right">
+                <button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i>
+                </button>
+            </div>
+        </div>
+        <div class="panel-body">
+            <!-- 渲染tab buttons -->
+            <div style="font-size: 14px;">
+                    <span v-for="(v,i) in tabs">
+                        <a style="margin-right:10px;" href="javascript:" @click="tab=v"
+                           v-if="tab.name!=v.name">
+                            ${v.name}
+                        </a>
+                        <label style="color: #5893fa;border-bottom:1px solid;padding-bottom:6px;margin-right:10px;"
+                               v-if="tab.name==v.name" disabled>
+                            ${v.name}
+                        </label>
+                    </span>
+            </div>
+            <br>
+            <!-- 渲染tab contents -->
+            <div class="tab-content" id="otherInfoTabs">
+                {{ template "project/_other_info_code_ci.html" . }}
+                {{ template "project/_other_info_volume.html" . }}
+                {{ template "project/_other_info_dockerfile.html" . }}
+            </div>
+        </div>
+    </div>
+    <!-- 核心配置End -->
+    <div class="form-group">
+        <a class="btn btn-primary" @click="onSave()">保存</a>
+    </div>
+
+    <script>
+        var project = {{.project}};
+        if (!project) {
+            project = {};
+        }
+        objectArrayInitForRender(project, "volume", {type: 'content'})
+    </script>
+    <!-- vue -->
+    <script>
+        vueMixin = {
+            data: {
+                tab: null,
+                tabs: [
+                    {desc: 'Shell', name: 'shell'},
+                    {desc: '文件挂载', name: 'volume'},
+                    {desc: 'Dockerfile', name: 'dockerfile'},
+                ],
+                project: project,
+            },
+            methods: {
+                onSave() {
+                    displayConfirm('确认提交?', '确认', '取消', () => {
+                        var requestURL = baseURL('/project/save');
+                        if (this.project.id) {
+                            requestURL = baseURL('/project/i/', this.node.id, '/save')
+                        }
+                        var data = deepCloneObject(this.project);
+                        reqPostJson(requestURL, data, baseURL('/project'));
+                    });
+                },
+            },
+            created() {//初始化数据合法化
+                this.tab = this.tabs[0];
+            },
+        };
+    </script>
+
+    {{template "layout/footer.html" . }}
+{{end}}

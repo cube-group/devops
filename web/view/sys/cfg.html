@@ -1,0 +1,63 @@
+{{define "sys/cfg.html"}}
+    {{template "layout/top.html" .}}
+
+    <div class="panel">
+        <div class="panel-heading">
+            <div class="panel-title">
+                基础配置（谨慎操作）
+            </div>
+            <div class="right">
+                <a @click="onSave()" class="btn btn-primary">保存</a>
+                <a @click="onReload()" class="btn btn-danger">立即重载</a>
+            </div>
+        </div>
+        <div class="panel-body">
+            <ul class="nav nav-pills">
+                <li role="presentation" v-for="v in cfgSelectList" @click="cfgSelect=v"
+                    :class="cfgSelect==v ? 'active':''"><a href="#">${v}</a></li>
+            </ul>
+            <div class="row" style="padding: 30px;">
+                {{template "sys/cfg_common.html" .}}
+                {{template "sys/cfg_system.html" .}}
+                {{template "sys/cfg_k8s.html" .}}
+                {{template "sys/cfg_registry.html" .}}
+                {{template "sys/cfg_auth.html" .}}
+            </div>
+        </div>
+    </div>
+    <script>
+        vueMixin = {
+            data: {
+                rows: 1,
+                latestItem: null,
+                list:{{.list}},
+                data:{{.data}},
+                image:{{.image}},
+                cfgSelectList: ['常规配置', '系统配置', '集群配置', '镜像仓库', '用户授权'],
+                cfgSelect: '常规配置',
+            },
+            methods: {
+                onReload() {
+                    displayConfirm('立即刷新系统基础配置？', '确认', '取消', () => {
+                        reqPost('/sys/cfg/reload');
+                    })
+                },
+                onSave(v) {
+                    displayConfirm('确认保存', '确认', '取消', () => {
+                        var data = deepCloneObject(this.data);
+                        data.common.notice = this.editor.txt.html();
+                        reqPostJson('/sys/cfg', data);
+                    })
+                }
+            },
+            created() {
+                if (!this.data) {
+                    this.data = {
+                        common: {}, system: {}, k8s: [], registry: {}, auth: {}
+                    };
+                }
+            }
+        }
+    </script>
+    {{template "layout/footer.html" .}}
+{{end}}
