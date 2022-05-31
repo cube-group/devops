@@ -25,5 +25,5 @@ func WarningAsPanic(c *gin.Context, err error) {
 }
 
 func IsAjax(c *gin.Context) bool {
-	return c.GetHeader("x-corecd-ajax") == "1"
+	return c.GetHeader("x-visible-ajax") == "1"
 }

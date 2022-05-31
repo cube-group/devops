@@ -126,7 +126,7 @@ func (t *User) PwdAddUser(password string) error {
 	if t.IsRoot() {
 		t.Password = password
 	} else {
-		t.Password = md5.MD5("corecd." + password)
+		t.Password = md5.MD5("visible." + password)
 	}
 	return DB().Save(t).Error
 }
@@ -136,7 +136,7 @@ func (t *User) PwdCheckUser(username, password string) *User {
 	if t.IsRoot() {
 		t.Password = password
 	} else {
-		t.Password = md5.MD5("corecd." + password)
+		t.Password = md5.MD5("visible." + password)
 	}
 	if DB().Where(t).Take(&t).Error != nil {
 		return nil

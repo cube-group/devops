@@ -38,7 +38,7 @@
                     </div>
                     <div class="input-group" v-if="v.cd==1">
                         <div class="input-group-addon">部署NodeSelector(可选)</div>
-                        <input class="form-control" v-model="v.cdNodeSelector" placeholder="如：corecd.worker=true">
+                        <input class="form-control" v-model="v.cdNodeSelector" placeholder="如：visible.worker=true">
                     </div>
                     <div class="input-group" v-if="v.cd==1">
                         <div class="input-group-addon">主机磁盘挂载(可选)</div>
@@ -53,7 +53,7 @@
                     </div>
                     <div class="input-group" v-if="v.ci==1">
                         <div class="input-group-addon">构建NodeSelector(可选)</div>
-                        <input class="form-control" v-model="v.ciNodeSelector" placeholder="如：corecd.ci=true">
+                        <input class="form-control" v-model="v.ciNodeSelector" placeholder="如：visible.ci=true">
                     </div>
                     <div class="input-group" v-if="v.ci==1">
                         <div class="input-group-addon">主机磁盘挂载(可选)</div>
@@ -68,7 +68,7 @@
                     </div>
                     <div class="input-group" v-if="v.gt==1">
                         <div class="input-group-addon">压测NodeSelector(可选)</div>
-                        <input class="form-control" v-model="v.gtNodeSelector" placeholder="如：corecd.gt=true">
+                        <input class="form-control" v-model="v.gtNodeSelector" placeholder="如：visible.gt=true">
                     </div>
                 </div>
             </div>

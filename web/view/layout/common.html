@@ -911,9 +911,9 @@
                 }
             }
             if (request.headers) {
-                request.headers['x-corecd-ajax'] = "1";
+                request.headers['x-visible-ajax'] = "1";
             } else {
-                request.headers = {"x-corecd-ajax": "1"};
+                request.headers = {"x-visible-ajax": "1"};
             }
             $.ajax(request);
         }
