@@ -32,7 +32,9 @@ func argumentsExchange(assist string, b []byte) (res []byte) {
 	}
 	var respStr string
 	switch assist {
-	case "sshpass": //ssh
+	case "local": //local bash
+		return
+	case "sshpass": //sshpass
 		if node := models.GetNode(convert.MustUint32(u.Query().Get("id"))); node != nil {
 			respStr = fmt.Sprintf(
 				`{"Arguments":"?arg=-p&arg=%s&arg=ssh&arg=-o&arg=StrictHostKeyChecking=no&arg=-p&arg=%s&arg=%s@%s","AuthToken":"%s"}`,

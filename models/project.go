@@ -36,18 +36,18 @@ type ProjectMarshalJSON Project
 
 //virtual project
 type Project struct {
-	ID              uint32                 `gorm:"primarykey;column:id" json:"id" form:"id"`
-	Name            string                 `gorm:"index;column:name" json:"name" form:"name" binding:"required"`
-	Desc            string                 `gorm:"column:desc" json:"desc" form:"desc" binding:"required"`
-	Uid             *uint32                `gorm:"column:uid" json:"uid" form:"-"`
-	Ding            string                 `gorm:"column:ding" json:"ding" form:"ding"`
-	Shell           string                 `gorm:"column:shell" json:"shell" form:"shell"`
-	Dockerfile      string                 `gorm:"column:dockerfile" json:"dockerfile" form:"dockerfile"`
-	Template        ProjectTemplate        `gorm:"column:template" json:"template" form:"template"`
-	Volume          ProjectVolumeList      `gorm:"column:volume" json:"volume" form:"volume"` //ci configmap
-	CreatedAt       time.Time              `json:"createdAt"`
-	UpdatedAt       time.Time              `json:"updatedAt"`
-	DeletedAt       gorm.DeletedAt         `gorm:"index" json:"-"`
+	ID        uint32                `gorm:"primarykey;column:id" json:"id" form:"id"`
+	Name      string                `gorm:"index;column:name" json:"name" form:"name" binding:"required"`
+	Desc      string                `gorm:"column:desc" json:"desc" form:"desc" binding:"required"`
+	Uid       *uint32               `gorm:"column:uid" json:"uid" form:"-"`
+	Ding      string                `gorm:"column:ding" json:"ding" form:"ding"`
+	Shell     string                `gorm:"column:shell" json:"shell" form:"shell"`
+	Docker    ProjectDockerTemplate `gorm:"" json:"docker" form:"docker"`
+	Volume    ProjectVolumeList     `gorm:"" json:"volume" form:"volume"`
+	Cronjob   string                `gorm:"" json:"cronjob" form:"cronjob"`
+	CreatedAt time.Time             `json:"createdAt"`
+	UpdatedAt time.Time             `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt        `gorm:"index" json:"-"`
 }
 
 func (t *Project) TableName() string {
@@ -78,14 +78,25 @@ func (t Project) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (t *Project) GetLatestHistory() *History {
+	var i History
+	if DB().Last(&i, "project_id=?", t.ID).Error != nil {
+		return nil
+	}
+	return &i
+}
+
 //k8s cluster visual project data validator check
-func (t *Project) Validator(c *gin.Context) error {
+func (t *Project) Validator() error {
 	for i := 0; i < len(t.Volume); {
 		if t.Volume[i].Validator() != nil {
 			t.Volume = append(t.Volume[:i], t.Volume[i+1:]...)
 		} else {
 			i++
 		}
+	}
+	if err := t.Docker.Validator(); err != nil {
+		return err
 	}
 	return nil
 }

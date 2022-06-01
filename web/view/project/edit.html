@@ -56,7 +56,7 @@
             <div class="tab-content" id="otherInfoTabs">
                 {{ template "project/_other_info_code_ci.html" . }}
                 {{ template "project/_other_info_volume.html" . }}
-                {{ template "project/_other_info_dockerfile.html" . }}
+                {{ template "project/_other_info_docker.html" . }}
             </div>
         </div>
     </div>
@@ -68,9 +68,12 @@
     <script>
         var project = {{.project}};
         if (!project) {
-            project = {};
+            project = {docker: {privileged: 1}};
         }
         objectArrayInitForRender(project, "volume", {type: 'content'})
+        objectArrayInitForRender(project, "docker.ports", {})
+        objectArrayInitForRender(project, "docker.environments", {})
+        objectArrayInitForRender(project, "docker.volumes", {})
     </script>
     <!-- vue -->
     <script>
@@ -80,7 +83,7 @@
                 tabs: [
                     {desc: 'Shell', name: 'shell'},
                     {desc: '文件挂载', name: 'volume'},
-                    {desc: 'Dockerfile', name: 'dockerfile'},
+                    {desc: 'Docker', name: 'docker'},
                 ],
                 project: project,
             },
@@ -89,7 +92,7 @@
                     displayConfirm('确认提交?', '确认', '取消', () => {
                         var requestURL = baseURL('/project/save');
                         if (this.project.id) {
-                            requestURL = baseURL('/project/i/', this.node.id, '/save')
+                            requestURL = baseURL('/project/i/', this.project.id, '/save')
                         }
                         var data = deepCloneObject(this.project);
                         reqPostJson(requestURL, data, baseURL('/project'));

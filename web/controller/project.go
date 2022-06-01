@@ -49,8 +49,11 @@ func (t *ProjectController) del(c *gin.Context) {
 }
 
 func (t *ProjectController) apply(c *gin.Context) {
+	var project = models.GetProject(c)
 	g.HTML(c, "project/apply.html", gin.H{
-		"project": models.GetProject(c),
+		"project": project,
+		"history": project.GetLatestHistory(),
+		"nodes":   models.GetNodes(),
 	})
 }
 

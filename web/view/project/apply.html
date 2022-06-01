@@ -1,101 +1,69 @@
-{{define "project/edit.html"}}
+{{define "project/apply.html"}}
     {{template "layout/top.html" .}}
     <!-- 基础信息 -->
     <div class="panel">
         <div class="panel-heading">
             <div class="panel-title">
-                项目部署
+                <a href="/project">< 返回 | </a>项目部署 (${project.name})
             </div>
-            <div class="right">
-                <button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i>
-                </button>
-            </div>
-        </div>
-        <div class="panel-body" style="padding-left: 40px;">
-            <div class="form-group">
-                <label>名称<span style="color: #FF1717">*</span></label>
-                <input type="text" class="form-control" v-model="project.name" placeholder="项目名称">
-            </div>
-            <div class="form-group">
-                <label>描述</label>
-                <input type="text" class="form-control" v-model="project.desc" placeholder="项目描述">
-            </div>
-            <div class="form-group">
-                <label>钉钉Webhook</label>
-                <input type="text" class="form-control" v-model="project.ding" placeholder="ding ding webhook url">
-            </div>
-        </div>
-    </div>
-    <!-- 核心配置 -->
-    <div class="panel">
-        <div class="panel-heading">
-            <h2 class="panel-title">核心配置</h2>
             <div class="right">
                 <button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i>
                 </button>
             </div>
         </div>
         <div class="panel-body">
-            <!-- 渲染tab buttons -->
-            <div style="font-size: 14px;">
-                    <span v-for="(v,i) in tabs">
-                        <a style="margin-right:10px;" href="javascript:" @click="tab=v"
-                           v-if="tab.name!=v.name">
-                            ${v.name}
-                        </a>
-                        <label style="color: #5893fa;border-bottom:1px solid;padding-bottom:6px;margin-right:10px;"
-                               v-if="tab.name==v.name" disabled>
-                            ${v.name}
-                        </label>
-                    </span>
+            <div class="form-group">
+                <label>版本标号<span style="color: #FF1717">*</span></label>
+                <input type="text" class="form-control" v-model="info.version" placeholder="如: v1.1">
             </div>
-            <br>
-            <!-- 渲染tab contents -->
-            <div class="tab-content" id="otherInfoTabs">
-                {{ template "project/_other_info_code_ci.html" . }}
-                {{ template "project/_other_info_volume.html" . }}
-                {{ template "project/_other_info_dockerfile.html" . }}
+            <div class="form-group">
+                <label>上线内容<span style="color: #FF1717">*</span></label>
+                <textarea class="form-control" rows="4" v-model="info.desc"
+                          placeholder="如：1、上线xxxx；2、xxxxx;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Node选择<span style="color: #FF1717">*</span></label>
+                <select class="form-control" v-model.number="info.nodeId">
+                    <option value="0">选择Node节点</option>
+                    <option v-for="v in nodes" :value="v.id">${v.name} ${v.ip}</option>
+                </select>
             </div>
         </div>
     </div>
     <!-- 核心配置End -->
     <div class="form-group">
-        <a class="btn btn-primary" @click="onSave()">保存</a>
+        <a class="btn btn-primary" @click="onOnline()">上线</a>
     </div>
 
     <script>
         var project = {{.project}};
-        if (!project) {
-            project = {};
+        var info = {{.history}};
+        if (!info) {
+            info = {'nodeId': 0};
         }
-        objectArrayInitForRender(project, "volume", {type: 'content'})
     </script>
     <!-- vue -->
     <script>
         vueMixin = {
             data: {
-                tab: null,
-                tabs: [
-                    {desc: 'Shell', name: 'shell'},
-                    {desc: '文件挂载', name: 'volume'},
-                    {desc: 'Dockerfile', name: 'dockerfile'},
-                ],
+                nodes:{{.nodes}},
                 project: project,
+                info: info,
             },
             methods: {
-                onSave() {
-                    displayConfirm('确认提交?', '确认', '取消', () => {
-                        var requestURL = baseURL('/project/save');
-                        if (this.project.id) {
-                            requestURL = baseURL('/project/i/', this.node.id, '/save')
-                        }
-                        var data = deepCloneObject(this.project);
-                        reqPostJson(requestURL, data, baseURL('/project'));
+                onOnline() {
+                    displayConfirm('确认上线?', '确认', '取消', () => {
+                        var requestURL = baseURL('/project/i/', this.project.id, '/online')
+                        var data = deepCloneObject(this.info);
+                        data.projectId = project.id;
+                        reqPostJson(requestURL, data, () => {
+                            window.location = '';
+                        });
                     });
                 },
             },
             created() {//初始化数据合法化
-                this.tab = this.tabs[0];
+                this.info.version = '';
             },
         };
     </script>

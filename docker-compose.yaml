@@ -1,62 +1,62 @@
 version: '3'
 services:
-    mysql:
-      image: mysql:5.7
-      container_name: mysql
-      command: --default-authentication-plugin=mysql_native_password
-      #warning mysql cmd
-      #ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'root';
-      platform: linux/amd64
-      restart: always
-      expose:
-        - 3306
-      ports:
-        - 3306:3306
-      volumes:
-        - ./mysql:/var/lib/mysql
-        - ./local/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
-      environment:
-        - MYSQL_DATABASE=devops
-        - MYSQL_USER=devops
-        - MYSQL_PASSWORD=devops
-        - MYSQL_ROOT_PASSWORD=root
-      networks:
-        - devops
-    devops-shell:
-      build:
-        context: ./local
-    devops:
-      depends_on:
-        - mysql
-        - devops-shell
-      build:
-        context: .
-        dockerfile: Dockerfile
-        args:
-          platform: linux/amd64
-      image: devops-shell
-      platform: linux/amd64
-      container_name: devops
-      restart: always
-      expose:
-        - 8888
-      ports:
-        - 80:80
-      environment:
-        - DB_DEBUG=1
-        - DB_HOST=mysql
-        - DB_USERNAME=devops
-        - DB_PASSWORD=devops
-        - DB_NAME=devops
-      volumes:
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    #warning mysql cmd
+    #ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'root';
+    platform: linux/amd64
+    restart: always
+    expose:
+      - 3306
+    ports:
+      - 3306:3306
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - ./local/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+    environment:
+      - MYSQL_DATABASE=devops
+      - MYSQL_USER=devops
+      - MYSQL_PASSWORD=devops
+      - MYSQL_ROOT_PASSWORD=root
+    networks:
+      - devops
+  devops-shell:
+    build:
+      context: ./local
+    image: devops-shell:latest
+    platform: linux/amd64
+  devops:
+    depends_on:
+      - mysql
+      - devops-shell
+    image: devops-shell
+    platform: linux/amd64
+    container_name: devops
+    restart: always
+    expose:
+      - 8888
+    ports:
+      - 80:80
+    environment:
+      - DB_DEBUG=1
+      - DB_HOST=mysql
+      - DB_USERNAME=devops
+      - DB_PASSWORD=devops
+      - DB_NAME=devops
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./bin/app:/go/app
+      - ./config.yaml:/go/config.yaml
       - ./web/public:/go/web/public
       - ./web/view:/go/web/view
-      entrypoint: ./app
-      links:
-        - mysql
-      networks:
-        - devops
+    working_dir: /go
+    entrypoint: ./app
+    links:
+      - mysql
+    networks:
+      - devops
 networks:
   devops:
     driver: bridge

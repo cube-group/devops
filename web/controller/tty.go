@@ -15,7 +15,9 @@ type TtyController struct {
 }
 
 func (t *TtyController) Init(group *gin.RouterGroup) {
-	group.GET("/node", t.node)
+	group.GET("/local", t.page)
+	group.GET("/localws", t.localws)
+	group.GET("/node", t.page)
 	group.GET("/nodews", t.nodews)
 	group.GET("/auth_token.js", t.ttyJs)
 	group.GET("/js/*.js", t.ttyJs)
@@ -42,7 +44,7 @@ func (t *TtyController) ttyJs(c *gin.Context) {
 	}
 }
 
-func (t *TtyController) node(c *gin.Context) {
+func (t *TtyController) page(c *gin.Context) {
 	resp, err := req.Get("http://127.0.0.1:"+setting.SysGoTtyPortSshpass, req.Header{"Authorization": "Basic " + base64.Base64Encode(setting.SysGoTtyRandBasicAuth)})
 	if err != nil {
 		c.String(http.StatusNoContent, "TTY Connect Error "+err.Error())
@@ -52,7 +54,12 @@ func (t *TtyController) node(c *gin.Context) {
 	}
 }
 
-//gotty for node ssh
+//gotty for remote node ssh
 func (t *TtyController) nodews(c *gin.Context) {
 	tty.Proxy(c.Writer, c.Request, "127.0.0.1:"+setting.SysGoTtyPortSshpass, "sshpass")
+}
+
+//gotty for local bash
+func (t *TtyController) localws(c *gin.Context) {
+	tty.Proxy(c.Writer, c.Request, "127.0.0.1:"+setting.SysGoTtyPortLocal, "local")
 }

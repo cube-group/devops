@@ -1,23 +1,25 @@
-FROM --platform=linux/amd64 debian:stretch
+#devops程序运行所需外壳环境
+FROM --platform=linux/amd64 debian:11
 USER root
-ENV APP_PATH /go
-ENV WEB_SERVER "0.0.0.0:80"
 
 COPY ./sources.list /etc/apt/sources.list
-COPY ./config.yaml $APP_PATH/local/config.yaml
-COPY ./gotty_linux_amd64.tar.gz $APP_PATH/local/gotty_linux_amd64.tar.gz
+COPY ./docker.list /etc/apt/sources.list.d/docker.list
+COPY ./gotty_linux_amd64.tar.gz /gotty_linux_amd64.tar.gz
 
-RUN cd $APP_PATH && \
-apt-get update -y && \
-apt-get install -y curl && \
-apt-get install -y tzdata sshpass && \
-tar -zxvf local/gotty_linux_amd64.tar.gz >> /dev/null && \
-mv gotty /usr/local/bin/gotty && \
-chmod +x /usr/local/bin/gotty && \
-mkdir -p ~/.ssh && \
-chmod -R 600 ~/.ssh && \
-echo "Asia/Shanghai" > /etc/timezone && \
-ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-rm -rf local/gotty_linux_amd64.tar.gz
+RUN apt-get update -y && \
+    apt-get install -y ca-certificates gpg dirmngr curl gpg-agent && \
+    curl -fsSL "https://download.docker.com/linux/debian/gpg" | apt-key add -qq - && \
+    apt-get update -y && \
+    apt-get install -y tzdata ssh sshpass git docker-ce-cli --no-install-recommends && \
+    cd / && tar -zxvf /gotty_linux_amd64.tar.gz >> /dev/null && \
+    mv gotty /usr/local/bin/gotty && \
+    chmod +x /usr/local/bin/gotty && \
+    echo "Asia/Shanghai" > /etc/timezone && \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    rm -rf /gotty_linux_amd64.tar.gz && \
+    rm -rf /var/cache/* && \
+    rm -rf /var/log/* && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt autoclean && apt clean && apt autoremove
 
-WORKDIR $APP_PATH
+WORKDIR /

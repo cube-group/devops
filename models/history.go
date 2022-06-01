@@ -73,17 +73,19 @@ type HistoryMarshalJSON History
 type History struct {
 	ID        uint32         `gorm:"primarykey;column:id" json:"id" form:"id"`
 	Uid       *uint32        `gorm:"" json:"uid" form:"-"`
-	Pid       uint32         `gorm:"" json:"pid" form:"-"`
+	ProjectId uint32         `gorm:"" json:"projectId" form:"projectId" binding:"required"`
+	NodeId    uint32         `gorm:"" json:"nodeId" form:"nodeId" binding:"required"`
+	Version   string         `gorm:"" json:"version" form:"version" binding:"required"`
 	Desc      string         `gorm:"" json:"desc" form:"desc" binding:"required"`
-	Time      HistoryTime   `gorm:"time" json:"time" form:"-"`
-	Project   *Project      `gorm:"" json:"project" form:"-"`
+	Time      HistoryTime    `gorm:"time" json:"time" form:"-"`
+	Project   *Project       `gorm:"" json:"project" form:"-"`
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (t *History) TableName() string {
-	return "c_history"
+	return "d_history"
 }
 func (t History) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {

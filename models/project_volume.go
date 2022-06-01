@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/imroc/req"
 )
 
 //k8s cluster virtual project ci/cd file
@@ -40,4 +41,17 @@ func (t *ProjectVolumeList) Scan(value interface{}) error {
 // 实现 driver.Valuer 接口，Value 返回 json value
 func (t ProjectVolumeList) Value() (driver.Value, error) {
 	return json.Marshal(t)
+}
+
+func (t *ProjectVolume) Load() (res string, err error) {
+	if t.Type == "url" {
+		resp, err := req.Get(t.Content)
+		if err != nil {
+			return
+		}
+		res = resp.String()
+	} else if t.Type == "content" {
+		res = t.Content
+	}
+	return
 }

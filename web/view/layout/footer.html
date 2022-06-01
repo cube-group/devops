@@ -36,9 +36,15 @@
                 developers: {},
                 developersHtml: {},
                 leftButtons: [
-                    {name: 'Project', href: '/project', relRegExp: ["^\/project","^\/project\/[A-Za-z].*$"]},
+                    {name: 'Project', href: '/project', relRegExp: ["^\/project", "^\/project\/[A-Za-z].*$"]},
                     {name: 'Node', href: '/node', relRegExp: ["^\/node\/[A-Za-z].*$"]},
-                    {name: 'Config', href: '/cfg', relRegExp: ["^\/cfg\/[A-Za-z].*$"]},
+                    {
+                        name: 'System',
+                        children: [
+                            {name: 'Config', href: '/cfg'},
+                            {name: 'TTY', href: '/cfg/tty'},
+                        ]
+                    },
                     // {
                     //     name: '我的项目',
                     //     href: '/project',

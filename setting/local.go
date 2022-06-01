@@ -12,7 +12,7 @@ func initLocal() {
 	vip := viper.New()
 	vip.SetConfigName("config")
 	vip.SetConfigType("yaml")
-	vip.AddConfigPath("local")
+	vip.AddConfigPath(".")
 	if err := vip.ReadInConfig(); err != nil {
 		log.Fatal("init", "initLocal", err)
 	}

@@ -11,7 +11,7 @@ func Save(c *gin.Context) (err error) {
 	if err = ginutil.ShouldBind(c, &val); err != nil {
 		return
 	}
-	if err = val.Validator(c); err != nil {
+	if err = val.Validator(); err != nil {
 		return
 	}
 	if val.ID == 0 {

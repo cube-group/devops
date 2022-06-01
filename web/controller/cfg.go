@@ -14,6 +14,7 @@ type CfgController struct {
 func (t *CfgController) Init(group *gin.RouterGroup) {
 	group.GET(".", t.index)
 	group.POST(".", t.save)
+	group.GET("/tty", t.localTty)
 }
 
 func (t *CfgController) index(c *gin.Context) {
@@ -26,4 +27,8 @@ func (t *CfgController) index(c *gin.Context) {
 
 func (t *CfgController) save(c *gin.Context) {
 	ginutil.JsonAuto(c, "Success", cfg.Save(c), nil)
+}
+
+func (t *CfgController) localTty(c *gin.Context) {
+	g.HTML(c, "cfg/tty.html", gin.H{})
 }

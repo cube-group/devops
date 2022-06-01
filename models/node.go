@@ -32,6 +32,11 @@ func GetNode(values ...interface{}) *Node {
 	return nil
 }
 
+func GetNodes() (res []Node) {
+	DB().Order("id DESC").Find(&res)
+	return res
+}
+
 type NodeMarshalJSON Node
 
 //virtual Node

@@ -1,0 +1,109 @@
+{{define "project/_other_info_docker.html"}}
+
+    <div v-show="tab.name=='docker'">
+
+        <!-- dockerfile -->
+        <div class="form-group">
+            <label>
+                Dockerfile
+            </label>
+            <textarea rows="10" class="form-control"
+                      placeholder="若为空则以宿主机模式运行"
+                      v-model="project.docker.dockerfile"></textarea>
+        </div>
+
+        <!-- name -->
+        <div class="form-group">
+            <label>docker run --name</label>
+            <input class="form-control"
+                   placeholder="容器别名"
+                   v-model="project.docker.name"/>
+        </div>
+        <!-- privileged -->
+        <div class="form-group">
+            <label>docker run --privileged</label>
+            <select class="form-control"
+                    v-model.number="project.docker.privileged">
+                <option value="0">不开启</option>
+                <option value="1">开启</option>
+            </select>
+        </div>
+        <!-- cmd -->
+        <div class="form-group">
+            <label>docker run cmd</label>
+            <input class="form-control"
+                   placeholder="追加程序入口"
+                   v-model="project.docker.cmd"/>
+        </div>
+        <!-- ports -->
+        <div class="form-group">
+            <label>docker run -p</label>
+            <div class="input-group" v-for="(v,i) in project.docker.ports">
+                <div class="input-group-addon" style="padding: 0;">
+                    <div style="width: 120px;">HostPort</div>
+                </div>
+                <input class="form-control" v-model="v.key" placeholder="8080">
+                <div class="input-group-addon" style="padding: 0;">
+                    <div style="width: 120px;">ContainerPort</div>
+                </div>
+                <input class="form-control" v-model="v.value" placeholder="80">
+                <div class="input-group-btn">
+                    <a class="btn btn-success" v-if="i==0" @click="objectArrayAdd(project.docker.ports,{})"
+                       style="width:80px;">ADD</a>
+                    <a class="btn btn-danger" v-if="i>0" @click="objectArrayDel(project.docker.ports,i)"
+                       style="width:80px;">DEL</a>
+                </div>
+            </div>
+        </div>
+        <!-- env -->
+        <div class="form-group">
+            <label>docker run -e</label>
+            <div class="input-group" v-for="(v,i) in project.docker.environments">
+                <div class="input-group-addon" style="padding: 0;">
+                    <div style="width: 120px;">EnvKey</div>
+                </div>
+                <input class="form-control" v-model="v.key" placeholder="APP_RUN_NAME">
+                <div class="input-group-addon" style="padding: 0;">
+                    <div style="width: 120px;">EnvValue</div>
+                </div>
+                <input class="form-control" v-model="v.value" placeholder="app">
+                <div class="input-group-btn">
+                    <a class="btn btn-success" v-if="i==0" @click="objectArrayAdd(project.docker.environments,{})"
+                       style="width:80px;">ADD</a>
+                    <a class="btn btn-danger" v-if="i>0" @click="objectArrayDel(project.docker.environments,i)"
+                       style="width:80px;">DEL</a>
+                </div>
+            </div>
+        </div>
+        <!-- volumes -->
+        <div class="form-group">
+            <label>docker run -v</label>
+            <div class="input-group" v-for="(v,i) in project.docker.volumes">
+                <div class="input-group-addon" style="padding: 0;">
+                    <div style="width: 120px;">HostPath</div>
+                </div>
+                <input class="form-control" v-model="v.key" placeholder=".">
+                <div class="input-group-addon" style="padding: 0;">
+                    <div style="width: 120px;">ContainerPath</div>
+                </div>
+                <input class="form-control" v-model="v.value" placeholder="/app">
+                <div class="input-group-btn">
+                    <a class="btn btn-success" v-if="i==0" @click="objectArrayAdd(project.docker.volumes,{})"
+                       style="width:80px;">ADD</a>
+                    <a class="btn btn-danger" v-if="i>0" @click="objectArrayDel(project.docker.volumes,i)"
+                       style="width:80px;">DEL</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{{end}}
+
+
+
+
+
+
+
+
+
