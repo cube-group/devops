@@ -83,7 +83,7 @@ type History struct {
 	Version   string         `gorm:"" json:"version" form:"version" binding:"required"`
 	Desc      string         `gorm:"" json:"desc" form:"desc" binding:"required"`
 	Status    HistoryStatus  `gorm:"status" json:"status" form:"-"`
-	ProjectId uint32         `gorm:"" json:"projectId" form:"projectId" binding:"required"`
+	ProjectId uint32         `gorm:"" json:"projectId" form:"-"`
 	Project   *Project       `gorm:"" json:"project" form:"-"`
 	Log       string         `gorm:"" json:"-" form:"-"`
 	CreatedAt time.Time      `json:"createdAt"`
