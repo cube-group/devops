@@ -1,0 +1,38 @@
+{{define "history/info.html"}}
+    {{template "layout/top.html" .}}
+    <div class="panel">
+        <div class="panel-heading">
+            <div class="panel-title">
+                <a href="/history">< 返回 | </a>项目 ${info.project.name} 部署日志 时间${info.createdAt} ID: ${info.id}
+            </div>
+        </div>
+        <div class="panel-body">
+            <!-- TTY Layer -->
+            <div id="tty-container" onkeydown="return false;" onmousedown="return false;"
+                 style="width:100%;height:100%;background-color:#0C0C0C;padding: 10px">
+                <iframe id="tty" style="width: 100%;height:100%;border: medium none;"></iframe>
+            </div>
+        </div>
+    </div>
+    <script>
+        vueMixin = {
+            data: {
+                info:{{.history}},
+            },
+            methods: {
+                onResize() {
+                    var tty = $('#tty');
+                    var height = $(window).height() - tty.offset().top - 50;
+                    tty.css('height', height + 'px');
+                }
+            },
+            mounted() {
+                $('#tty').attr('src', '/tty/history?id=' + this.info.id);
+                this.onResize();
+                $(window).resize(this.onResize);
+            }
+        }
+    </script>
+
+    {{template "layout/footer.html" . }}
+{{end}}

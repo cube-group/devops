@@ -39,7 +39,7 @@
         var project = {{.project}};
         var info = {{.history}};
         if (!info) {
-            info = {'nodeId': 0};
+            info = {nodeId: 0};
         }
     </script>
     <!-- vue -->
@@ -54,10 +54,9 @@
                 onOnline() {
                     displayConfirm('确认上线?', '确认', '取消', () => {
                         var requestURL = baseURL('/project/i/', this.project.id, '/online')
-                        var data = deepCloneObject(this.info);
-                        data.projectId = project.id;
-                        reqPostJson(requestURL, data, () => {
-                            window.location = '';
+                        var data = {version: this.info.version, desc: this.info.desc, nodeId: this.info.nodeId};
+                        reqPostJson(requestURL, data, (resData) => {
+                            window.location = baseURL('/history/i', resData.id);
                         });
                     });
                 },

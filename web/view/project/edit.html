@@ -1,4 +1,4 @@
-{{define "project/edit.html"}}
+{{define "project/info.html"}}
     {{template "layout/top.html" .}}
     <!-- 基础信息 -->
     <div class="panel">
@@ -26,6 +26,13 @@
                 <label>钉钉Webhook</label>
                 <input type="text" class="form-control" v-model="project.ding" placeholder="ding ding webhook url">
             </div>
+            <div class="form-group">
+                <label>部署模式</label>
+                <select class="form-control" v-model="project.mode">
+                    <option value="native">远程shell</option>
+                    <option value="docker">远程docker run</option>
+                </select>
+            </div>
         </div>
     </div>
     <!-- 核心配置 -->
@@ -38,26 +45,8 @@
             </div>
         </div>
         <div class="panel-body">
-            <!-- 渲染tab buttons -->
-            <div style="font-size: 14px;">
-                    <span v-for="(v,i) in tabs">
-                        <a style="margin-right:10px;" href="javascript:" @click="tab=v"
-                           v-if="tab.name!=v.name">
-                            ${v.name}
-                        </a>
-                        <label style="color: #5893fa;border-bottom:1px solid;padding-bottom:6px;margin-right:10px;"
-                               v-if="tab.name==v.name" disabled>
-                            ${v.name}
-                        </label>
-                    </span>
-            </div>
-            <br>
-            <!-- 渲染tab contents -->
-            <div class="tab-content" id="otherInfoTabs">
-                {{ template "project/_other_info_code_ci.html" . }}
-                {{ template "project/_other_info_volume.html" . }}
-                {{ template "project/_other_info_docker.html" . }}
-            </div>
+            {{ template "project/config_mode_native.html" . }}
+            {{ template "project/config_mode_docker.html" . }}
         </div>
     </div>
     <!-- 核心配置End -->
@@ -68,23 +57,15 @@
     <script>
         var project = {{.project}};
         if (!project) {
-            project = {docker: {privileged: 1}};
+            project = {mode: 'native'};
         }
-        objectArrayInitForRender(project, "volume", {type: 'content'})
-        objectArrayInitForRender(project, "docker.ports", {})
-        objectArrayInitForRender(project, "docker.environments", {})
-        objectArrayInitForRender(project, "docker.volumes", {})
+        objectArrayInitForRender(project, "native.volume", {type: 'content'})
+        objectArrayInitForRender(project, "docker.volume", {type: 'content'})
     </script>
     <!-- vue -->
     <script>
         vueMixin = {
             data: {
-                tab: null,
-                tabs: [
-                    {desc: 'Shell', name: 'shell'},
-                    {desc: '文件挂载', name: 'volume'},
-                    {desc: 'Docker', name: 'docker'},
-                ],
                 project: project,
             },
             methods: {
@@ -100,7 +81,6 @@
                 },
             },
             created() {//初始化数据合法化
-                this.tab = this.tabs[0];
             },
         };
     </script>

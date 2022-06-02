@@ -30,12 +30,12 @@ func (t *ProjectController) index(c *gin.Context) {
 }
 
 func (t *ProjectController) create(c *gin.Context) {
-	g.HTML(c, "project/edit.html", gin.H{
+	g.HTML(c, "project/info.html", gin.H{
 	})
 }
 
 func (t *ProjectController) info(c *gin.Context) {
-	g.HTML(c, "project/edit.html", gin.H{
+	g.HTML(c, "project/info.html", gin.H{
 		"project": models.GetProject(c),
 	})
 }
@@ -49,10 +49,10 @@ func (t *ProjectController) del(c *gin.Context) {
 }
 
 func (t *ProjectController) apply(c *gin.Context) {
-	var project = models.GetProject(c)
+	var obj = models.GetProject(c)
 	g.HTML(c, "project/apply.html", gin.H{
-		"project": project,
-		"history": project.GetLatestHistory(),
+		"project": obj,
+		"history": obj.GetLatestHistory(),
 		"nodes":   models.GetNodes(),
 	})
 }

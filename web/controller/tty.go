@@ -16,9 +16,11 @@ type TtyController struct {
 
 func (t *TtyController) Init(group *gin.RouterGroup) {
 	group.GET("/local", t.page)
-	group.GET("/localws", t.localws)
+	group.GET("/localws", t.localWs)
 	group.GET("/node", t.page)
-	group.GET("/nodews", t.nodews)
+	group.GET("/nodews", t.nodeWs)
+	group.GET("/history", t.page)
+	group.GET("/historyws", t.historyWs)
 	group.GET("/auth_token.js", t.ttyJs)
 	group.GET("/js/*.js", t.ttyJs)
 }
@@ -55,11 +57,16 @@ func (t *TtyController) page(c *gin.Context) {
 }
 
 //gotty for remote node ssh
-func (t *TtyController) nodews(c *gin.Context) {
+func (t *TtyController) nodeWs(c *gin.Context) {
 	tty.Proxy(c.Writer, c.Request, "127.0.0.1:"+setting.SysGoTtyPortSshpass, "sshpass")
 }
 
 //gotty for local bash
-func (t *TtyController) localws(c *gin.Context) {
-	tty.Proxy(c.Writer, c.Request, "127.0.0.1:"+setting.SysGoTtyPortLocal, "local")
+func (t *TtyController) localWs(c *gin.Context) {
+	tty.Proxy(c.Writer, c.Request, "127.0.0.1:"+setting.SysGoTtyPortBash, "local")
+}
+
+//gotty for history log
+func (t *TtyController) historyWs(c *gin.Context) {
+	tty.Proxy(c.Writer, c.Request, "127.0.0.1:"+setting.SysGoTtyPortBash, "history")
 }

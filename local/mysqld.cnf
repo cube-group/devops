@@ -37,3 +37,4 @@ datadir		= /var/lib/mysql
 symbolic-links=0
 # support datetime 0000-00-00 00:00:00
 sql_mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+default-time-zone = '+8:00'

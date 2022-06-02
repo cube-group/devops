@@ -1,0 +1,74 @@
+{{define "project/config_mode_native.html"}}
+
+    <div v-show="project.mode=='native'">
+        <!-- 集成脚本 -->
+        <div class="form-group">
+            <div class="layui-tab layui-tab-card">
+                <ul class="layui-tab-title">
+                    <li class="layui-this">
+                        Linux Shell&nbsp;
+                    </li>
+                </ul>
+                <div class="layui-tab-content" style="height: auto;min-height: 200px;">
+                    <div class="layui-tab-item layui-show">
+                        <textarea style="height: 200px;" class="form-control codeValue"
+                                  placeholder="执行一些项目初始化操作，例如：
+npm install
+composer install
+cp  subConfig/application.ini conf/application.ini
+cp  subProject public/web
+unzip -d ./ vendor/vendor.zip`"
+                                  v-model="project.native.shell"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 便捷文件 -->
+        <div class="form-group">
+            <label>Project Volume Data</label>
+            <div v-for="(v,i) in project.native.volume"
+                 style="border: 1px solid transparent;border-color: #0a6aa1;border-radius: 3px;">
+                <div class="input-group">
+                    <div class="input-group-addon">
+                        <div style="width:70px;">Type</div>
+                    </div>
+                    <select class="form-control" v-model.number="v.type">
+                        <option value="content">Content</option>
+                        <option value="url">URL</option>
+                    </select>
+                    <div class="input-group-addon">
+                        Path
+                    </div>
+                    <input class="form-control" v-model="v.path" placeholder="/a/b/c.json">
+                    <div class="input-group-btn">
+                        <a class="btn btn-success" v-if="i==0"
+                           @click="objectArrayAdd(project.native.volume,{type:'content'})"
+                           style="width:80px;">ADD</a>
+                        <a class="btn btn-danger" v-if="i>0" @click="objectArrayDel(project.native.volume,i)"
+                           style="width:80px;">DEL</a>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <div class="input-group-addon">
+                        <div style="width:70px;">Value</div>
+                    </div>
+                    <textarea class="form-control" v-model="v.content" placeholder="file content"
+                              v-show="v.type=='content'" rows="8"></textarea>
+                    <input class="form-control" v-model="v.content"
+                           placeholder="url for example: https://a.com/abc.json"
+                           v-show="v.type=='url'">
+                </div>
+            </div>
+        </div>
+    </div>
+
+{{end}}
+
+
+
+
+
+
+
+
+

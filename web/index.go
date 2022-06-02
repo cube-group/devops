@@ -21,10 +21,10 @@ func Init() {
 //init goTty server
 func initTty() {
 	//goTty for bash
-	if setting.SysGoTtyPortLocal != "" {
+	if setting.SysGoTtyPortBash != "" {
 		go func() {
-			log.StdOut("init", "gotty.bash", setting.SysGoTtyPortLocal, "pwd", setting.SysGoTtyRandBasicAuth)
-			cmd := exec.Command("gotty", "-w", "-p", setting.SysGoTtyPortLocal, "-c", setting.SysGoTtyRandBasicAuth,
+			log.StdOut("init", "gotty.bash", setting.SysGoTtyPortBash, "pwd", setting.SysGoTtyRandBasicAuth)
+			cmd := exec.Command("gotty", "-w", "-p", setting.SysGoTtyPortBash, "-c", setting.SysGoTtyRandBasicAuth,
 				"--title-format", "bash", "--permit-arguments", "bash")
 			log.StdWarning("gotty", "bash exit", cmd.Run())
 		}()

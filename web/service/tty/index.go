@@ -34,6 +34,22 @@ func argumentsExchange(assist string, b []byte) (res []byte) {
 	switch assist {
 	case "local": //local bash
 		return
+	case "history": //history id
+		if i := models.GetHistory(convert.MustUint32(u.Query().Get("id"))); i != nil {
+			var logFilePath = i.WorkspaceFollowLog()
+			if i.IsEnd() {
+				if endLogPath := i.WorkspaceEndLog(); endLogPath == "" {
+					return
+				} else {
+					logFilePath = endLogPath
+				}
+			}
+			respStr = fmt.Sprintf(
+				`{"Arguments":"?arg=-c&arg=%s","AuthToken":"%s"}`,
+				url.QueryEscape(fmt.Sprintf(`tail -n 1000 -f %s`, logFilePath)),
+				setting.SysGoTtyRandBasicAuth,
+			)
+		}
 	case "sshpass": //sshpass
 		if node := models.GetNode(convert.MustUint32(u.Query().Get("id"))); node != nil {
 			respStr = fmt.Sprintf(

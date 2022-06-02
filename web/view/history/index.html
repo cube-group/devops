@@ -1,0 +1,92 @@
+{{define "history/index.html"}}
+    {{template "layout/top.html" .}}
+    <script>
+        redirectTLS();
+    </script>
+
+    <div class="panel">
+        <div class="panel-heading">
+            <div class="panel-title">项目部署历史</div>
+{{/*            <div class="right">*/}}
+{{/*            </div>*/}}
+        </div>
+        <div class="panel-body">
+            {{ template "history/search.html" .}}
+            <table class="table table-hover" style="margin-top: 10px;">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Node</th>
+                    <th>Version</th>
+                    <th>状态</th>
+                    <th>时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="v in list">
+                    <td>
+                        ${v.id}
+                    </td>
+                    <td>
+                        ${v.node.ip}
+                    </td>
+                    <td>
+                        <div><a data-toggle="tooltip" data-placement="bottom" :title="v.desc"
+                                :href="baseURL('/history/i',v.id)">${v.version}</a></div>
+                    </td>
+                    <td>
+                        <div v-if="v.status==''">ing</div>
+                        <div v-if="v.status=='ok'">success</div>
+                        <div v-if="v.status=='error'">failed</div>
+                    </td>
+                    <td>
+                        ${v.createdAt}
+                    </td>
+                    <td>
+                        <div><a :href="baseURL('/history/i',v.id)">查看</a></div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- 分页  -->
+    <div class="panel-body navbar-right">
+        {{ .rendering }}
+    </div>
+    <!-- TTY Layer -->
+    <div id="tty-container"
+         style="width:100%;height:100%;background-color:#0C0C0C;padding: 10px;display: none;" hidden>
+        <iframe id="tty" style="width: 100%;height:100%;border: medium none;"></iframe>
+    </div>
+
+
+    <script>
+        vueMixin = {
+            data: {
+                list:{{.list}},
+                search:{{.search}},
+                location: '/history',
+            },
+            methods: {
+                onSearch() {
+                    window.location = this.location + '?' + $.param(this.search);
+                },
+            },
+            mounted() {
+            }
+        };
+    </script>
+
+    {{template "layout/footer.html" . }}
+{{end}}
+
+
+
+
+
+
+
+
+

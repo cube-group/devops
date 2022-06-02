@@ -3,6 +3,7 @@ package models
 import (
 	"app/library/crypt/md5"
 	"app/library/log"
+	"app/library/task"
 	"app/library/uuid"
 	"app/setting"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	"sync"
+	"time"
 )
 
 const UserRoot = "root"
@@ -42,15 +44,22 @@ func initDB() {
 		}
 
 		log.StdOut("init", "db.start", sqlUrl)
-		conn, err := gorm.Open(mysql.Open(sqlUrl), config)
-		if err != nil || conn == nil {
-			log.StdFatal("init", "db.err", err)
-		}
-		if sqlDB, err := conn.DB(); err == nil {
+		if err := task.Retry("db conn", 5, time.Second, func() error {
+			conn, er := gorm.Open(mysql.Open(sqlUrl), config)
+			if er != nil || conn == nil {
+				return er
+			}
+			sqlDB, er := conn.DB()
+			if er != nil {
+				return er
+			}
 			sqlDB.SetMaxIdleConns(setting.SqlPoolMaxIdle)
 			sqlDB.SetMaxOpenConns(setting.SqlPoolMaxOpen)
+			_db = conn
+			return nil
+		}); err != nil {
+			log.StdFatal("init", "db.err", err)
 		}
-		_db = conn
 
 		initDBPreHeating()
 		log.StdOut("init", "db.ready")

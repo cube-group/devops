@@ -2,9 +2,9 @@
 FROM --platform=linux/amd64 debian:11
 USER root
 
-COPY ./sources.list /etc/apt/sources.list
-COPY ./docker.list /etc/apt/sources.list.d/docker.list
-COPY ./gotty_linux_amd64.tar.gz /gotty_linux_amd64.tar.gz
+COPY sources.list /etc/apt/sources.list
+COPY docker.list /etc/apt/sources.list.d/docker.list
+COPY gotty_linux_amd64.tar.gz /gotty_linux_amd64.tar.gz
 
 RUN apt-get update -y && \
     apt-get install -y ca-certificates gpg dirmngr curl gpg-agent && \

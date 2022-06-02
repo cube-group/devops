@@ -52,7 +52,7 @@
                         </button>
                         <a class="navbar-brand" href="javascript:">
                             <h4>
-                                GoFastSSH <span style="color: #3ca512"><b>ce</b></span>
+                                GoFastOps <span style="color: #3ca512"><b>ce</b></span>
                             </h4>
                         </a>
                         <div class="navbar-btn" style="padding: 0;">
@@ -68,21 +68,21 @@
                             <li class="dropdown">
                                 <a href="javascript:" class="dropdown-toggle" data-toggle="dropdown">
                                     <img :src="user.AvatarUrl" class="img-circle" alt="Avatar" v-if="user.AvatarUrl">
-                                    <span>${user.Name}</span>
+                                    <span>${user.RealName}</span>
                                     <span class="badge bg-danger" v-if="messageCount">消息</span>
                                     <i class="icon-submenu lnr lnr-chevron-down"></i></a>
                                 <ul class="dropdown-menu">
-                                    <li v-if="messageCount">
-                                        <a href="javascript:">
-                                            <i class="lnr lnr-exit"></i> <span>我的消息<span class="badge bg-danger">
-                                                </span></span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="javascript:" @click="onMy">
-                                            <i class="lnr lnr-user"></i> <span>我的资料</span>
-                                        </a>
-                                    </li>
+{{/*                                    <li v-if="messageCount">*/}}
+{{/*                                        <a href="javascript:">*/}}
+{{/*                                            <i class="lnr lnr-exit"></i> <span>我的消息<span class="badge bg-danger">*/}}
+{{/*                                                </span></span>*/}}
+{{/*                                        </a>*/}}
+{{/*                                    </li>*/}}
+{{/*                                    <li>*/}}
+{{/*                                        <a href="javascript:" @click="onMy">*/}}
+{{/*                                            <i class="lnr lnr-user"></i> <span>我的资料</span>*/}}
+{{/*                                        </a>*/}}
+{{/*                                    </li>*/}}
                                     <li>
                                         <a href="/login/out">
                                             <i class="lnr lnr-exit"></i> <span>退出</span>

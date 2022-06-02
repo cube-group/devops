@@ -11,6 +11,13 @@ import (
 	"time"
 )
 
+type ProjectMode string
+
+const (
+	ProjectModeNative ProjectMode = "native"
+	ProjectModeDocker ProjectMode = "docker"
+)
+
 func GetProject(values ...interface{}) *Project {
 	for _, v := range values {
 		switch vv := v.(type) {
@@ -41,9 +48,9 @@ type Project struct {
 	Desc      string                `gorm:"column:desc" json:"desc" form:"desc" binding:"required"`
 	Uid       *uint32               `gorm:"column:uid" json:"uid" form:"-"`
 	Ding      string                `gorm:"column:ding" json:"ding" form:"ding"`
-	Shell     string                `gorm:"column:shell" json:"shell" form:"shell"`
-	Docker    ProjectDockerTemplate `gorm:"" json:"docker" form:"docker"`
-	Volume    ProjectVolumeList     `gorm:"" json:"volume" form:"volume"`
+	Mode      ProjectMode           `gorm:"" json:"mode" form:"mode"`
+	Native    ProjectTemplateNative `gorm:"column:native" json:"native" form:"native"`
+	Docker    ProjectTemplateDocker `gorm:"" json:"docker" form:"docker"`
 	Cronjob   string                `gorm:"" json:"cronjob" form:"cronjob"`
 	CreatedAt time.Time             `json:"createdAt"`
 	UpdatedAt time.Time             `json:"updatedAt"`
@@ -88,12 +95,8 @@ func (t *Project) GetLatestHistory() *History {
 
 //k8s cluster visual project data validator check
 func (t *Project) Validator() error {
-	for i := 0; i < len(t.Volume); {
-		if t.Volume[i].Validator() != nil {
-			t.Volume = append(t.Volume[:i], t.Volume[i+1:]...)
-		} else {
-			i++
-		}
+	if err := t.Native.Validator(); err != nil {
+		return err
 	}
 	if err := t.Docker.Validator(); err != nil {
 		return err

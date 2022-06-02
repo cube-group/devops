@@ -3,7 +3,6 @@ package project
 import (
 	"app/library/ginutil"
 	"app/models"
-	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -14,13 +13,13 @@ func Online(c *gin.Context) (history *models.History, err error) {
 	if err = ginutil.ShouldBind(c, &val); err != nil {
 		return
 	}
-	project := models.GetProject(val.ProjectId)
-	if project == nil {
-		err = errors.New("project not found")
+	if err = val.Validator(); err != nil {
 		return
 	}
+	val.ID = 0
 	val.Uid = models.UID(c)
-	val.Project = project
+	val.Status = models.HistoryStatusDefault
+
 	if err = models.DB().Transaction(func(tx *gorm.DB) error {
 		if er := tx.Save(&val).Error; er != nil {
 			return er

@@ -16,4 +16,5 @@ func Init(e *gin.Engine) {
 	new(TtyController).Init(e.Group("/tty"))
 	new(NodeController).Init(e.Group("/node"))
 	new(ProjectController).Init(e.Group("/project"))
+	new(HistoryController).Init(e.Group("/history"))
 }

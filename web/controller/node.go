@@ -28,12 +28,12 @@ func (t *NodeController) index(c *gin.Context) {
 }
 
 func (t *NodeController) create(c *gin.Context) {
-	g.HTML(c, "node/edit.html", gin.H{
+	g.HTML(c, "node/info.html", gin.H{
 	})
 }
 
 func (t *NodeController) info(c *gin.Context) {
-	g.HTML(c, "node/edit.html", gin.H{
+	g.HTML(c, "node/info.html", gin.H{
 		"node": models.GetNode(c),
 	})
 }
