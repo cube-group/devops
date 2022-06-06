@@ -16,9 +16,9 @@ func (t *NodeController) Init(group *gin.RouterGroup) {
 	group.GET(".", t.index)
 	group.GET("/create", t.create)
 	group.POST("/save", t.save)
+	group.POST("/state", t.state)
 	detailGroup := group.Group("/i/:nid", middleware.Node())
 	detailGroup.GET(".", t.info)
-	detailGroup.POST("/save", t.save)
 	detailGroup.DELETE(".", t.del)
 }
 
@@ -30,6 +30,12 @@ func (t *NodeController) index(c *gin.Context) {
 func (t *NodeController) create(c *gin.Context) {
 	g.HTML(c, "node/info.html", gin.H{
 	})
+}
+
+//node state
+func (t *NodeController) state(c *gin.Context) {
+	res, err := node.GetState(c)
+	ginutil.JsonAuto(c, "Success", err, res)
 }
 
 func (t *NodeController) info(c *gin.Context) {

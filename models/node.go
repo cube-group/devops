@@ -2,12 +2,15 @@ package models
 
 import (
 	"app/library/consts"
+	"app/library/sshtool"
+	"bytes"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"io/ioutil"
 	"time"
 )
 
@@ -87,4 +90,19 @@ func (t Node) MarshalJSON() ([]byte, error) {
 //k8s cluster visual Node data validator check
 func (t *Node) Validator(c *gin.Context) error {
 	return nil
+}
+
+//sync exec remote shell
+func (t *Node) Exec(cmd string) (res []byte, err error) {
+	s, err := sshtool.SSHConnect(t.SshUsername, t.SshPassword, t.IP, t.SshPort)
+	if err != nil {
+		return
+	}
+	defer s.Close()
+	var b bytes.Buffer
+	s.Stderr = &b
+	s.Stdout = &b
+	err = s.Run(cmd)
+	res, _ = ioutil.ReadAll(&b)
+	return
 }

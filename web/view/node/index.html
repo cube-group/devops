@@ -37,11 +37,17 @@
                                 :href="baseURL('/node/i',v.id)">${v.name}</a></div>
                     </td>
                     <td>
-                        ${v.ip}
+                        <span>${v.ip}</span>
+                        <span v-if="v.stateContent && !v.stateError" class="badge layui-bg-green">
+                            <a href="javascript:" @click="layer.alert(v.stateContent)">ok</a>
+                        </span>
+                        <span v-if="v.stateContent && v.stateError" class="badge layui-bg-red">
+                            <a href="javascript:" @click="layer.alert(v.stateContent)">!</a>
+                        </span>
                     </td>
                     <td>
-                        <span class="badge layui-bg-blue" v-if="v.sshKey">auth</span>
-                        <span class="badge layui-bg-green" v-if="v.sshUsername && v.sshPassword">password</span>
+                        <div v-if="v.sshKey">auth</div>
+                        <div v-if="!v.sshKey">password</div>
                     </td>
                     <td>
                         ${v.createdAt}
@@ -110,9 +116,29 @@
                         });
                     }
                 },
+                onReloadState() {//refresh node state
+                    var ids = [];
+                    for (var i of this.list) {
+                        ids.push(i.id);
+                    }
+                    reqPostJson('/node/state', {ids: ids}, (resData) => {
+                        for (var node of this.list) {
+                            for (var keyID in resData) {
+                                var state = resData[keyID]
+                                if (state.id === node.id) {
+                                    this.$set(node, 'stateContent', state.content);
+                                    this.$set(node, 'stateError', state.error);
+                                }
+                            }
+                        }
+                    }, {loading: false});
+                }
+            },
+            created() {
             },
             mounted() {
                 $(window).resize(this.onResize);
+                this.onReloadState();
             }
         };
     </script>

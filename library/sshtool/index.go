@@ -12,7 +12,7 @@ func SSHConnect(username, password, host, port string) (session *ssh.Session, er
 	clientConfig := &ssh.ClientConfig{
 		User:    username,
 		Auth:    auth,
-		Timeout: 30 * time.Second,
+		Timeout: 5 * time.Second,
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 			return nil
 		},
