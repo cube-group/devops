@@ -3,14 +3,12 @@ package models
 import (
 	"app/library/consts"
 	"app/library/sshtool"
-	"bytes"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"io/ioutil"
 	"time"
 )
 
@@ -99,10 +97,9 @@ func (t *Node) Exec(cmd string) (res []byte, err error) {
 		return
 	}
 	defer s.Close()
-	var b bytes.Buffer
-	s.Stderr = &b
-	s.Stdout = &b
-	err = s.Run(cmd)
-	res, _ = ioutil.ReadAll(&b)
+	//var b bytes.Buffer
+	//s.Stderr = &b
+	//s.Stdout = &b
+	res, err = s.CombinedOutput(cmd)
 	return
 }

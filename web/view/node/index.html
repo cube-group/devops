@@ -38,12 +38,10 @@
                     </td>
                     <td>
                         <span>${v.ip}</span>
-                        <span v-if="v.stateContent && !v.stateError" class="badge layui-bg-green">
-                            <a href="javascript:" @click="layer.alert(v.stateContent)">ok</a>
-                        </span>
-                        <span v-if="v.stateContent && v.stateError" class="badge layui-bg-red">
-                            <a href="javascript:" @click="layer.alert(v.stateContent)">!</a>
-                        </span>
+                        <a href="javascript:" class="label label-success" @click="layer.alert(v.stateContent)"> <span
+                                    v-if="v.stateContent && !v.stateError">dockered</span></a>
+                        <a href="javascript:" class="label label-danger" @click="layer.alert(v.stateContent)"> <span
+                                    v-if="v.stateContent && v.stateError">no docker</span></a>
                     </td>
                     <td>
                         <div v-if="v.sshKey">auth</div>

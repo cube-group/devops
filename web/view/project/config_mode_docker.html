@@ -8,15 +8,8 @@
                 Dockerfile
             </label>
             <textarea rows="10" class="form-control"
-                      placeholder="若为空则以宿主机模式运行"
+                      placeholder="不能为空"
                       v-model="project.docker.dockerfile"></textarea>
-        </div>
-        <!-- name -->
-        <div class="form-group">
-            <label>docker run --name</label>
-            <input class="form-control"
-                   placeholder="容器别名"
-                   v-model="project.docker.name"/>
         </div>
         <!-- run options -->
         <div class="form-group">

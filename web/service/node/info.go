@@ -29,7 +29,7 @@ func GetState(c *gin.Context) (res gin.H, err error) {
 		wg.Add(1)
 		go func(i models.Node) {
 			defer wg.Done()
-			bytes, er := i.Exec("docker version")
+			bytes, er := i.Exec("which docker && docker version")
 			var item = gin.H{"id": i.ID, "content": string(bytes), "error": ""}
 			if er != nil {
 				item["error"] = er.Error()

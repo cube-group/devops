@@ -22,6 +22,7 @@ func (t *ProjectController) Init(group *gin.RouterGroup) {
 	detailGroup.DELETE(".", t.del)
 	detailGroup.GET("/apply", t.apply)
 	detailGroup.POST("/online", t.online)
+	detailGroup.GET("/pod", t.pod)
 }
 
 func (t *ProjectController) index(c *gin.Context) {
@@ -60,4 +61,12 @@ func (t *ProjectController) apply(c *gin.Context) {
 func (t *ProjectController) online(c *gin.Context) {
 	res, err := project.Online(c)
 	ginutil.JsonAuto(c, "Success", err, res)
+}
+
+func (t *ProjectController) pod(c *gin.Context) {
+	var obj = models.GetProject(c)
+	g.HTML(c, "project/pod.html", gin.H{
+		"project": obj,
+		"history": obj.GetLatestHistory(),
+	})
 }

@@ -14,7 +14,7 @@ type valList struct {
 
 //k8s node list
 func List(c *gin.Context) (res gin.H) {
-	var obj = page.ListReturnStruct{"search": gin.H{"name": "", "env": ""}}
+	var obj = page.ListReturnStruct{"search": gin.H{"name": ""}}
 	res = gin.H(obj)
 	var val valList
 	if ginutil.ShouldBind(c, &val) != nil {

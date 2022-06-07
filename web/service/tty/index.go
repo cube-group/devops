@@ -30,12 +30,13 @@ func argumentsExchange(assist string, b []byte) (res []byte) {
 	if err != nil {
 		return
 	}
+	var query = u.Query()
 	var respStr string
 	switch assist {
 	case "local": //local bash
 		return
 	case "history": //history id
-		if i := models.GetHistory(convert.MustUint32(u.Query().Get("id"))); i != nil {
+		if i := models.GetHistory(convert.MustUint32(query.Get("id"))); i != nil {
 			var logFilePath = i.WorkspaceFollowLog()
 			if i.IsEnd() {
 				if endLogPath := i.WorkspaceEndLog(); endLogPath == "" {
@@ -51,16 +52,39 @@ func argumentsExchange(assist string, b []byte) (res []byte) {
 			)
 		}
 	case "sshpass": //sshpass
-		if node := models.GetNode(convert.MustUint32(u.Query().Get("id"))); node != nil {
+		if node := models.GetNode(convert.MustUint32(query.Get("id"))); node != nil {
 			respStr = fmt.Sprintf(
 				`{"Arguments":"?arg=-p&arg=%s&arg=ssh&arg=-o&arg=StrictHostKeyChecking=no&arg=-p&arg=%s&arg=%s@%s","AuthToken":"%s"}`,
 				node.SshPassword, node.SshPort, node.SshUsername, node.IP,
 				setting.SysGoTtyRandBasicAuth,
 			)
-			fmt.Println(respStr)
+		}
+	case "pod": //docker pod
+		podType := query.Get("type")
+		h := models.GetHistory(convert.MustUint32(query.Get("id")))
+		if h == nil {
+			return
+		}
+		if podType == "log" {
+			respStr = fmt.Sprintf(
+				`{"Arguments":"?arg=-p&arg=%s&arg=ssh&arg=-o&arg=StrictHostKeyChecking=no&arg=-t&arg=-p&arg=%s&arg=%s@%s&arg=docker&arg=logs&arg=-f&arg=-n&arg=1000&arg=%s","AuthToken":"%s"}`,
+				h.Node.SshPassword, h.Node.SshPort, h.Node.SshUsername, h.Node.IP,
+				h.Project.Name,
+				setting.SysGoTtyRandBasicAuth,
+			)
+		} else if podType == "tty" {
+			respStr = fmt.Sprintf(
+				`{"Arguments":"?arg=-p&arg=%s&arg=ssh&arg=-o&arg=StrictHostKeyChecking=no&arg=-t&arg=-p&arg=%s&arg=%s@%s&arg=docker&arg=exec&arg=-it&arg=%s&arg=sh","AuthToken":"%s"}`,
+				h.Node.SshPassword, h.Node.SshPort, h.Node.SshUsername, h.Node.IP,
+				h.Project.Name,
+				setting.SysGoTtyRandBasicAuth,
+			)
+		} else {
+			return
 		}
 	default: //kubectl
 	}
+	fmt.Println("tty", respStr)
 	return []byte(respStr)
 }
 

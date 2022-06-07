@@ -14,9 +14,10 @@ func Online(c *gin.Context) (history *models.History, err error) {
 		return
 	}
 
-	var project = models.GetProject(c)
-	val.ProjectId = project.ID
-	val.Project = project
+	if project := models.GetProject(c); project != nil {
+		val.ProjectId = project.ID
+		val.Project = project
+	}
 	val.ID = 0
 	val.Uid = models.UID(c)
 	val.Status = models.HistoryStatusDefault

@@ -34,7 +34,6 @@
                     <th>ID</th>
                     <th>名称</th>
                     <th>状态</th>
-                    <th>上线时间</th>
                     <th>操作</th>
                 </tr>
                 </thead>
@@ -46,13 +45,36 @@
                            :href="baseURL('/project/i',v.id)">${v.name}</a>
                     </td>
                     <td>
-                    </td>
-                    <td>
+                        <div v-if="!v.history">
+                            <span class="label label-danger">-</span>
+                        </div>
+                        <div v-if="v.history && !v.history.status">
+                            <span class="label label-default">部署中...</span>
+                            ${v.history.createdAt}
+                        </div>
+                        <div v-if="v.history && v.history.status=='deleted'">
+                            <span class="label label-warning">已删除</span>
+                            ${v.history.createdAt}
+                        </div>
+                        <div v-if="v.history && v.history.status=='ok'">
+                            <span class="label label-success">成功</span>
+                            ${v.history.updatedAt}
+                        </div>
+                        <div v-if="v.history && v.history.status=='error'">
+                            <span class="label label-danger">失败</span>
+                            ${v.history.updatedAt}
+                        </div>
                     </td>
                     <td>
                         <a :href="baseURL('/project/i',v.id,'/apply')" class="btn btn-xs btn-default">
                             部署
                         </a>
+                        <span v-if="v.mode=='docker'">
+                            <a class="btn btn-xs btn-primary" v-if="v.history && v.history.status!='deleted'"
+                               :href="baseURL('/project/i',v.id,'/pod')">节点</a>
+                            <a class="btn btn-xs btn-danger" v-if="v.history && v.history.status!='deleted'"
+                               @click="onDel(v)">移除</a>
+                        </span>
                     </td>
                 </tr>
                 </tbody>
@@ -68,6 +90,7 @@
         vueMixin = {
             data: {
                 list:{{.list}},
+                historyList:{{.historyList}},
                 search:{{.search}},
                 location: '/project',
             },
@@ -75,6 +98,18 @@
                 onSearch() {
                     window.location = this.location + '?' + $.param(this.search);
                 },
+                onDel(project) {
+                    reqDel(baseURL('/project/i',project.id));
+                }
+            },
+            created() {
+                for (var project of this.list) {
+                    for (var history of this.historyList) {
+                        if (history.projectId === project.id) {
+                            project.history = history;
+                        }
+                    }
+                }
             }
         };
     </script>

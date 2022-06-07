@@ -1,0 +1,92 @@
+{{define "project/pod.html"}}
+    {{template "layout/top.html" .}}
+    <div class="panel">
+        <div class="panel-heading">
+            <div class="panel-title">
+                项目节点管理
+            </div>
+            <div class="right">
+                <a class="btn btn-sm btn-primary" @click="onTty()">TTY</a>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div>
+                <p>项目：${project.name}</p>
+                <p>Node: ${history.node.ip}</p>
+                <p>Time: ${history.updatedAt}</p>
+                <p>容器: 标准输出流如下</p>
+            </div>
+            <br>
+            <!-- log Layer -->
+            <div id="log-container"
+                 style="width:100%;height:100%;background-color:#0C0C0C;padding: 10px">
+                <iframe id="log" style="width: 100%;height:100%;border: medium none;"></iframe>
+            </div>
+            <!-- tty layer-->
+            <div id="tty-container"
+                 style="width:100%;height:100%;background-color:#0C0C0C;padding: 10px">
+                <iframe id="tty" style="width: 100%;height:100%;border: medium none;"></iframe>
+            </div>
+        </div>
+    </div>
+    <script>
+        vueMixin = {
+            data: {
+                project:{{.project}},
+                history:{{.history}} ,
+                openTtyIndex: 0,
+            },
+            methods: {
+                // layui.layer.style(this.openTtyIndex, {
+                //     left: 0, top: 0, width: $(window).width(), height: $(window).height()
+                // });
+                onLogResize() {
+                    var tty = $('#log');
+                    var height = $(window).height() - tty.offset().top - 50;
+                    tty.css('height', height + 'px');
+                },
+                onTtyResize() {
+                    layer.style(this.openTtyIndex, {
+                        left: 0,
+                        top: 0,
+                        width: $(window).width(),
+                        height: $(window).height()
+                    });
+                    $('#tty').height($(window).height() - 52);//52px 相当于 $('#tty').offset().top);但是由于动画可能会有BUG
+                },
+                onTty() {
+                    this.openTtyIndex = layui.layer.open({
+                        type: 1, area: [$(window).width() + 'px', $(window).height() + 'px'],
+                        title: `${this.project.name} TTY`, content: $('#tty'), anim: 2,
+                        success: (layero, index) => {
+                            //close log
+                            $(window).unbind("resize", this.onLogResize);
+                            $('#log').attr('src', 'about:blank');
+                            //open tty
+                            $(window).bind("resize", this.onTtyResize);
+                            this.onTtyResize();
+                            $('#tty').attr('src', '/tty/pod?type=tty&id=' + this.history.id);
+                        },
+                        cancel: () => {
+                            this.onLog();
+                        }
+                    });
+                },
+                onLog() {
+                    //close tty
+                    $(window).unbind("resize", this.onTtyResize);
+                    $('#tty').attr('src', 'about:blank');
+                    //open log
+                    $('#log').attr('src', '/tty/pod?type=log&id=' + this.history.id);
+                    this.onLogResize();
+                    $(window).resize(this.onLogResize);
+                }
+            },
+            mounted() {
+                this.onLog();
+            }
+        }
+    </script>
+
+    {{template "layout/footer.html" . }}
+{{end}}

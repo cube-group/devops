@@ -98,7 +98,7 @@ func initDBPreHeating() {
 
 //如果传了db连接，使用传入的db连接（用于事务开启场景）
 func DB(tx ...*gorm.DB) *gorm.DB {
-	if len(tx) != 0 {
+	if len(tx) != 0 && tx[0] != nil {
 		return tx[0]
 	}
 	return _db

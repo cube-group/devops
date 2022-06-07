@@ -14,6 +14,23 @@ type valList struct {
 	Env  string `form:"env"`
 }
 
+type ProjectLatestHistory struct {
+	ProjectId uint32 `gorm:""`
+	HistoryId uint32 `gorm:""`
+}
+
+type ProjectLatestHistoryList []ProjectLatestHistory
+
+func (t ProjectLatestHistoryList) HistoryList() []models.History {
+	var list = make([]uint32, 0)
+	for _, v := range t {
+		list = append(list, v.HistoryId)
+	}
+	var res []models.History
+	models.DB().Find(&res, "id IN (?)", list)
+	return res
+}
+
 //k8s project list
 func List(c *gin.Context) (res gin.H) {
 	var obj = page.ListReturnStruct{"search": gin.H{"name": "", "env": "", "kind": ""}}
@@ -22,8 +39,18 @@ func List(c *gin.Context) (res gin.H) {
 	if ginutil.ShouldBind(c, &val) != nil {
 		return
 	}
-	var list []models.Project
-	result, _ := page.List(c, &list, queryList(val), obj)
+	var list models.ProjectList
+	result, err := page.List(c, &list, queryList(val), obj)
+	if err != nil {
+		return
+	}
+
+	var historyList ProjectLatestHistoryList
+	var query = models.DB().Model(&models.History{}).Select("max(id) AS history_id,project_id")
+	query = query.Group("project_id").Where("project_id IN (?)", list.IDs())
+	if err := query.Scan(&historyList).Error; err == nil {
+		result["historyList"] = historyList.HistoryList()
+	}
 	return result
 }
 

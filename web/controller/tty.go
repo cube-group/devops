@@ -21,6 +21,8 @@ func (t *TtyController) Init(group *gin.RouterGroup) {
 	group.GET("/nodews", t.nodeWs)
 	group.GET("/history", t.page)
 	group.GET("/historyws", t.historyWs)
+	group.GET("/pod", t.page)
+	group.GET("/podws", t.podWs)
 	group.GET("/auth_token.js", t.ttyJs)
 	group.GET("/js/*.js", t.ttyJs)
 }
@@ -69,4 +71,9 @@ func (t *TtyController) localWs(c *gin.Context) {
 //gotty for history log
 func (t *TtyController) historyWs(c *gin.Context) {
 	tty.Proxy(c.Writer, c.Request, "127.0.0.1:"+setting.SysGoTtyPortBash, "history")
+}
+
+//gotty for pod
+func (t *TtyController) podWs(c *gin.Context) {
+	tty.Proxy(c.Writer, c.Request, "127.0.0.1:"+setting.SysGoTtyPortSshpass, "pod")
 }

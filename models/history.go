@@ -5,7 +5,6 @@ import (
 	"app/library/crypt/md5"
 	"app/library/log"
 	"app/library/types/times"
-	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,12 +24,16 @@ const (
 	HistoryStatusDefault HistoryStatus = ""
 	HistoryStatusFailed  HistoryStatus = "error"
 	HistoryStatusSuccess HistoryStatus = "ok"
+	HistoryStatusDeleted HistoryStatus = "deleted"
 )
 
 func GetHistory(values ...interface{}) (res *History) {
 	for _, v := range values {
 		switch vv := v.(type) {
 		case uint32:
+			if vv <= 0 {
+				return
+			}
 			var i History
 			if err := DB().Take(&i, "id=?", vv).Error; err != nil {
 				return
@@ -47,30 +50,6 @@ func GetHistory(values ...interface{}) (res *History) {
 		}
 	}
 	return
-}
-
-type HistoryTime struct {
-	StartTime   int64 `json:"startTime"`
-	CiStartTime int64 `json:"ciStartTime"`
-	CiStopTime  int64 `json:"ciStopTime"`
-	CdStartTime int64 `json:"cdStartTime"`
-	CdStopTime  int64 `json:"cdStopTime"`
-	StopTime    int64 `json:"stopTime"`
-}
-
-// 实现 sql.Scanner 接口，Scan 将 value 扫描至 Jsonb
-func (t *HistoryTime) Scan(value interface{}) error {
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New(fmt.Sprint("Failed to unmarshal JSONB value:", value))
-	}
-	json.Unmarshal(bytes, &t) //no error
-	return nil
-}
-
-// 实现 driver.Valuer 接口，Value 返回 json value
-func (t HistoryTime) Value() (driver.Value, error) {
-	return json.Marshal(t)
 }
 
 type HistoryMarshalJSON History
@@ -94,13 +73,8 @@ type History struct {
 func (t *History) TableName() string {
 	return "d_history"
 }
+
 func (t History) MarshalJSON() ([]byte, error) {
-	if t.Project == nil {
-		t.Project = GetProject(t.ProjectId)
-	}
-	if t.Node == nil {
-		t.Node = GetNode(t.NodeId)
-	}
 	return json.Marshal(struct {
 		HistoryMarshalJSON
 	}{
@@ -110,10 +84,14 @@ func (t History) MarshalJSON() ([]byte, error) {
 
 func (t *History) Validator() error {
 	if t.ProjectId > 0 {
-		t.Project = GetProject(t.ProjectId)
+		if i := GetProject(t.ProjectId); i != nil {
+			t.Project = i
+		}
 	}
 	if t.NodeId > 0 {
-		t.Node = GetNode(t.NodeId)
+		if i := GetNode(t.NodeId); i != nil {
+			t.Node = i
+		}
 	}
 	return nil
 }
@@ -264,8 +242,14 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 	}
 	var imageName = t.ImageURL()
 	var dockerRun = fmt.Sprintf(
-		"docker run -it -d --restart=always --name %s %s",
-		t.Project.Name, imageName,
+		"docker login %s --username=%s --password=%s;"+
+			"docker pull %s;"+
+			"docker rm -f %s >/dev/null 2>&1;"+
+			"docker run -it -d --restart=always --name %s %s %s",
+		CfgRegistryHost(), CfgRegistryUsername(), CfgRegistryPassword(),
+		imageName,
+		t.Project.Name,
+		t.Project.Name, t.Project.Docker.RunOptions, imageName,
 	)
 	//create run.sh content
 	runContent = fmt.Sprintf(`
@@ -273,7 +257,7 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 date +"%%Y-%%m-%%d %%H:%%M:%%S"
 cd %s
 docker login %s --username=%s --password=%s
-docker build -t %s . 
+docker build --platform=linux/amd64 -t %s . 
 docker push %s
 sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'
 `,

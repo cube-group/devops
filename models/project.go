@@ -18,7 +18,7 @@ const (
 	ProjectModeDocker ProjectMode = "docker"
 )
 
-func GetProject(values ...interface{}) *Project {
+func GetProject(values ...interface{}) (res *Project) {
 	for _, v := range values {
 		switch vv := v.(type) {
 		case uint32:
@@ -26,17 +26,26 @@ func GetProject(values ...interface{}) *Project {
 			if err := DB().Take(&i, "id=?", vv).Error; err != nil {
 				return nil
 			}
-			return &i
+			res = &i
 		case *gin.Context:
 			if i, exist := vv.Get(consts.ContextProject); exist {
 				if instance, ok := i.(*Project); ok {
-					return instance
+					res = instance
 				}
 			}
-			return nil
 		}
 	}
-	return nil
+	return
+}
+
+type ProjectList []Project
+
+func (t ProjectList) IDs() []uint32 {
+	var list = make([]uint32, 0)
+	for _, v := range t {
+		list = append(list, v.ID)
+	}
+	return list
 }
 
 type ProjectMarshalJSON Project
@@ -45,11 +54,11 @@ type ProjectMarshalJSON Project
 type Project struct {
 	ID        uint32                `gorm:"primarykey;column:id" json:"id" form:"id"`
 	Name      string                `gorm:"index;column:name" json:"name" form:"name" binding:"required"`
-	Desc      string                `gorm:"column:desc" json:"desc" form:"desc" binding:"required"`
-	Uid       *uint32               `gorm:"column:uid" json:"uid" form:"-"`
-	Ding      string                `gorm:"column:ding" json:"ding" form:"ding"`
+	Desc      string                `gorm:"" json:"desc" form:"desc" binding:"required"`
+	Uid       *uint32               `gorm:"" json:"uid" form:"-"`
+	Ding      string                `gorm:"" json:"ding" form:"ding"`
 	Mode      ProjectMode           `gorm:"" json:"mode" form:"mode"`
-	Native    ProjectTemplateNative `gorm:"column:native" json:"native" form:"native"`
+	Native    ProjectTemplateNative `gorm:"" json:"native" form:"native"`
 	Docker    ProjectTemplateDocker `gorm:"" json:"docker" form:"docker"`
 	Cronjob   string                `gorm:"" json:"cronjob" form:"cronjob"`
 	CreatedAt time.Time             `json:"createdAt"`
@@ -100,6 +109,15 @@ func (t *Project) Validator() error {
 	}
 	if err := t.Docker.Validator(); err != nil {
 		return err
+	}
+	if t.Mode == ProjectModeDocker {
+		if t.Docker.Dockerfile == "" {
+			return errors.New("docker部署模式Dockerfile不能为空")
+		}
+	} else if t.Mode == ProjectModeNative {
+		if t.Native.Shell == "" {
+			return errors.New("native部署模式Shell不能为空")
+		}
 	}
 	return nil
 }

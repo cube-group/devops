@@ -7,8 +7,8 @@
     <div class="panel">
         <div class="panel-heading">
             <div class="panel-title">项目部署历史</div>
-{{/*            <div class="right">*/}}
-{{/*            </div>*/}}
+            {{/*            <div class="right">*/}}
+            {{/*            </div>*/}}
         </div>
         <div class="panel-body">
             {{ template "history/search.html" .}}
@@ -17,7 +17,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Node</th>
-                    <th>Version</th>
+                    <th>Project / Version</th>
                     <th>状态</th>
                     <th>时间</th>
                     <th>操作</th>
@@ -32,8 +32,14 @@
                         ${v.node.ip}
                     </td>
                     <td>
-                        <div><a data-toggle="tooltip" data-placement="bottom" :title="v.desc"
-                                :href="baseURL('/history/i',v.id)">${v.version}</a></div>
+                        <span>
+                            <a :href="baseURL('/project/i',v.project.id)">${v.project.name}</a> /
+                        </span>
+                        <span class="badge">
+                            <a style="color: #FFFFFF;" data-toggle="tooltip" data-placement="bottom"
+                                               :title="v.desc"
+                                               :href="baseURL('/history/i',v.id)">${v.version}</a>
+                        </span>
                     </td>
                     <td>
                         <div v-if="v.status==''">ing</div>
