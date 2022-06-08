@@ -9,6 +9,7 @@ USER root
 ENV APP_PATH /go
 ENV WEB_SERVER "0.0.0.0:80"
 
+COPY ./sh $APP_PATH/sh
 COPY ./config.yaml $APP_PATH/config.yaml
 COPY ./web/view $APP_PATH/web/view
 COPY ./web/public $APP_PATH/web/public

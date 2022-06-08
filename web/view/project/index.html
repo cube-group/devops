@@ -46,7 +46,7 @@
                     </td>
                     <td>
                         <div v-if="!v.history">
-                            <span class="label label-danger">-</span>
+                            <span class="label label-default">-</span>
                         </div>
                         <div v-if="v.history && !v.history.status">
                             <span class="label label-default">部署中...</span>
@@ -99,7 +99,9 @@
                     window.location = this.location + '?' + $.param(this.search);
                 },
                 onDel(project) {
-                    reqDel(baseURL('/project/i',project.id));
+                    displayConfirm('确认移除该项目？', '确认', '取消', () => {
+                        reqDel(baseURL('/project/i', project.id));
+                    });
                 }
             },
             created() {

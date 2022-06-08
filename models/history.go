@@ -256,12 +256,14 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 #!/bin/bash
 date +"%%Y-%%m-%%d %%H:%%M:%%S"
 cd %s
+%s
 docker login %s --username=%s --password=%s
 docker build --platform=linux/amd64 -t %s . 
 docker push %s
 sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'
 `,
 		t.Workspace(),
+		t.Project.Docker.Shell,
 		CfgRegistryHost(), CfgRegistryUsername(), CfgRegistryPassword(),
 		imageName, imageName,
 		node.SshPassword, node.SshPort, node.SshUsername, node.IP,
@@ -319,4 +321,12 @@ sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s "bash %s"
 		tmpFilePath,
 	)
 	return
+}
+
+func (t *History) Remove() error {
+	_, err := t.Node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name))
+	if err != nil {
+		return err
+	}
+	return nil
 }

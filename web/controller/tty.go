@@ -60,7 +60,7 @@ func (t *TtyController) page(c *gin.Context) {
 
 //gotty for remote node ssh
 func (t *TtyController) nodeWs(c *gin.Context) {
-	tty.Proxy(c.Writer, c.Request, "127.0.0.1:"+setting.SysGoTtyPortSshpass, "sshpass")
+	tty.Proxy(c.Writer, c.Request, "127.0.0.1:"+setting.SysGoTtyPortSshpass, "node")
 }
 
 //gotty for local bash

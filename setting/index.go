@@ -22,7 +22,6 @@ var SqlPoolMaxIdle int
 var SqlDebug int
 
 var SysGoTtyHost = "127.0.0.1"
-var SysGoTtyPortSsh string
 var SysGoTtyPortSshpass string
 var SysGoTtyPortBash string
 var SysGoTtyRandBasicAuth = fmt.Sprintf("%d:%d", rand.IntnRange(100, 100000), rand.IntnRange(100, 100000))
@@ -56,11 +55,6 @@ func initCmd() {
 			SysGoTtyPortBash = "30000"
 		} else {
 			log.StdWarning("init", "cmd/bash", er.Error())
-		}
-		if er := exec.Command("ssh", "-V").Run(); er == nil {
-			SysGoTtyPortSsh = "30001"
-		} else {
-			log.StdWarning("init", "cmd/ssh", er.Error())
 		}
 		if er := exec.Command("sshpass", "-V").Run(); er == nil {
 			SysGoTtyPortSshpass = "30002"

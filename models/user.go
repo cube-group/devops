@@ -4,12 +4,22 @@ package models
 import (
 	v1 "app/library/consts/v1"
 	"app/library/crypt/md5"
+	"app/library/types/slice"
 	"app/library/uuid"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"time"
 )
+
+const (
+	UserRoot = "root"
+	UserTest = "test"
+)
+
+var UserAutoList = []string{
+	UserRoot, UserTest,
+}
 
 //获取所有开发者了列表
 func GetAllUser() []User {
@@ -133,7 +143,7 @@ func (t *User) PwdAddUser(password string) error {
 
 func (t *User) PwdCheckUser(username, password string) *User {
 	t.Username = username
-	if t.IsRoot() {
+	if slice.InArrayString(username, UserAutoList) {
 		t.Password = password
 	} else {
 		t.Password = md5.MD5("visible." + password)
@@ -142,4 +152,24 @@ func (t *User) PwdCheckUser(username, password string) *User {
 		return nil
 	}
 	return t
+}
+
+func CreateUser(username string) (user *User, err error) {
+	var rootRandPwd string
+	var find = new(User).Get(username)
+	if find != nil {
+		user = find
+	} else {
+		rootRandPwd = md5.MD5(uuid.GetUUID("devops", username))
+		var newUser = &User{
+			Username: username,
+			RealName: username,
+			Adm:      1,
+		}
+		if err = newUser.PwdAddUser(rootRandPwd); err != nil {
+			return
+		}
+		user = newUser
+	}
+	return
 }

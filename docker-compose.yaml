@@ -47,6 +47,8 @@ services:
       - DB_NAME=devops
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.ssh:/root/.ssh
+      - ./sh:/go/sh
       - ./bin/app:/go/app
       - ./config.yaml:/go/config.yaml
       - ./web/public:/go/web/public

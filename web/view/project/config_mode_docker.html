@@ -1,26 +1,34 @@
 {{define "project/config_mode_docker.html"}}
 
     <div v-show="project.mode=='docker'">
-
+        <!-- shell -->
+        <div class="form-group">
+            <label>
+                Ci Shell
+            </label>
+            <textarea rows="10" class="form-control"
+                      placeholder="docker build之前的准备脚本，如：git、maven、java、npm等处理"
+                      v-model="project.docker.shell"></textarea>
+        </div>
         <!-- dockerfile -->
         <div class="form-group">
             <label>
-                Dockerfile
+                Dockerfile<span style="color: #FF1717">*</span>
             </label>
             <textarea rows="10" class="form-control"
-                      placeholder="不能为空"
+                      placeholder="FROM nginx:alpine ... 不能为空"
                       v-model="project.docker.dockerfile"></textarea>
         </div>
         <!-- run options -->
         <div class="form-group">
-            <label>docker run options</label>
+            <label>Docker run options</label>
             <input class="form-control"
                    placeholder="--privileged -v xx:/xx -p 8080:80 -e ABC=true ..."
                    v-model="project.docker.runOptions"/>
         </div>
         <!-- fast copy -->
         <div class="form-group">
-            <label>Fast COPY</label>
+            <label>Docker COPY</label>
             <div v-for="(v,i) in project.docker.volume"
                  style="border: 1px solid transparent;border-color: #0a6aa1;border-radius: 3px;">
                 <div class="input-group">

@@ -38,15 +38,6 @@ func initTty() {
 			log.StdWarning("gotty", "sshpass exit", cmd.Run())
 		}()
 	}
-	//goTty for ssh
-	if setting.SysGoTtyPortSsh != "" {
-		go func() {
-			log.StdOut("init", "gotty.ssh", setting.SysGoTtyPortSsh, "pwd", setting.SysGoTtyRandBasicAuth)
-			cmd := exec.Command("gotty", "-w", "-p", setting.SysGoTtyPortSsh, "-c", setting.SysGoTtyRandBasicAuth,
-				"--title-format", "ssh", "--permit-arguments", "ssh")
-			log.StdWarning("gotty", "ssh exit", cmd.Run())
-		}()
-	}
 }
 
 //init gin server

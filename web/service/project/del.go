@@ -2,14 +2,21 @@ package project
 
 import (
 	"app/models"
-	"errors"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func Del(c *gin.Context) (err error) {
 	var obj = models.GetProject(c)
-	if obj == nil {
-		return errors.New("project not found")
-	}
-	return models.DB().Delete(&models.Project{}, "id=?", obj.ID).Error
+	return models.DB().Transaction(func(tx *gorm.DB) error {
+		if er := tx.Delete(&models.Project{}, "id=?", obj.ID).Error; er != nil {
+			return er
+		}
+		if h := obj.GetLatestHistory(); h != nil {
+			if er := h.Remove(); er != nil {
+				return er
+			}
+		}
+		return nil
+	})
 }

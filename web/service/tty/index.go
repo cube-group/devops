@@ -51,13 +51,18 @@ func argumentsExchange(assist string, b []byte) (res []byte) {
 				setting.SysGoTtyRandBasicAuth,
 			)
 		}
-	case "sshpass": //sshpass
+	case "node": //node
 		if node := models.GetNode(convert.MustUint32(query.Get("id"))); node != nil {
 			respStr = fmt.Sprintf(
 				`{"Arguments":"?arg=-p&arg=%s&arg=ssh&arg=-o&arg=StrictHostKeyChecking=no&arg=-p&arg=%s&arg=%s@%s","AuthToken":"%s"}`,
 				node.SshPassword, node.SshPort, node.SshUsername, node.IP,
 				setting.SysGoTtyRandBasicAuth,
 			)
+			//respStr = fmt.Sprintf(
+			//	`{"Arguments":"?arg=-p&arg=%s&arg=ssh&arg=-o&arg=StrictHostKeyChecking=no&arg=-p&arg=%s&arg=%s@%s","AuthToken":"%s"}`,
+			//	node.SshPassword, node.SshPort, node.SshUsername, node.IP,
+			//	setting.SysGoTtyRandBasicAuth,
+			//)
 		}
 	case "pod": //docker pod
 		podType := query.Get("type")

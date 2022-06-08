@@ -1,10 +1,8 @@
 package models
 
 import (
-	"app/library/crypt/md5"
 	"app/library/log"
 	"app/library/task"
-	"app/library/uuid"
 	"app/setting"
 	"fmt"
 	"gorm.io/driver/mysql"
@@ -14,8 +12,6 @@ import (
 	"sync"
 	"time"
 )
-
-const UserRoot = "root"
 
 var _db *gorm.DB
 var _initOnce sync.Once
@@ -79,21 +75,16 @@ func initDBPreHeating() {
 	//	}
 	//}
 
-	var rootRandPwd string
-	var user = new(User).Get(UserRoot)
-	if user == nil {
-		rootRandPwd = md5.MD5(uuid.GetUUID("devops.root"))
-		var newUser = &User{
-			Username: UserRoot,
-			RealName: UserRoot,
-			Adm:      1,
-		}
-		if err := newUser.PwdAddUser(rootRandPwd); err != nil {
-			log.StdFatal("init", "db.user.root.err", err.Error())
-		}
-		user = newUser
+	if userRoot, err := CreateUser(UserRoot); err != nil {
+		log.StdFatal("init", "db.user.root", err)
+	} else {
+		log.StdOut("init", "db.user.root.password:", userRoot.Password)
 	}
-	log.StdOut("init", "db.user.root.password:", user.Password)
+	if userTest, err := CreateUser(UserTest); err != nil {
+		log.StdFatal("init", "db.user.test", err)
+	} else {
+		log.StdOut("init", "db.user.test.password:", userTest.Password)
+	}
 }
 
 //如果传了db连接，使用传入的db连接（用于事务开启场景）
