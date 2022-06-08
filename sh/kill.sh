@@ -1,3 +1,3 @@
 #!/bin/sh
 
-ps -A -ostat,ppid | grep -e '^[Zz]' | awk '{print $2}'
+ps aux | grep -e "MD5=$1" | grep -v grep | awk '{print $2}' | sort -rn | sed -n '1p' | xargs kill

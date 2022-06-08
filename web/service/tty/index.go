@@ -7,8 +7,8 @@ import (
 	"app/setting"
 	"encoding/json"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"net/http"
 	"net/url"
 	"strings"
 )
@@ -58,11 +58,6 @@ func argumentsExchange(assist string, b []byte) (res []byte) {
 				node.SshPassword, node.SshPort, node.SshUsername, node.IP,
 				setting.SysGoTtyRandBasicAuth,
 			)
-			//respStr = fmt.Sprintf(
-			//	`{"Arguments":"?arg=-p&arg=%s&arg=ssh&arg=-o&arg=StrictHostKeyChecking=no&arg=-p&arg=%s&arg=%s@%s","AuthToken":"%s"}`,
-			//	node.SshPassword, node.SshPort, node.SshUsername, node.IP,
-			//	setting.SysGoTtyRandBasicAuth,
-			//)
 		}
 	case "pod": //docker pod
 		podType := query.Get("type")
@@ -87,24 +82,29 @@ func argumentsExchange(assist string, b []byte) (res []byte) {
 		} else {
 			return
 		}
+	case "port":
+		return
 	default: //kubectl
 	}
 	fmt.Println("tty", respStr)
-	return []byte(respStr)
+	res = []byte(respStr)
+	return
 }
 
 //gotty proxy
-func Proxy(writer http.ResponseWriter, req *http.Request, goTtyAddress, assist string) {
-	defer log.StdOut("gotty", "conn.closed", req.RequestURI)
+func Proxy(c *gin.Context, port, assist string) {
 	upgrader.Subprotocols = append(upgrader.Subprotocols, "gotty")
-	ws, err := upgrader.Upgrade(writer, req, nil)
+	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.StdWarning("gotty", "ws.upgrader", err)
 		return
 	}
-	defer ws.Close()
+	defer func() {
+		ws.Close()
+		log.StdOut("gotty", "conn.closed", c.Request.RequestURI, models.KillPortProcess(convert.MustInt(port)))
+	}()
 
-	wsUrl := url.URL{Scheme: "ws", Host: goTtyAddress, Path: "/ws"}
+	wsUrl := url.URL{Scheme: "ws", Host: "127.0.0.1:" + port, Path: "/ws"}
 	websocket.DefaultDialer.Subprotocols = append(websocket.DefaultDialer.Subprotocols, "gotty")
 	conn, _, err := websocket.DefaultDialer.Dial(wsUrl.String(), nil)
 	if err != nil {

@@ -39,6 +39,7 @@ services:
       - 8888
     ports:
       - 80:80
+      - 33333:33333
     environment:
       - DB_DEBUG=1
       - DB_HOST=mysql
