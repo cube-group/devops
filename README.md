@@ -33,7 +33,7 @@ sh build.sh
 安装openjdk
 ```Dockerfile
 FROM devops
-#FROM cube-group/devops
+#FROM cubegroup/devops
 RUN apt update && \
     apt install -y apt-transport-https ca-certificates wget dirmngr gnupg software-properties-common && \
     wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add - && \
@@ -45,7 +45,7 @@ RUN apt update && \
 安装golang 
 ```Dockerfile
 FROM devops
-#FROM cube-group/devops
+#FROM cubegroup/devops
 VOLUME /data
 #golang
 RUN wget https://studygolang.com/dl/golang/go1.16.7.linux-amd64.tar.gz && \
@@ -61,7 +61,7 @@ RUN wget https://studygolang.com/dl/golang/go1.16.7.linux-amd64.tar.gz && \
 安装nodejs
 ```Dockerfile
 FROM devops
-#FROM cube-group/devops
+#FROM cubegroup/devops
 VOLUME /data
 #nodejs
 RUN apt install -y nodejs npm && \
@@ -82,7 +82,7 @@ RUN apt install -y nodejs npm && \
 安装python3
 ```Dockerfile
 FROM devops
-#FROM cube-group/devops
+#FROM cubegroup/devops
 VOLUME /data
 VOLUME /usr/lib/python3.7/site-packages
 RUN apt install -y python3 python3-pip&& \
