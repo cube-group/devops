@@ -89,28 +89,20 @@
                 },
                 onNodeTty(v) {//node tty enter
                     reqPost(`/tty/create?code=node&id=${v.id}`, null, (resData) => {
-                        this.onTtyWindow(
-                            `Node: ${v.name} IP：${v.ip} 端口：${v.sshPort}`,
-                            baseURL('/tty/port', resData.port, '/connect')
-                        )
-                    });
-                    // this.onTtyWindow(
-                    //     `Node: ${v.name} IP：${v.ip} 端口：${v.sshPort}`,
-                    //     baseURL('/tty/node?id='+v.id)
-                    // )
-                },
-                onTtyWindow(title, src) {
-                    this.openTtyIndex = layui.layer.open({
-                        type: 1, anim: 2, content: $('#tty-container'), title: title,
-                        area: [$(window).width() + 'px', $(window).height() + 'px'],
-                        success: () => {
-                            this.onResize();
-                            $('#tty').attr('src', src);
-                        },
-                        cancel: () => {
-                            this.openTtyIndex = 0;
-                            $('#tty').attr('src', 'about:blank');
-                        }
+                        var ttyURL = baseURL('/tty/port', resData.port, '/connect');
+                        var title = `Node: ${v.name} IP：${v.ip} 端口：${v.sshPort}`;
+                        this.openTtyIndex = layui.layer.open({
+                            type: 1, anim: 2, content: $('#tty-container'), title: title,
+                            area: [$(window).width() + 'px', $(window).height() + 'px'],
+                            success: () => {
+                                this.onResize();
+                                $('#tty').attr('src', ttyURL);
+                            },
+                            cancel: () => {
+                                this.openTtyIndex = 0;
+                                $('#tty').attr('src', 'about:blank');
+                            }
+                        });
                     });
                 },
                 onResize() {//window resize

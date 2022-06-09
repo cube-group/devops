@@ -51,23 +51,24 @@ func CreateGoTTY(writeFlag bool, md5ID string, arg ...string) (port int, err err
 	defer close(waitChan)
 
 	//create gotty process
+	var cmd *exec.Cmd
 	go func() {
 		defer func() {
 			if er := recover(); er != nil {
 				log.StdWarning("gotty", jsonutil.ToString(arg), er)
 			}
 		}()
-		cmd := exec.Command("gotty", arg...)
+		cmd = exec.Command("gotty", arg...)
 		log.StdOut("gotty", port, "end", cmd.Run())
 		ttyPorts.Delete(port) //delete port maps
 	}()
 	//test connect
-	var tested = true
+	var testing = true
 	go func() {
 		var requestURL = fmt.Sprintf("http://127.0.0.1:%d", port)
 		var startTime = time.Now()
 		for {
-			if !tested {
+			if !testing {
 				return
 			}
 			if resp, er := req.Get(requestURL); er == nil && resp.Response().StatusCode == http.StatusOK { //http ok
@@ -76,13 +77,17 @@ func CreateGoTTY(writeFlag bool, md5ID string, arg ...string) (port int, err err
 			}
 			if time.Now().After(startTime.Add(time.Second * 3)) { //timeout
 				err = errors.New("timeout")
+				if cmd != nil && cmd.Process != nil {
+					log.StdWarning("gotty", "timeout killed", cmd.Process.Kill())
+				}
 				waitChan <- 1
 				return
 			}
 			time.Sleep(time.Millisecond)
 		}
 	}()
+	//end
 	<-waitChan
-	tested = false
+	testing = false
 	return
 }

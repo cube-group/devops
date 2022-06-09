@@ -12,11 +12,11 @@ import (
 type TTYCode string
 
 const (
-	TTYCodeBash = "bash"
-	TTYCodeNode = "node"
-	TTYCodeLogs = "logs"
-	TTYCodeExec = "exec"
-	TTYCodeTail = "tail"
+	TTYCodeBash = "bash" //bash
+	TTYCodeNode = "node" //node ssh
+	TTYCodeLogs = "logs" //docker logs
+	TTYCodeExec = "exec" //docker exec
+	TTYCodeTail = "tail" //history apply tail
 )
 
 type valCreate struct {
@@ -35,33 +35,46 @@ func Create(c *gin.Context) (res gin.H, err error) {
 	switch val.Code {
 	case TTYCodeBash:
 		port, err = models.CreateGoTTY(true, md5ID, "bash")
-	case TTYCodeNode:
+	case TTYCodeNode: //node
 		if node := models.GetNode(val.ID); node != nil {
 			port, err = models.CreateGoTTY(
-				true,
-				md5ID,
+				true, md5ID,
 				"sshpass", "-p", node.SshPassword,
 				"ssh", "-t", "-o", "StrictHostKeyChecking=no", "-p", node.SshPort, node.SshUsername+"@"+node.IP,
 				fmt.Sprintf("MD5=%s;bash", md5ID),
 			)
 		}
-	case TTYCodeExec:
+	case TTYCodeExec: //docker exec
 		if h := models.GetHistory(val.ID); h != nil {
 			port, err = models.CreateGoTTY(
-				true,
-				md5ID,
+				true, md5ID,
 				"sshpass", "-p", h.Node.SshPassword,
 				"ssh", "-t", "-o", "StrictHostKeyChecking=no", h.Node.SshUsername+"@"+h.Node.IP,
 				fmt.Sprintf("MD5=%s;docker exec -it %s sh", md5ID, h.Project.Name),
 			)
 		}
-	case TTYCodeLogs:
+	case TTYCodeLogs: //docker logs
 		if h := models.GetHistory(val.ID); h != nil {
 			port, err = models.CreateGoTTY(
-				false,
+				false, md5ID,
 				"sshpass", "-p", h.Node.SshPassword,
 				"ssh", "-o", "StrictHostKeyChecking=no", h.Node.SshUsername+"@"+h.Node.IP,
 				fmt.Sprintf("MD5=%s;docker logs -f -n 1000 %s", md5ID, h.Project.Name),
+			)
+		}
+	case TTYCodeTail: //history apply tail
+		if h := models.GetHistory(val.ID); h != nil {
+			var logFilePath = h.WorkspaceFollowLog()
+			if h.IsEnd() {
+				if endLogPath := h.WorkspaceEndLog(); endLogPath == "" {
+					return
+				} else {
+					logFilePath = endLogPath
+				}
+			}
+			port, err = models.CreateGoTTY(
+				false, md5ID,
+				"sh", "sh/tail.sh", md5ID, logFilePath,
 			)
 		}
 	default:
