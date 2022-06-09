@@ -41,15 +41,10 @@
             <div class="vertical-align-middle">
                 <div class="auth-box lockscreen clearfix">
                     <form class="content" method="post" action="/login" enctype="application/x-www-form-urlencoded">
-                        {{ if eq "" .pic }}
-                            <h3 style="text-align: center">visible K8s Devops :)</h3>
-                        {{else}}
-                            <div class="user text-center">
-                                {{ if ne "" .pic }}
-                                    <img src="{{.pic}}" style="width: 100%;">
-                                {{end}}
-                            </div>
-                        {{end}}
+                        <h3 style="text-align: center" v-if="!pic">Fast Ops v1</h3>
+                        <div class="user text-center" v-if="pic">
+                            <img :src="pic" style="width: 100%;">
+                        </div>
                         <br>
                         <div class="form-group">
                             <label>Username</label>
@@ -63,12 +58,6 @@
                             <input type="submit" class="btn btn-danger btn-block"
                                    style="overflow: hidden;text-overflow: ellipsis;" value="Sign In">
                         </div>
-                        <a :href="auth.gitlab" style="color: #99a1a7;font-size: 10px;">
-                            Gitlab
-                        </a>
-                        <a :href="auth.gitee" style="color: #99a1a7;font-size: 10px;margin-left: 10px">
-                            Gitee
-                        </a>
                     </form>
                 </div>
             </div>
@@ -77,12 +66,12 @@
     <script>
         vueMixinList.push({
             data: {
+                pic:{{.pic}},
                 disableButton: false,
                 auth: {},
                 form: {},
             },
-            methods: {
-            }
+            methods: {}
         });
     </script>
 

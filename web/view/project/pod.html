@@ -55,7 +55,7 @@
                         var frameURL = baseURL('/tty/port', resData.port, '/connect');
                         this.openTtyIndex = layui.layer.open({
                             type: 1, area: [$(window).width() + 'px', $(window).height() + 'px'],
-                            title: `${this.project.name} TTY`, content: $('#tty-container'), anim: 2,
+                            title: `Node: ${this.history.node.ip} Container: ${this.project.name} Exec`, content: $('#tty-container'), anim: 2,
                             success: (layero, index) => {
                                 //close log
                                 $(window).unbind("resize", this.onLogResize);

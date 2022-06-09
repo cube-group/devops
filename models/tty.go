@@ -20,7 +20,11 @@ func KillPortProcess(port int) error {
 	if !ok {
 		return nil
 	}
-	cmd := exec.Command("sh", "sh/kill.sh", convert.MustString(i))
+	md5ID, ok := i.(string)
+	if !ok || md5ID == "" {
+		return nil
+	}
+	cmd := exec.Command("sh", "local/kill.sh", md5ID)
 	bytes, err := cmd.CombinedOutput()
 	fmt.Println(cmd.Args, string(bytes))
 	return err

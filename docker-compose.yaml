@@ -39,7 +39,6 @@ services:
       - 8888
     ports:
       - 80:80
-      - 33333:33333
     environment:
       - DB_DEBUG=1
       - DB_HOST=mysql
@@ -49,7 +48,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ~/.ssh:/root/.ssh
-      - ./sh:/go/sh
+      - ./local:/go/local
       - ./bin/app:/go/app
       - ./config.yaml:/go/config.yaml
       - ./web/public:/go/web/public

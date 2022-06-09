@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
+	"io/ioutil"
+	"strings"
 	"sync"
 	"time"
 )
@@ -64,17 +66,17 @@ func initDB() {
 
 //init db root user
 func initDBPreHeating() {
-	//sql pre
-	//if sqlBytes, err := ioutil.ReadFile("local/db.sql"); err == nil {
-	//	var sqlItems = strings.Split(string(sqlBytes), ";")
-	//	sqlItems = sqlItems[:len(sqlItems)-1]
-	//	for _, sqlItem := range sqlItems {
-	//		if err = _db.Exec(sqlItem).Error; err != nil {
-	//			log.StdWarning("init", "db.table.init.err", err)
-	//		}
-	//	}
-	//}
-
+	//sql pre create
+	if sqlBytes, err := ioutil.ReadFile("local/create.sql"); err == nil {
+		var sqlItems = strings.Split(string(sqlBytes), ";")
+		sqlItems = sqlItems[:len(sqlItems)-1]
+		for _, sqlItem := range sqlItems {
+			if err = _db.Exec(sqlItem).Error; err != nil {
+				log.StdWarning("init", "db.table.init.err", err)
+			}
+		}
+	}
+	//init users
 	if userRoot, err := CreateUser(UserRoot); err != nil {
 		log.StdFatal("init", "db.user.root", err)
 	} else {
