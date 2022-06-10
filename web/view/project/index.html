@@ -12,9 +12,9 @@
     {{/*}*/}}
     {{/*</style>*/}}
     <!-- MAIN CONTENT -->
-{{/*    <script>*/}}
-{{/*        redirectTLS();*/}}
-{{/*    </script>*/}}
+    {{/*    <script>*/}}
+    {{/*        redirectTLS();*/}}
+    {{/*    </script>*/}}
 
     <div class="panel">
         <div class="panel-heading">
@@ -49,7 +49,7 @@
                             <span class="label label-default">-</span>
                         </div>
                         <div v-if="v.history && !v.history.status">
-                            <span class="label label-default">部署中...</span>
+                            <i class="fa fa-spinner fa-spin"></i>部署中
                             ${v.history.createdAt}
                         </div>
                         <div v-if="v.history && v.history.status=='deleted'">
@@ -61,7 +61,7 @@
                             ${v.history.updatedAt}
                         </div>
                         <div v-if="v.history && v.history.status=='error'">
-                            <span class="label label-danger">失败</span>
+                            <a class="label label-danger" :href="baseURL('/history?id='+v.history.id)">失败</a>
                             ${v.history.updatedAt}
                         </div>
                     </td>

@@ -86,11 +86,15 @@ func (t *History) Validator() error {
 	if t.ProjectId > 0 {
 		if i := GetProject(t.ProjectId); i != nil {
 			t.Project = i
+		} else {
+			return fmt.Errorf("部署失败：project id %d not found", t.ProjectId)
 		}
 	}
 	if t.NodeId > 0 {
 		if i := GetNode(t.NodeId); i != nil {
 			t.Node = i
+		} else {
+			return fmt.Errorf("部署失败：node id %d not found", t.NodeId)
 		}
 	}
 	return nil

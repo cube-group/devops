@@ -28,6 +28,12 @@ func GetProject(values ...interface{}) (res *Project) {
 				return nil
 			}
 			res = &i
+		case string:
+			var i Project
+			if err := DB().Take(&i, "name LIKE ?", "%"+vv+"%").Error; err != nil {
+				return nil
+			}
+			res = &i
 		case *gin.Context:
 			if i, exist := vv.Get(consts.ContextProject); exist {
 				if instance, ok := i.(*Project); ok {

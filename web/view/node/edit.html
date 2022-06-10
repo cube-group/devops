@@ -93,9 +93,6 @@
                 onSave() {
                     displayConfirm('确认提交?', '确认', '取消', () => {
                         var requestURL = baseURL('/node/save');
-                        if (this.node.id) {
-                            requestURL = baseURL('/node/i/', this.node.id, '/save')
-                        }
                         var data = deepCloneObject(this.node);
                         reqPostJson(requestURL, data, baseURL('/node'));
                     });

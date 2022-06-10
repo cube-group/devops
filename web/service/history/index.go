@@ -10,12 +10,13 @@ import (
 )
 
 type valList struct {
-	Name string `form:"name"`
+	ID  string `form:"id"`
+	Pid string `form:"pid"`
 }
 
 //k8s node list
 func List(c *gin.Context) (res gin.H) {
-	var obj = page.ListReturnStruct{"search": gin.H{"name": ""}}
+	var obj = page.ListReturnStruct{"search": gin.H{"id": "", "pid": ""}}
 	res = gin.H(obj)
 	var val valList
 	if ginutil.ShouldBind(c, &val) != nil {
@@ -28,8 +29,19 @@ func List(c *gin.Context) (res gin.H) {
 
 func queryList(val valList) *gorm.DB {
 	var query = models.DB().Order("id DESC")
-	if val.Name != "" {
-		if projectId := convert.MustUint32(val.Name); projectId > 0 {
+	if val.ID != "" {
+		if id := convert.MustUint32(val.ID); id > 0 {
+			query = query.Where("id=?", id)
+		}
+	}
+	if val.Pid != "" {
+		projectId := convert.MustUint32(val.Pid)
+		if projectId == 0 {
+			if p := models.GetProject(val.Pid); p != nil {
+				projectId = p.ID
+			}
+		}
+		if projectId > 0 {
 			query = query.Where("project_id=?", projectId)
 		}
 	}

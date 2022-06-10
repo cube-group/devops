@@ -3,6 +3,7 @@ package project
 import (
 	"app/library/ginutil"
 	"app/library/page"
+	"app/library/types/convert"
 	"app/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -63,7 +64,11 @@ func queryList(val valList) *gorm.DB {
 		query = query.Where("kind=?", val.Kind)
 	}
 	if val.Name != "" {
-		query = query.Where("name LIKE ?", "%"+val.Name+"%")
+		if id := convert.MustUint32(val.Name); id > 0 {
+			query = query.Where("id=?", id)
+		} else {
+			query = query.Where("name LIKE ?", "%"+val.Name+"%")
+		}
 	}
 	return query
 }

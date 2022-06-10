@@ -29,7 +29,7 @@
                         ${v.id}
                     </td>
                     <td>
-                        ${v.node.ip}
+                        <a :href="baseURL('/node?name='+v.node.ip)">${v.node.ip}</a>
                     </td>
                     <td>
                         <span>
@@ -42,9 +42,9 @@
                         </span>
                     </td>
                     <td>
-                        <div v-if="v.status==''">ing</div>
-                        <div v-if="v.status=='ok'">success</div>
-                        <div v-if="v.status=='error'">failed</div>
+                        <div v-if="v.status==''"><i class="fa fa-spinner fa-spin"></i>部署中</div>
+                        <div v-if="v.status=='ok'"><label class="label label-success">成功</label></div>
+                        <div v-if="v.status=='error'"><label class="label label-danger">失败</label></div>
                     </td>
                     <td>
                         ${v.createdAt}

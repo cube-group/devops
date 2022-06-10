@@ -3,7 +3,10 @@
     <div class="panel">
         <div class="panel-heading">
             <div class="panel-title">
-                <a href="/history">< 返回 | </a>项目 ${info.project.name} 部署日志 时间${info.createdAt} ID: ${info.id}
+                <a href="/history">< 返回 | </a> <a :href="baseURL('/project?name='+info.project.id)" style="color: #0a6aa1">${info.project.name}</a> ${info.createdAt} ID: ${info.id}
+                <span v-if="info.status=='ok'"><label class="label label-success">成功</label></span>
+                <span v-if="info.status=='error'"><label class="label label-danger">失败</label></span>
+                <span v-if="!info.status"><i class="fa fa-spinner fa-spin"></i>部署中</span>
             </div>
         </div>
         <div class="panel-body">
@@ -27,11 +30,11 @@
                 }
             },
             mounted() {
+                this.onResize();
+                $(window).bind('resize', this.onResize);
                 reqPost(`/tty/create?code=tail&id=${this.info.id}`, null, (resData) => {
                     var frameURL = baseURL('/tty/port', resData.port, '/connect');
                     $('#log').attr('src', frameURL);
-                    this.onResize();
-                    $(window).bind('resize', this.onResize);
                 });
             }
         }

@@ -72,9 +72,6 @@
                 onSave() {
                     displayConfirm('确认提交?', '确认', '取消', () => {
                         var requestURL = baseURL('/project/save');
-                        if (this.project.id) {
-                            requestURL = baseURL('/project/i/', this.project.id, '/save')
-                        }
                         var data = deepCloneObject(this.project);
                         reqPostJson(requestURL, data, baseURL('/project'));
                     });

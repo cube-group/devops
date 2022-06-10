@@ -18,7 +18,6 @@ func (t *ProjectController) Init(group *gin.RouterGroup) {
 	group.POST("/save", t.save)
 	detailGroup := group.Group("/i/:pid", middleware.Project())
 	detailGroup.GET(".", t.info)
-	detailGroup.POST("/save", t.save)
 	detailGroup.DELETE(".", t.del)
 	detailGroup.GET("/apply", t.apply)
 	detailGroup.POST("/online", t.online)

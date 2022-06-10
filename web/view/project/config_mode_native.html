@@ -12,12 +12,14 @@
                 <div class="layui-tab-content" style="height: auto;min-height: 200px;">
                     <div class="layui-tab-item layui-show">
                         <textarea style="height: 200px;" class="form-control codeValue"
-                                  placeholder="执行一些项目初始化操作，例如：
+                                  placeholder="(注意该脚本会直接在目标远程宿主机上执行）
+执行一些项目初始化操作，例如：
+git clone github.com@cubegroup/xxx-main.git main
+git clone github.com@cubegroup/xxx-sub.git sub
+cp -r main/* .
 npm install
-composer install
-cp  subConfig/application.ini conf/application.ini
-cp  subProject public/web
-unzip -d ./ vendor/vendor.zip`"
+javac xx.java
+"
                                   v-model="project.native.shell"></textarea>
                     </div>
                 </div>

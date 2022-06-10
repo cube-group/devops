@@ -1,8 +1,8 @@
 {{define "node/index.html"}}
     {{template "layout/top.html" .}}
-{{/*    <script>*/}}
-{{/*        redirectTLS();*/}}
-{{/*    </script>*/}}
+    {{/*    <script>*/}}
+    {{/*        redirectTLS();*/}}
+    {{/*    </script>*/}}
 
     <div class="panel">
         <div class="panel-heading">
@@ -54,7 +54,7 @@
                         <a class="btn btn-xs btn-primary" @click="onNodeTty(v)">
                             连接
                         </a>
-                        <a class="btn btn-xs btn-danger">
+                        <a class="btn btn-xs btn-danger" @click="onDel(v)">
                             移除
                         </a>
                     </td>
@@ -86,6 +86,12 @@
             methods: {
                 onSearch() {
                     window.location = this.location + '?' + $.param(this.search);
+                },
+                onDel(item) {
+                    displayConfirm(`确认移除Node: ${item.ip}?`, '确认', '取消', () => {
+                        var requestURL = baseURL('/node/i', item.id);
+                        reqDelWithoutData(requestURL);
+                    });
                 },
                 onNodeTty(v) {//node tty enter
                     reqPost(`/tty/create?code=node&id=${v.id}`, null, (resData) => {
