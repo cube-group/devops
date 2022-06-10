@@ -1,7 +1,8 @@
 FROM devops
 VOLUME /data
 #nodejs
-RUN apt install -y nodejs npm && \
+RUN apt-get update -y && \
+    apt install -y nodejs npm && \
     mkdir -p /data/nodejs/node_modules/node_global && \
     mkdir -p /data/nodejs/node_modules/node_cache && \
     npm config set unsafe-perm true && \
