@@ -25,7 +25,7 @@ services:
   devops:
     depends_on:
       - mysql
-    image: cubegroup/devop
+    image: cubegroup/devops
     platform: linux/amd64
     container_name: devops
     restart: always

@@ -132,7 +132,7 @@ func (t *History) WorkspaceEndLog() (res string) {
 }
 
 func (t *History) WorkspaceRun() string {
-	return path.Join(t.Workspace(), "run.sh")
+	return path.Join(t.Workspace(), "run-dev.sh")
 }
 
 func (t *History) WorkspaceDockerfile() string {
@@ -154,7 +154,7 @@ func (t *History) Online() (err error) {
 	if err = os.MkdirAll(workspace, os.ModePerm); err != nil {
 		return
 	}
-	//create run.sh content
+	//create run-dev.sh content
 	var runContent string
 	if t.Project.Mode == ProjectModeDocker { //deploy mode docker
 		runContent, err = t.createRunDockerMode(node)
@@ -164,7 +164,7 @@ func (t *History) Online() (err error) {
 	if err != nil {
 		return
 	}
-	//create run.sh
+	//create run-dev.sh
 	if err = ioutil.WriteFile(t.WorkspaceRun(), []byte(runContent), os.ModePerm); err != nil {
 		return
 	}
@@ -251,7 +251,7 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 		t.Project.Name,
 		t.Project.Name, t.Project.Docker.RunOptions, imageName,
 	)
-	//create run.sh content
+	//create run-dev.sh content
 	runContent = fmt.Sprintf(`
 #!/bin/bash
 date +"%%Y-%%m-%%d %%H:%%M:%%S"
@@ -305,7 +305,7 @@ func (t *History) createRunNativeMode(node *Node) (runContent string, err error)
 		node.SshPassword, node.SshPort, shellFilePath,
 		node.SshUsername, node.IP, tmpFilePath,
 	))
-	//create run.sh content
+	//create run-dev.sh content
 	runContent = fmt.Sprintf(`
 #!/bin/bash
 echo 'ProjectId: %d HistoryId: %d %s'

@@ -43,7 +43,7 @@ func initTty() {
 func initServer() {
 	log.StdOut("init", "web.server", setting.SysWebServer)
 	engine := gin.New()
-	if !setting.SysWebDebug {
+	if setting.SysWebDebug {
 		engine.Use(gin.Logger())
 	} else {
 		gin.SetMode(gin.ReleaseMode)

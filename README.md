@@ -14,6 +14,7 @@ docker run -it -d --restart=always \
 -e WEB_DEBUG=0 \
 # for git
 -v ~/.ssh:/root/.ssh \ 
+-v /var/run/docker.sock:/var/run/docker.sock \
 --name devops \
 cube-group/devops
 ```

@@ -32,7 +32,7 @@ func Init() {
 }
 
 func initEnv() {
-	SysWebDebug = env.GetInt(consts.WEB_DEBUG, 0) == 1
+	SysWebDebug = env.GetInt(consts.WEB_DEBUG, 1) == 1
 	SysWebServer = env.GetString(consts.WEB_SERVER, "0.0.0.0:80")
 	SqlHost = env.GetString(consts.DB_HOST, "127.0.0.1")
 	SqlPort = env.GetInt(consts.DB_PORT, 3306, 1, 65534)

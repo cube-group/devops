@@ -36,9 +36,9 @@ services:
     container_name: devops
     restart: always
     ports:
-      - 80:80
+      - 8080:80
     environment:
-      - WEB_DEBUG=1
+#      - WEB_DEBUG=1
       - DB_DEBUG=1
       - DB_HOST=mysql
       - DB_USERNAME=devops
