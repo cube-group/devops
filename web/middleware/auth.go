@@ -36,7 +36,7 @@ func Auth() gin.HandlerFunc {
 		//}
 		//action log
 		//if action != nil {
-		//	go new(models.ActionLog).InsertLog(c, action)
+		//	devops-java new(models.ActionLog).InsertLog(c, action)
 		//}
 		c.Next()
 	}

@@ -140,7 +140,7 @@ func (t *History) WorkspaceRun() string {
 }
 
 func (t *History) WorkspaceDockerfile() string {
-	return path.Join(t.Workspace(), "Dockerfile")
+	return path.Join(t.Workspace(), "Dockerfile.bak")
 }
 
 func (t *History) IsEnd() bool {
@@ -162,7 +162,7 @@ func (t *History) Online() (err error) {
 	var runContent string
 	if t.Project.Mode == ProjectModeDocker { //deploy mode docker
 		runContent, err = t.createRunDockerMode(node)
-	} else { //node shell
+	} else { //node dockerfiles
 		runContent, err = t.createRunNativeMode(node)
 	}
 	if err != nil {
@@ -236,7 +236,7 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 		newLines = append(newLines, v)
 	}
 	if !fromFlag {
-		err = errors.New("Dockerfile invalid")
+		err = errors.New("Dockerfile.bak invalid")
 		return
 	}
 	dockerfile = strings.Join(newLines, "\n")
@@ -297,7 +297,7 @@ func (t *History) createRunNativeMode(node *Node) (runContent string, err error)
 			node.SshUsername, node.IP, v.Path,
 		))
 	}
-	//create ssh shell
+	//create ssh dockerfiles
 	var shellFilePath = t.WorkspaceSshShellPath("")
 	var tmpFilePath = fmt.Sprintf("/tmp/devops-%d-%s", t.Project.ID, times.FormatFileDatetime(now))
 	var shell = fmt.Sprintf("#!/bin/bash\n%s\n", template.Shell)

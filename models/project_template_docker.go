@@ -11,7 +11,7 @@ type ProjectTemplateDockerMarshalJSON ProjectTemplateDocker
 
 //k8s project cfg about spec template
 type ProjectTemplateDocker struct {
-	Shell      string     `json:"shell"`
+	Shell      string     `json:"dockerfiles"`
 	Dockerfile string     `json:"dockerfile"`
 	RunOptions string     `json:"runOptions"`
 	Volume     VolumeList `gorm:"" json:"volume" form:"volume"`

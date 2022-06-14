@@ -1,22 +1,27 @@
 package setting
 
 import (
-	"app/library/core"
+	"app/library/log"
 	"github.com/spf13/viper"
-	"log"
 )
 
 var Local *viper.Viper
 
 func initLocal() {
+	//local/config.yaml
 	vip := viper.New()
-	vip.SetConfigName("config")
-	vip.SetConfigType("yaml")
-	vip.AddConfigPath(".")
-	if err := vip.ReadInConfig(); err != nil {
-		log.Fatal("init", "initLocal", err)
+	f, err := EmbedLocal().Open("local/config.yaml")
+	if err != nil {
+		goto ERROR
 	}
-	core.Lock(func() {
-		Local = vip
-	})
+	defer f.Close()
+	err = vip.ReadConfig(f)
+	if err != nil {
+		goto ERROR
+	}
+	Local = vip
+	return
+
+ERROR:
+	log.StdFatal("init", "initLocal", err)
 }

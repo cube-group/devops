@@ -27,11 +27,11 @@
                 }
             },
             mounted() {
+                this.onResize();
+                $(window).resize(this.onResize);
                 reqPost('/tty/create?code=bash', null, (resData) => {
                     $('#tty').attr('src', baseURL('/tty/port', resData.port, "/connect"));
-                    this.onResize();
-                    $(window).resize(this.onResize);
-                }, {loading: false});
+                });
             }
         }
     </script>

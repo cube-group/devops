@@ -24,7 +24,7 @@ services:
       - devops
   devops-shell:
     build:
-      context: ./shell
+      context: dockerfiles/devops-shell
     image: devops-shell:latest
     platform: linux/amd64
   devops:
@@ -36,7 +36,7 @@ services:
     container_name: devops
     restart: always
     ports:
-      - 8080:80
+      - 80:80
     environment:
 #      - WEB_DEBUG=1
       - DB_DEBUG=1
@@ -47,9 +47,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ~/.ssh:/root/.ssh
-      - ./local:/go/local
       - ./bin/app:/go/app
-      - ./config.yaml:/go/config.yaml
       - ./web/public:/go/web/public
       - ./web/view:/go/web/view
     working_dir: /go

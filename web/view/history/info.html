@@ -3,7 +3,9 @@
     <div class="panel">
         <div class="panel-heading">
             <div class="panel-title">
-                <a href="/history">< 返回 | </a> <a :href="baseURL('/project?name='+info.project.id)" style="color: #0a6aa1">${info.project.name}</a> ${info.createdAt} ID: ${info.id}
+                <a href="/history">< 返回 | </a> <a :href="baseURL('/project?name='+info.project.id)"
+                                                  style="color: #0a6aa1">${info.project.name}</a> ${info.createdAt} ID:
+                ${info.id}
                 <span v-if="info.status=='ok'"><label class="label label-success">成功</label></span>
                 <span v-if="info.status=='error'"><label class="label label-danger">失败</label></span>
                 <span v-if="!info.status"><i class="fa fa-spinner fa-spin"></i>部署中</span>
@@ -20,13 +22,34 @@
     <script>
         vueMixin = {
             data: {
+                inter: 0,
                 info:{{.history}},
             },
             methods: {
+                isDone(h) {
+                    if (h.status === 'ok' || h.status === 'error') {
+                        return true;
+                    }
+                    return false;
+                },
                 onResize() {
                     var frame = $('#log');
                     var height = $(window).height() - frame.offset().top - 50;
                     frame.css('height', height + 'px');
+                },
+                onLoadState() {
+                    reqPostJson('/history/state', {list: [this.info.id]}, (resData) => {
+                        for (var item of resData) {
+                            if (item.id === this.info.id) {
+                                this.info.status = item.status;
+                                this.info.updatedAt = item.updatedAt;
+                                if (this.isDone(item)) {
+                                    clearInterval(this.inter);
+                                }
+                                return;
+                            }
+                        }
+                    }, {loading: false});
                 }
             },
             mounted() {
@@ -36,6 +59,12 @@
                     var frameURL = baseURL('/tty/port', resData.port, '/connect');
                     $('#log').attr('src', frameURL);
                 });
+                //state
+                if (!this.isDone(this.info)) {
+                    this.inter = setInterval(() => {
+                        this.onLoadState();
+                    }, 3000)
+                }
             }
         }
     </script>

@@ -45,6 +45,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			port, err = models.CreateGoTTY(
 				true, md5ID,
 				//"--close-signal", "9", // SIGKILL, kill -9
+				"--close-cmd", "exit",
 				"sshpass", "-p", node.SshPassword,
 				"ssh", "-t", "-o", "StrictHostKeyChecking=no", "-p", node.SshPort, node.SshUsername+"@"+node.IP,
 				fmt.Sprintf("MD5=%s;bash", md5ID),
@@ -55,6 +56,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			port, err = models.CreateGoTTY(
 				true, md5ID,
 				//"--close-signal", "9", // SIGKILL, kill -9
+				"--close-cmd", "exit",
 				"sshpass", "-p", h.Node.SshPassword,
 				"ssh", "-t", "-o", "StrictHostKeyChecking=no", h.Node.SshUsername+"@"+h.Node.IP,
 				fmt.Sprintf("MD5=%s;docker exec -it %s sh", md5ID, h.Project.Name),
@@ -64,6 +66,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 		if h := models.GetHistory(val.ID); h != nil {
 			port, err = models.CreateGoTTY(
 				false, md5ID,
+				"--close-cmd", "exit",
 				//"--close-signal", "9", // SIGKILL, kill -9
 				"sshpass", "-p", h.Node.SshPassword,
 				"ssh", "-o", "StrictHostKeyChecking=no", h.Node.SshUsername+"@"+h.Node.IP,

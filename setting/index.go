@@ -4,6 +4,7 @@ import (
 	"app/library/consts"
 	"app/library/env"
 	"app/library/log"
+	"embed"
 	"os/exec"
 )
 
@@ -20,12 +21,14 @@ var SqlPoolMaxIdle int
 var SqlDebug int
 
 var SysGoTtyHost = "127.0.0.1"
+
 //var SysGoTtyPortSshpass string
 //var SysGoTtyPortBash string
 //var SysGoTtyRandBasicAuth = fmt.Sprintf("%d:%d", rand.IntnRange(100, 100000), rand.IntnRange(100, 100000))
 
 //init env params
-func Init() {
+func Init(fs map[string]embed.FS) {
+	initEmbed(fs)
 	initLocal()
 	initEnv()
 	initCmd()

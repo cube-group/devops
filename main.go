@@ -5,11 +5,19 @@ import (
 	"app/models"
 	"app/setting"
 	"app/web"
+	"embed"
+	_ "embed"
 	"flag"
 )
 
+//devops-java:embed local
+var embedLocal embed.FS
+
 func init() {
-	setting.Init()
+	setting.Init(
+		map[string]embed.FS{
+			"local": embedLocal,
+		})
 	models.Init()
 }
 

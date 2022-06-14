@@ -4185,7 +4185,7 @@
 
         var view = display.view, lineN = display.viewFrom;
         // Loop over the elements in the view, syncing cur (the DOM nodes
-        // in display.lineDiv) with the view as we go.
+        // in display.lineDiv) with the view as we devops-java.
         for (var i = 0; i < view.length; i++) {
             var lineView = view[i];
             if (lineView.hidden) ; else if (!lineView.node || lineView.node.parentNode != container) { // Not drawn yet
@@ -5547,8 +5547,8 @@
     // node, and is the document object itself (meaning it has
     // additional methods and properties).
     //
-    // All nodes have parent links. The tree is used both to go from
-    // line numbers to line objects, and to go from objects to numbers.
+    // All nodes have parent links. The tree is used both to devops-java from
+    // line numbers to line objects, and to devops-java from objects to numbers.
     // It also indexes by height, and is used to convert between height
     // and line object, and to find the total height of the document.
     //
@@ -7189,7 +7189,7 @@
         if (e.shiftKey && !cm.state.keySeq) {
             // First try to resolve full name (including 'Shift-'). Failing
             // that, see if there is a cursor-motion command (starting with
-            // 'go') bound to the keyname without 'Shift-'.
+            // 'devops-java') bound to the keyname without 'Shift-'.
             return dispatchKey(cm, "Shift-" + name, e, function (b) { return doHandleBinding(cm, b, true); })
                 || dispatchKey(cm, name, e, function (b) {
                     if (typeof b == "string" ? /^go[A-Z]/.test(b) : b.motion)
@@ -7546,7 +7546,7 @@
             counter = Infinity;
             // If e is null or undefined we interpret this as someone trying
             // to explicitly cancel the selection rather than the user
-            // letting go of the mouse button.
+            // letting devops-java of the mouse button.
             if (e) {
                 e_preventDefault(e);
                 display.input.focus();

@@ -28,8 +28,10 @@ func (t *TtyController) Init(group *gin.RouterGroup) {
 	//group.GET("/js/*.js", t.ttyJs)
 
 	var portGroup = group.Group("/port/:port")
-	portGroup.GET("/auth_token.js", t.portConnectJs)
-	portGroup.GET("/js/*.js", t.portConnectJs)
+	portGroup.GET("/auth_token.js", t.portConnectFragment("application/javascript"))
+	portGroup.GET("/config.js", t.portConnectFragment("application/javascript"))
+	portGroup.GET("/js/*.js", t.portConnectFragment("application/javascript"))
+	portGroup.GET("/css/*.css", t.portConnectFragment("text/css; charset=utf-8"))
 	portGroup.GET("/connect", t.portConnect)
 	portGroup.GET("/connectws", t.portConnectWs)
 }
@@ -102,20 +104,23 @@ func (t *TtyController) portConnect(c *gin.Context) {
 	}
 }
 
-func (t *TtyController) portConnectJs(c *gin.Context) {
-	port := c.Param("port")
-	ttyUrl := fmt.Sprintf(
-		"http://%s:%s%s",
-		setting.SysGoTtyHost, port,
-		strings.Split(c.Request.RequestURI, "/tty/port/"+port)[1],
-	)
-	resp, err := req.Get(ttyUrl) //req.Header{"Authorization": "Basic " + base64.Base64Encode(setting.SysGoTtyRandBasicAuth)})
-	if err != nil {
-		c.String(http.StatusNotFound, "")
-	} else {
-		c.Header("Content-Type", "application/javascript")
-		c.String(http.StatusOK, resp.String())
+func (t *TtyController) portConnectFragment(contentType string) gin.HandlerFunc{
+	return func(c *gin.Context) {
+		port := c.Param("port")
+		ttyUrl := fmt.Sprintf(
+			"http://%s:%s%s",
+			setting.SysGoTtyHost, port,
+			strings.Split(c.Request.RequestURI, "/tty/port/"+port)[1],
+		)
+		resp, err := req.Get(ttyUrl) //req.Header{"Authorization": "Basic " + base64.Base64Encode(setting.SysGoTtyRandBasicAuth)})
+		if err != nil {
+			c.String(http.StatusNotFound, "")
+		} else {
+			c.Header("Content-Type",contentType )
+			c.String(http.StatusOK, resp.String())
+		}
 	}
+
 }
 
 func (t *TtyController) portConnectWs(c *gin.Context) {

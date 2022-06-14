@@ -16,18 +16,19 @@ import (
 var ttyPorts sync.Map
 
 func KillPortProcess(port int) error {
-	i, ok := ttyPorts.Load(port)
-	if !ok {
-		return nil
-	}
-	md5ID, ok := i.(string)
-	if !ok || md5ID == "" {
-		return nil
-	}
-	cmd := exec.Command("sh", "local/kill.sh", md5ID)
-	bytes, err := cmd.CombinedOutput()
-	fmt.Println(cmd.Args, string(bytes))
-	return err
+	return nil
+	//i, ok := ttyPorts.Load(port)
+	//if !ok {
+	//	return nil
+	//}
+	//md5ID, ok := i.(string)
+	//if !ok || md5ID == "" {
+	//	return nil
+	//}
+	//cmd := exec.Command("sh", "-c", fmt.Sprintf(`ps aux | grep -e "MD5=%s" | grep -v grep | awk '{print $1}' | sort -rn | sed -n '1p' | xargs kill`, md5ID))
+	//bytes, err := cmd.CombinedOutput()
+	//fmt.Println(cmd.Args, string(bytes))
+	//return err
 }
 
 func CreateGoTTY(writeFlag bool, md5ID string, arg ...string) (port int, err error) {

@@ -89,7 +89,7 @@ var upgrader = websocket.Upgrader{}
 
 //gotty proxy
 func Proxy(c *gin.Context, port, assist string) {
-	upgrader.Subprotocols = append(upgrader.Subprotocols, "gotty")
+	upgrader.Subprotocols = append(upgrader.Subprotocols, "webtty")
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.StdWarning("gotty", "ws.upgrader", err)
@@ -101,7 +101,7 @@ func Proxy(c *gin.Context, port, assist string) {
 	}()
 
 	wsUrl := url.URL{Scheme: "ws", Host: "127.0.0.1:" + port, Path: "/ws"}
-	websocket.DefaultDialer.Subprotocols = append(websocket.DefaultDialer.Subprotocols, "gotty")
+	websocket.DefaultDialer.Subprotocols = append(websocket.DefaultDialer.Subprotocols, "webtty")
 	conn, _, err := websocket.DefaultDialer.Dial(wsUrl.String(), nil)
 	if err != nil {
 		log.StdWarning("gotty", "conn.dialer", wsUrl.String(), err)
