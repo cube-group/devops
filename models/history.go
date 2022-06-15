@@ -140,7 +140,7 @@ func (t *History) WorkspaceRun() string {
 }
 
 func (t *History) WorkspaceDockerfile() string {
-	return path.Join(t.Workspace(), "Dockerfile.bak")
+	return path.Join(t.Workspace(), "Dockerfile")
 }
 
 func (t *History) IsEnd() bool {
@@ -236,7 +236,7 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 		newLines = append(newLines, v)
 	}
 	if fromImage == "" {
-		err = errors.New("Dockerfile.bak invalid")
+		err = errors.New("Dockerfile invalid")
 		return
 	}
 	dockerfile = strings.Join(newLines, "\n")
