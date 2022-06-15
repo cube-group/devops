@@ -10,7 +10,7 @@ import (
 	"flag"
 )
 
-//devops-java:embed local
+//go:embed local
 var embedLocal embed.FS
 
 func init() {

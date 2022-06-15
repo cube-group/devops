@@ -162,7 +162,7 @@ func (t *History) Online() (err error) {
 	var runContent string
 	if t.Project.Mode == ProjectModeDocker { //deploy mode docker
 		runContent, err = t.createRunDockerMode(node)
-	} else { //node dockerfiles
+	} else { //node shell
 		runContent, err = t.createRunNativeMode(node)
 	}
 	if err != nil {
@@ -225,17 +225,17 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 	}
 	//create newLines
 	var newLines = make([]string, 0)
-	var fromFlag bool
+	var fromImage string
 	for _, v := range strings.Split(template.Dockerfile, "\n") {
 		v = strings.TrimLeft(v, " ")
 		v = strings.TrimRight(v, " ")
 		if strings.Contains(v, "FROM ") {
-			fromFlag = true
+			fromImage = strings.Split(v, "FROM ")[1]
 			v = fmt.Sprintf("%s\n%s", v, strings.Join(volumeLines, "\n"))
 		}
 		newLines = append(newLines, v)
 	}
-	if !fromFlag {
+	if fromImage == "" {
 		err = errors.New("Dockerfile.bak invalid")
 		return
 	}
@@ -262,6 +262,7 @@ date +"%%Y-%%m-%%d %%H:%%M:%%S"
 cd %s
 %s
 docker login %s --username=%s --password=%s
+docker pull %s
 docker build --platform=linux/amd64 -t %s . 
 docker push %s
 sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'
@@ -269,6 +270,7 @@ sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'
 		t.Workspace(),
 		t.Project.Docker.Shell,
 		CfgRegistryHost(), CfgRegistryUsername(), CfgRegistryPassword(),
+		fromImage,
 		imageName, imageName,
 		node.SshPassword, node.SshPort, node.SshUsername, node.IP,
 		dockerRun,
@@ -297,7 +299,7 @@ func (t *History) createRunNativeMode(node *Node) (runContent string, err error)
 			node.SshUsername, node.IP, v.Path,
 		))
 	}
-	//create ssh dockerfiles
+	//create ssh shell
 	var shellFilePath = t.WorkspaceSshShellPath("")
 	var tmpFilePath = fmt.Sprintf("/tmp/devops-%d-%s", t.Project.ID, times.FormatFileDatetime(now))
 	var shell = fmt.Sprintf("#!/bin/bash\n%s\n", template.Shell)

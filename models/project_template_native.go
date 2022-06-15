@@ -11,7 +11,7 @@ type ProjectTemplateNativeMarshalJSON ProjectTemplateNative
 
 //k8s project cfg about spec template
 type ProjectTemplateNative struct {
-	Shell  string     `json:"dockerfiles"`
+	Shell  string     `json:"shell"`
 	Volume VolumeList `json:"volume"`
 }
 

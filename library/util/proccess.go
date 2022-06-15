@@ -10,7 +10,7 @@ import (
 var callerPath string
 
 //获取当前应用程序执行路径
-//devops-java build所在临时目录
+//go build所在临时目录
 func GetCurrentPath() string {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {

@@ -84,7 +84,7 @@ func (c *Cli) connect() (err error) {
 }
 
 //执行shell
-//@param dockerfiles shell脚本命令
+//@param shell脚本命令
 func (c Cli) Run(shell string) (stdoutStr, stderrStr string, err error) {
 	session, err := c.client.NewSession()
 	if err != nil {
