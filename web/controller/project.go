@@ -27,12 +27,12 @@ func (t *ProjectController) Init(group *gin.RouterGroup) {
 
 func (t *ProjectController) index(c *gin.Context) {
 	res := project.List(c)
+	res["registryPath"] = models.CfgRegistryPath()
 	g.HTML(c, "project/index.html", res)
 }
 
 func (t *ProjectController) create(c *gin.Context) {
-	g.HTML(c, "project/info.html", gin.H{
-	})
+	g.HTML(c, "project/info.html", gin.H{})
 }
 
 func (t *ProjectController) info(c *gin.Context) {

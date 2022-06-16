@@ -57,9 +57,9 @@ type HistoryMarshalJSON History
 type History struct {
 	ID        uint32         `gorm:"primarykey;column:id" json:"id" form:"-"`
 	Uid       *uint32        `gorm:"" json:"uid" form:"-"`
-	NodeId    uint32         `gorm:"" json:"nodeId" form:"nodeId" binding:"required"`
+	NodeId    uint32         `gorm:"" json:"nodeId" form:"nodeId"`
 	Node      *Node          `gorm:"" json:"node" form:"node" binding:"-"`
-	Version   string         `gorm:"" json:"version" form:"version" binding:"required"`
+	Version   string         `gorm:"" json:"version" form:"version"`
 	Desc      string         `gorm:"" json:"desc" form:"desc" binding:"required"`
 	Status    HistoryStatus  `gorm:"status" json:"status" form:"-"`
 	ProjectId uint32         `gorm:"" json:"projectId" form:"-"`
@@ -83,6 +83,9 @@ func (t History) MarshalJSON() ([]byte, error) {
 }
 
 func (t *History) Validator() error {
+	if t.Version == "" {
+		t.Version = "latest"
+	}
 	if t.ProjectId > 0 {
 		if i := GetProject(t.ProjectId); i != nil {
 			t.Project = i
@@ -90,7 +93,11 @@ func (t *History) Validator() error {
 			return fmt.Errorf("部署失败：project id %d not found", t.ProjectId)
 		}
 	}
-	if t.NodeId > 0 {
+	if t.Project.Mode != ProjectModeImage {
+		if t.NodeId == 0 {
+			return errors.New("部署目标机器不能为空")
+		}
+		t.Version = "latest" //强制改为latest
 		if i := GetNode(t.NodeId); i != nil {
 			t.Node = i
 		} else {
@@ -102,8 +109,8 @@ func (t *History) Validator() error {
 
 func (t *History) ImageURL() string {
 	return fmt.Sprintf(
-		"%s/%s/%s:latest",
-		CfgRegistryHost(), CfgRegistryNamespace(), t.Project.Name,
+		"%s/%s/%s:%s",
+		CfgRegistryHost(), CfgRegistryNamespace(), t.Project.Name, t.Version,
 	)
 }
 
@@ -136,7 +143,7 @@ func (t *History) WorkspaceEndLog() (res string) {
 }
 
 func (t *History) WorkspaceRun() string {
-	return path.Join(t.Workspace(), "run-dev.sh")
+	return path.Join(t.Workspace(), "run.sh")
 }
 
 func (t *History) WorkspaceDockerfile() string {
@@ -149,8 +156,8 @@ func (t *History) IsEnd() bool {
 
 //project online
 func (t *History) Online() (err error) {
-	var node = GetNode(t.Node.ID)
-	if node == nil {
+	var node = t.Node
+	if t.Project.Mode != ProjectModeImage && node == nil {
 		return errors.New("node not found")
 	}
 	//create workspace
@@ -160,7 +167,7 @@ func (t *History) Online() (err error) {
 	}
 	//create run-dev.sh content
 	var runContent string
-	if t.Project.Mode == ProjectModeDocker { //deploy mode docker
+	if t.Project.Mode == ProjectModeDocker || t.Project.Mode == ProjectModeImage { //deploy mode docker
 		runContent, err = t.createRunDockerMode(node)
 	} else { //node shell
 		runContent, err = t.createRunNativeMode(node)
@@ -179,7 +186,7 @@ func (t *History) Online() (err error) {
 	}
 	go func() {
 		defer fileStream.Close()
-		cmd := exec.Command("bash", t.WorkspaceRun())
+		cmd := exec.Command("bash", "-e", t.WorkspaceRun())
 		cmd.Stdout = fileStream
 		cmd.Stderr = fileStream
 		t.updateStatus(cmd.Run())
@@ -260,36 +267,43 @@ docker push %s
 			fromImage,
 			imageName, imageName)
 	} else {
-		err = errors.New("Dockerfile Or Image is nil")
+		err = errors.New("dockerfile or image is nil")
 		return
 	}
 
 	//docker run
-	var dockerRun = fmt.Sprintf(
-		"docker login %s --username=%s --password=%s;"+
-			"docker pull %s;"+
-			"docker rm -f %s >/dev/null 2>&1;"+
-			"docker run -it -d --restart=always --name %s %s %s",
-		CfgRegistryHost(), CfgRegistryUsername(), CfgRegistryPassword(),
-		imageName,
-		t.Project.Name,
-		t.Project.Name, t.Project.Docker.RunOptions, imageName,
-	)
+	var sshDockerRun string
+	if t.Project.Mode == ProjectModeDocker {
+		dockerRun := fmt.Sprintf(
+			"docker login %s --username=%s --password=%s;"+
+				"docker pull %s;"+
+				"docker rm -f %s >/dev/null 2>&1;"+
+				"docker run -it -d --restart=always --name %s %s %s",
+			CfgRegistryHost(), CfgRegistryUsername(), CfgRegistryPassword(),
+			imageName,
+			t.Project.Name,
+			t.Project.Name, t.Project.Docker.RunOptions, imageName,
+		)
+		sshDockerRun = fmt.Sprintf(
+			"sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'",
+			node.SshPassword, node.SshPort, node.SshUsername, node.IP,
+			dockerRun,
+		)
+	}
 
-	//create run-dev.sh content
+	//create run.sh content
 	runContent = fmt.Sprintf(`
 #!/bin/bash
 date +"%%Y-%%m-%%d %%H:%%M:%%S"
 cd %s
 %s
 %s
-sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'
+%s
 `,
 		t.Workspace(),
 		t.Project.Docker.Shell,
 		dockerBuild,
-		node.SshPassword, node.SshPort, node.SshUsername, node.IP,
-		dockerRun,
+		sshDockerRun,
 	)
 	return
 }

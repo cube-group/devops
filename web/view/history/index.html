@@ -29,7 +29,8 @@
                         ${v.id}
                     </td>
                     <td>
-                        <a :href="baseURL('/node?name='+v.node.ip)">${v.node.ip}</a>
+                        <a v-if="v.node" :href="baseURL('/node?name='+v.node.ip)">${v.node.ip}</a>
+                        <div v-if="!v.node && v.project.mode=='image'">镜像构建类</div>
                     </td>
                     <td>
                         <span>

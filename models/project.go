@@ -17,6 +17,7 @@ type ProjectMode string
 const (
 	ProjectModeNative ProjectMode = "native"
 	ProjectModeDocker ProjectMode = "docker"
+	ProjectModeImage  ProjectMode = "image"
 )
 
 func GetProject(values ...interface{}) (res *Project) {

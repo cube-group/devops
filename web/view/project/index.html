@@ -43,6 +43,7 @@
                     <td>
                         <a data-toggle="tooltip" data-placement="bottom" :title="v.desc"
                            :href="baseURL('/project/i',v.id)">${v.name}</a>
+                        <div v-if="v.mode=='image'">镜像项目：${registryPath}/${v.name}</div>
                     </td>
                     <td>
                         <div v-if="!v.history">
@@ -67,13 +68,14 @@
                     </td>
                     <td>
                         <a :href="baseURL('/project/i',v.id,'/apply')" class="btn btn-xs btn-default">
-                            部署
+                            ${v.mode=='image'?'构建':'部署'}
                         </a>
                         <span v-if="v.mode=='docker'">
                             <a class="btn btn-xs btn-primary" v-if="v.history && v.history.status!='deleted'"
                                :href="baseURL('/project/i',v.id,'/pod')">节点</a>
-                            <a class="btn btn-xs btn-danger"
-                               @click="onDel(v)">移除</a>
+                        </span>
+                        <span>
+                            <a class="btn btn-xs btn-danger" @click="onDel(v)">DEL</a>
                         </span>
                     </td>
                 </tr>
@@ -89,6 +91,7 @@
     <script>
         vueMixin = {
             data: {
+                registryPath:{{.registryPath}},
                 list:{{.list}},
                 historyList:{{.historyList}},
                 search:{{.search}},

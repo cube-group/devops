@@ -23,7 +23,6 @@ func (t *Cfg) TableName() string {
 	return "d_cfg"
 }
 
-
 func ReloadCfg() error {
 	res, err := GetCfg()
 	if err != nil {
@@ -44,7 +43,6 @@ func GetCfg() (res gin.H, err error) {
 	for _, v := range list {
 		res[v.Name] = v.Value
 	}
-	fmt.Println(res)
 	return
 }
 
@@ -55,19 +53,22 @@ func GetCfgString(key string) string {
 	return ""
 }
 
-func CfgRegistryHost()string{
+func CfgRegistryHost() string {
 	return GetCfgString("registryHost")
 }
 
-func CfgRegistryUsername()string{
+func CfgRegistryUsername() string {
 	return GetCfgString("registryUsername")
 }
 
-func CfgRegistryPassword()string{
+func CfgRegistryPassword() string {
 	return GetCfgString("registryPassword")
 }
 
-func CfgRegistryNamespace()string{
+func CfgRegistryNamespace() string {
 	return GetCfgString("registryNamespace")
 }
 
+func CfgRegistryPath() string {
+	return fmt.Sprintf("%s/%s", CfgRegistryHost(), CfgRegistryNamespace())
+}
