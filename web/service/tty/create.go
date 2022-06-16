@@ -58,7 +58,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 				//"--close-signal", "9", // SIGKILL, kill -9
 				"--close-cmd", "exit",
 				"sshpass", "-p", h.Node.SshPassword,
-				"ssh", "-t", "-o", "StrictHostKeyChecking=no", h.Node.SshUsername+"@"+h.Node.IP,
+				"ssh", "-t", "-o", "StrictHostKeyChecking=no", "-p", h.Node.SshPort, h.Node.SshUsername+"@"+h.Node.IP,
 				fmt.Sprintf("MD5=%s;docker exec -it %s sh", md5ID, h.Project.Name),
 			)
 		}
@@ -69,7 +69,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 				"--close-cmd", "exit",
 				//"--close-signal", "9", // SIGKILL, kill -9
 				"sshpass", "-p", h.Node.SshPassword,
-				"ssh", "-o", "StrictHostKeyChecking=no", h.Node.SshUsername+"@"+h.Node.IP,
+				"ssh", "-o", "StrictHostKeyChecking=no", "-p", h.Node.SshPort, h.Node.SshUsername+"@"+h.Node.IP,
 				fmt.Sprintf("MD5=%s;docker logs -f -n 1000 %s", md5ID, h.Project.Name),
 			)
 		}

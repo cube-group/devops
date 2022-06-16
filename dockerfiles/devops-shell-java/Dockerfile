@@ -1,2 +1,2 @@
 FROM devops-shell
-RUN apk add openjdk8
+RUN apk add openjdk8 maven

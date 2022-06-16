@@ -72,7 +72,7 @@
                         <span v-if="v.mode=='docker'">
                             <a class="btn btn-xs btn-primary" v-if="v.history && v.history.status!='deleted'"
                                :href="baseURL('/project/i',v.id,'/pod')">节点</a>
-                            <a class="btn btn-xs btn-danger" v-if="v.history && v.history.status!='deleted'"
+                            <a class="btn btn-xs btn-danger"
                                @click="onDel(v)">移除</a>
                         </span>
                     </td>

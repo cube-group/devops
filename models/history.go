@@ -208,7 +208,6 @@ func (t *History) updateStatus(err error) {
 
 func (t *History) createRunDockerMode(node *Node) (runContent string, err error) {
 	var template = t.Project.Docker
-	var dockerfile = template.Dockerfile
 	//create volumeLines
 	var volumeLines = make([]string, 0)
 	for k, v := range template.Volume {
@@ -223,28 +222,49 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 		}
 		volumeLines = append(volumeLines, fmt.Sprintf("COPY %s %s", volumeCopyFileName, v.Path))
 	}
-	//create newLines
-	var newLines = make([]string, 0)
-	var fromImage string
-	for _, v := range strings.Split(template.Dockerfile, "\n") {
-		v = strings.TrimLeft(v, " ")
-		v = strings.TrimRight(v, " ")
-		if strings.Contains(v, "FROM ") {
-			fromImage = strings.Split(v, "FROM ")[1]
-			v = fmt.Sprintf("%s\n%s", v, strings.Join(volumeLines, "\n"))
+
+	var imageName string
+	var dockerBuild string
+	var dockerfile = template.Dockerfile
+	if t.Project.Docker.Image != "" {
+		imageName = t.Project.Docker.Image
+	} else if dockerfile != "" { //create newLines
+		var newLines = make([]string, 0)
+		var fromImage string
+		for _, v := range strings.Split(dockerfile, "\n") {
+			v = strings.TrimLeft(v, " ")
+			v = strings.TrimRight(v, " ")
+			if strings.Contains(v, "FROM ") {
+				fromImage = strings.Split(v, "FROM ")[1]
+				v = fmt.Sprintf("%s\n%s", v, strings.Join(volumeLines, "\n"))
+			}
+			newLines = append(newLines, v)
 		}
-		newLines = append(newLines, v)
-	}
-	if fromImage == "" {
-		err = errors.New("Dockerfile invalid")
+		if fromImage == "" {
+			err = errors.New("Dockerfile invalid")
+			return
+		}
+		dockerfile = strings.Join(newLines, "\n")
+		//create dockerfile
+		if err = ioutil.WriteFile(t.WorkspaceDockerfile(), []byte(dockerfile), os.ModePerm); err != nil {
+			return
+		}
+		imageName = t.ImageURL()
+		dockerBuild = fmt.Sprintf(`
+docker login %s --username=%s --password=%s
+docker pull %s
+docker build --platform=linux/amd64 -t %s . 
+docker push %s
+`,
+			CfgRegistryHost(), CfgRegistryUsername(), CfgRegistryPassword(),
+			fromImage,
+			imageName, imageName)
+	} else {
+		err = errors.New("Dockerfile Or Image is nil")
 		return
 	}
-	dockerfile = strings.Join(newLines, "\n")
-	//create dockerfile
-	if err = ioutil.WriteFile(t.WorkspaceDockerfile(), []byte(dockerfile), os.ModePerm); err != nil {
-		return
-	}
-	var imageName = t.ImageURL()
+
+	//docker run
 	var dockerRun = fmt.Sprintf(
 		"docker login %s --username=%s --password=%s;"+
 			"docker pull %s;"+
@@ -255,23 +275,19 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 		t.Project.Name,
 		t.Project.Name, t.Project.Docker.RunOptions, imageName,
 	)
+
 	//create run-dev.sh content
 	runContent = fmt.Sprintf(`
 #!/bin/bash
 date +"%%Y-%%m-%%d %%H:%%M:%%S"
 cd %s
 %s
-docker login %s --username=%s --password=%s
-docker pull %s
-docker build --platform=linux/amd64 -t %s . 
-docker push %s
+%s
 sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'
 `,
 		t.Workspace(),
 		t.Project.Docker.Shell,
-		CfgRegistryHost(), CfgRegistryUsername(), CfgRegistryPassword(),
-		fromImage,
-		imageName, imageName,
+		dockerBuild,
 		node.SshPassword, node.SshPort, node.SshUsername, node.IP,
 		dockerRun,
 	)
@@ -330,9 +346,9 @@ sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s "bash %s"
 }
 
 func (t *History) Remove() error {
-	_, err := t.Node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name))
-	if err != nil {
-		return err
+	if t.Project.Mode != ProjectModeDocker {
+		return nil
 	}
-	return nil
+	_, err := t.Node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name))
+	return err
 }

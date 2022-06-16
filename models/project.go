@@ -121,8 +121,8 @@ func (t *Project) Validator() error {
 		return err
 	}
 	if t.Mode == ProjectModeDocker {
-		if t.Docker.Dockerfile == "" {
-			return errors.New("docker部署模式Dockerfile不能为空")
+		if t.Docker.Dockerfile == "" && t.Docker.Image == "" {
+			return errors.New("docker部署模式Dockerfile或Image不能同时为空")
 		}
 	} else if t.Mode == ProjectModeNative {
 		if t.Native.Shell == "" {

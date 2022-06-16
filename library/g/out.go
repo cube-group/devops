@@ -19,6 +19,7 @@ func HTML(c *gin.Context, template string, data map[string]interface{}, code ...
 		data = gin.H{}
 	}
 	data["_u"] = models.SessionUser(c)
+	data["_appVersion"] = setting.Local.GetString("version")
 	ginutil.HTML(c, template, data, code...)
 }
 

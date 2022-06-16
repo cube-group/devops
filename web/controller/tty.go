@@ -104,7 +104,7 @@ func (t *TtyController) portConnect(c *gin.Context) {
 	}
 }
 
-func (t *TtyController) portConnectFragment(contentType string) gin.HandlerFunc{
+func (t *TtyController) portConnectFragment(contentType string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		port := c.Param("port")
 		ttyUrl := fmt.Sprintf(
@@ -116,7 +116,7 @@ func (t *TtyController) portConnectFragment(contentType string) gin.HandlerFunc{
 		if err != nil {
 			c.String(http.StatusNotFound, "")
 		} else {
-			c.Header("Content-Type",contentType )
+			c.Header("Content-Type", contentType)
 			c.String(http.StatusOK, resp.String())
 		}
 	}
