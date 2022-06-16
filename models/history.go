@@ -217,17 +217,19 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 	var template = t.Project.Docker
 	//create volumeLines
 	var volumeLines = make([]string, 0)
-	for k, v := range template.Volume {
-		var volumeContent string
-		volumeContent, err = v.Load()
-		if err != nil {
-			return
+	if t.Project.Docker.Image == "" {
+		for k, v := range template.Volume {
+			var volumeContent string
+			volumeContent, err = v.Load()
+			if err != nil {
+				return
+			}
+			var volumeCopyFileName = md5.MD5(fmt.Sprintf("%d@%s", k, v.Path))
+			if err = ioutil.WriteFile(t.WorkspacePath(volumeCopyFileName), []byte(volumeContent), os.ModePerm); err != nil {
+				return
+			}
+			volumeLines = append(volumeLines, fmt.Sprintf("COPY %s %s", volumeCopyFileName, v.Path))
 		}
-		var volumeCopyFileName = md5.MD5(fmt.Sprintf("%d@%s", k, v.Path))
-		if err = ioutil.WriteFile(t.WorkspacePath(volumeCopyFileName), []byte(volumeContent), os.ModePerm); err != nil {
-			return
-		}
-		volumeLines = append(volumeLines, fmt.Sprintf("COPY %s %s", volumeCopyFileName, v.Path))
 	}
 
 	var imageName string
