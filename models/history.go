@@ -260,11 +260,13 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 		}
 		imageName = t.ImageURL()
 		dockerBuild = fmt.Sprintf(`
+cd %s
 docker login %s --username=%s --password=%s
 docker pull %s
 docker build --platform=linux/amd64 -t %s . 
 docker push %s
 `,
+			t.Workspace(),
 			CfgRegistryHost(), CfgRegistryUsername(), CfgRegistryPassword(),
 			fromImage,
 			imageName, imageName)
