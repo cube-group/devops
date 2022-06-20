@@ -270,6 +270,7 @@ func (t *History) updateStatus(cmd *exec.Cmd) {
 }
 
 func (t *History) createRunDockerMode(node *Node) (runContent string, err error) {
+	//TODO 需要检测之前的history如果存在project.name不一致需要先移除container
 	var template = t.Project.Docker
 	//create volumeLines
 	var volumeLines = make([]string, 0)
