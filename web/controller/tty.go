@@ -3,6 +3,7 @@ package controller
 import (
 	"app/library/ginutil"
 	"app/setting"
+	"app/web/middleware"
 	"app/web/service/tty"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -15,7 +16,7 @@ type TtyController struct {
 }
 
 func (t *TtyController) Init(group *gin.RouterGroup) {
-	group.POST("/create", t.create)
+	group.POST("/create", middleware.Block(), t.create)
 	//group.GET("/local", t.page)
 	//group.GET("/localws", t.localWs)
 	//group.GET("/node", t.page)

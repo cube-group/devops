@@ -46,7 +46,16 @@ func GetCfg() (res gin.H, err error) {
 	return
 }
 
-func GetCfgString(key string) string {
+func GetCfgKey(key string) (res string, err error) {
+	var i Cfg
+	if err = DB().Take(&i, "name=?", key).Error; err != nil {
+		return
+	}
+	res = i.Value
+	return
+}
+
+func GetCfgCache(key string) string {
 	if v, ok := cfgList[key]; ok {
 		return convert.MustString(v)
 	}
@@ -54,21 +63,26 @@ func GetCfgString(key string) string {
 }
 
 func CfgRegistryHost() string {
-	return GetCfgString("registryHost")
+	return GetCfgCache("registryHost")
 }
 
 func CfgRegistryUsername() string {
-	return GetCfgString("registryUsername")
+	return GetCfgCache("registryUsername")
 }
 
 func CfgRegistryPassword() string {
-	return GetCfgString("registryPassword")
+	return GetCfgCache("registryPassword")
 }
 
 func CfgRegistryNamespace() string {
-	return GetCfgString("registryNamespace")
+	return GetCfgCache("registryNamespace")
 }
 
 func CfgRegistryPath() string {
 	return fmt.Sprintf("%s/%s", CfgRegistryHost(), CfgRegistryNamespace())
+}
+
+func CfgOnlineBlock() string {
+	res, _ := GetCfgKey("onlineBlock")
+	return res
 }

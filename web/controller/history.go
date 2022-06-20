@@ -17,6 +17,7 @@ func (t *HistoryController) Init(group *gin.RouterGroup) {
 	group.POST("/state", t.state)
 	detailGroup := group.Group("/i/:historyId", middleware.History())
 	detailGroup.GET(".", t.info)
+	detailGroup.POST("/shutdown", t.shutdown)
 }
 
 func (t *HistoryController) index(c *gin.Context) {
@@ -33,4 +34,8 @@ func (t *HistoryController) info(c *gin.Context) {
 	g.HTML(c, "history/info.html", gin.H{
 		"history": models.GetHistory(c),
 	})
+}
+
+func (t *HistoryController) shutdown(c *gin.Context) {
+	ginutil.JsonAuto(c, "success", models.GetHistory(c).Shutdown(), nil)
 }

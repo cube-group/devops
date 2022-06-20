@@ -10,6 +10,9 @@
                 <span v-if="info.status=='error'"><label class="label label-danger">失败</label></span>
                 <span v-if="!info.status"><i class="fa fa-spinner fa-spin"></i>部署中</span>
             </div>
+            <div class="right">
+                <a @click="shutdown()" class="btn btn-sm btn-danger" v-if="!info.status">Shutdown</a>
+            </div>
         </div>
         <div class="panel-body">
             <!-- log Layer -->
@@ -50,6 +53,11 @@
                             }
                         }
                     }, {loading: false});
+                },
+                shutdown() {
+                    displayConfirm('确认停止', '确认', '取消', () => {
+                        reqPost(baseURL('/history/i', this.info.id, '/shutdown'), null);
+                    })
                 }
             },
             mounted() {
@@ -63,7 +71,7 @@
                 if (!this.isDone(this.info)) {
                     this.inter = setInterval(() => {
                         this.onLoadState();
-                    }, 3000)
+                    }, 1500)
                 }
             }
         }

@@ -2,9 +2,11 @@ package models
 
 import (
 	"app/library/consts"
+	"app/library/core"
 	"app/library/crypt/md5"
 	"app/library/log"
 	"app/library/types/times"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +17,7 @@ import (
 	"os/exec"
 	"path"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -26,6 +29,9 @@ const (
 	HistoryStatusSuccess HistoryStatus = "ok"
 	HistoryStatusDeleted HistoryStatus = "deleted"
 )
+
+//上线缓存
+var onlineMaps sync.Map
 
 func GetHistory(values ...interface{}) (res *History) {
 	for _, v := range values {
@@ -68,6 +74,9 @@ type History struct {
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	onlineCtx       context.Context
+	onlineCtxCancel context.CancelFunc
 }
 
 func (t *History) TableName() string {
@@ -154,8 +163,32 @@ func (t *History) IsEnd() bool {
 	return t.Status == HistoryStatusFailed || t.Status == HistoryStatusSuccess
 }
 
+func (t *History) Shutdown() error {
+	if t.Status != HistoryStatusDefault {
+		return errors.New("shutdown failed online is finished")
+	}
+	i, ok := onlineMaps.Load(t.ID)
+	if ok {
+		var target = i.(*History)
+		if target.onlineCtxCancel != nil {
+			target.onlineCtxCancel()
+		} else {
+			return errors.New("online no cancel")
+		}
+	} else {
+		t.updateStatus(nil)
+	}
+	return nil
+}
+
 //project online
 func (t *History) Online() (err error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.onlineCtx = ctx
+	t.onlineCtxCancel = cancel
+	//store online history
+	onlineMaps.Store(t.ID, t)
+
 	var node = t.Node
 	if t.Project.Mode != ProjectModeImage && node == nil {
 		return errors.New("node not found")
@@ -186,31 +219,54 @@ func (t *History) Online() (err error) {
 	}
 	go func() {
 		defer fileStream.Close()
-		cmd := exec.Command("bash", "-e", t.WorkspaceRun())
+		cmd := exec.Command("sh", "-e", t.WorkspaceRun())
 		cmd.Stdout = fileStream
 		cmd.Stderr = fileStream
-		t.updateStatus(cmd.Run())
+		t.updateStatus(cmd)
+		cancel()
 	}()
 	return nil
 }
 
-func (t *History) updateStatus(err error) {
+func (t *History) updateStatus(cmd *exec.Cmd) {
+	var err error
+	var shutdownLogs string
+	if cmd != nil {
+		err = cmd.Start()
+		if err == nil {
+			go func() {
+				select {
+				case <-t.onlineCtx.Done():
+					shutdownLogs = "shutdown 1"
+					log.StdOut("history", "online", "SIGKILL", t.WorkspaceRun(), core.KillProcessGroup(cmd))
+				}
+			}()
+			err = cmd.Wait()
+		}
+	} else { //shutdown
+		shutdownLogs = "shutdown 2"
+		err = errors.New("shutdown online")
+	}
+
 	var status = HistoryStatusSuccess
 	if err != nil {
 		status = HistoryStatusFailed
 	}
 	logBytes, _ := ioutil.ReadFile(t.WorkspaceFollowLog())
 	defer func() {
-		time.Sleep(5 * time.Minute)
-		os.RemoveAll(t.Workspace())
+		if er := os.RemoveAll(t.Workspace()); er != nil {
+			log.StdWarning("history", "online", "clear workspace", t.Workspace(), er)
+		}
 	}()
 	maps := map[string]interface{}{
 		"status": status,
-		"log":    string(logBytes),
+		"log":    string(logBytes) + "\r\n" + shutdownLogs,
 	}
 	if er := DB().Model(t).Where("id=?", t.ID).Updates(maps).Error; er != nil {
 		log.StdWarning("history", "updateStatus", er)
 	}
+	//delete online history tag
+	onlineMaps.Delete(t.ID)
 }
 
 func (t *History) createRunDockerMode(node *Node) (runContent string, err error) {
@@ -297,17 +353,19 @@ docker push %s
 
 	//create run.sh content
 	runContent = fmt.Sprintf(`
-#!/bin/bash
+#!/bin/sh
 date +"%%Y-%%m-%%d %%H:%%M:%%S"
 cd %s
 %s
 %s
 %s
+cd %s
 `,
 		t.Workspace(),
 		t.Project.Docker.Shell,
 		dockerBuild,
 		sshDockerRun,
+		t.Workspace(),
 	)
 	return
 }
@@ -336,7 +394,7 @@ func (t *History) createRunNativeMode(node *Node) (runContent string, err error)
 	//create ssh shell
 	var shellFilePath = t.WorkspaceSshShellPath("")
 	var tmpFilePath = fmt.Sprintf("/tmp/devops-%d-%s", t.Project.ID, times.FormatFileDatetime(now))
-	var shell = fmt.Sprintf("#!/bin/bash\n%s\n", template.Shell)
+	var shell = fmt.Sprintf("#!/bin/sh\n%s\n", template.Shell)
 	if err = ioutil.WriteFile(shellFilePath, []byte(shell), os.ModePerm); err != nil {
 		return
 	}
@@ -347,12 +405,12 @@ func (t *History) createRunNativeMode(node *Node) (runContent string, err error)
 	))
 	//create run-dev.sh content
 	runContent = fmt.Sprintf(`
-#!/bin/bash
+#!/bin/sh
 echo 'ProjectId: %d HistoryId: %d %s'
 echo '%s'
 cd %s
 %s
-sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s "bash %s"
+sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s "sh %s"
 `,
 		t.Project.ID, t.ID, times.FormatDatetime(now), tmpFilePath,
 		t.Workspace(),

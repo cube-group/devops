@@ -3,6 +3,7 @@ package project
 import (
 	"app/library/ginutil"
 	"app/models"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -13,7 +14,6 @@ func Online(c *gin.Context) (history *models.History, err error) {
 	if err = ginutil.ShouldBind(c, &val); err != nil {
 		return
 	}
-
 	if project := models.GetProject(c); project != nil {
 		val.ProjectId = project.ID
 		val.Project = project
@@ -26,6 +26,10 @@ func Online(c *gin.Context) (history *models.History, err error) {
 		return
 	}
 	if err = models.DB().Transaction(func(tx *gorm.DB) error {
+		//在上线阻断
+		if tx.Last(&models.History{}, "project_id=? AND status=?", val.ProjectId, models.HistoryStatusDefault).Error == nil {
+			return errors.New("正在上线中请稍后或中断之前的上线...")
+		}
 		if er := tx.Save(&val).Error; er != nil {
 			return er
 		}
