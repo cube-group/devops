@@ -25,6 +25,7 @@ services:
   devops:
     depends_on:
       - mysql
+    privileged: true
     image: cubegroup/devops
 #    image: cubegroup/devops-devops-shell-java
 #    image: cubegroup/devops-devops-shell-devops-shell-java-node

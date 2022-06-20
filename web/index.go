@@ -13,30 +13,7 @@ import (
 )
 
 func Init() {
-	initTty()
 	initServer()
-}
-
-//init goTty server
-func initTty() {
-	//goTty for bash
-	//if setting.SysGoTtyPortBash != "" {
-	//	go func() {
-	//		log.StdOut("init", "gotty.bash", setting.SysGoTtyPortBash, "pwd", setting.SysGoTtyRandBasicAuth)
-	//		cmd := exec.Command("gotty", "-w", "-p", setting.SysGoTtyPortBash, "-c", setting.SysGoTtyRandBasicAuth,
-	//			"--title-format", "bash", "--permit-arguments", "bash")
-	//		log.StdWarning("gotty", "bash exit", cmd.Run())
-	//	}()
-	//}
-	//goTty for sshpass
-	//if setting.SysGoTtyPortSshpass != "" {
-	//	go func() {
-	//		log.StdOut("init", "gotty.sshpass", setting.SysGoTtyPortSshpass, "pwd", setting.SysGoTtyRandBasicAuth)
-	//		cmd := exec.Command("gotty", "-w", "-p", setting.SysGoTtyPortSshpass, "-c", setting.SysGoTtyRandBasicAuth,
-	//			"--title-format", "sshpass", "--permit-arguments", "sshpass")
-	//		log.StdWarning("gotty", "sshpass exit", cmd.Run())
-	//	}()
-	//}
 }
 
 //init gin server
