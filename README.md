@@ -1,5 +1,5 @@
 ## devops
-fast ops
+fast ops v2
 
 ### 运行
 可使用hub.docker.com官方镜像
