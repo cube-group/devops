@@ -8,15 +8,18 @@ import (
 )
 
 func Save(c *gin.Context) (err error) {
-	var val map[string]string
+	var val models.CfgStruct
 	if err = ginutil.ShouldBind(c, &val); err != nil {
 		return
 	}
+	if err = val.Validator(); err != nil {
+		return
+	}
 	return models.DB().Transaction(func(tx *gorm.DB) error {
-		if er := tx.Scopes().Delete(&models.Cfg{},"1=1").Error; er != nil {
+		if er := tx.Unscoped().Delete(&models.Cfg{}, "1=1").Error; er != nil {
 			return er
 		}
-		for k, v := range val {
+		for k, v := range val.Map() {
 			if er := tx.Save(&models.Cfg{Name: k, Value: v}).Error; er != nil {
 				return er
 			}

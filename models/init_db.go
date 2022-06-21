@@ -86,6 +86,8 @@ func initDBPreHeating() {
 	} else {
 		log.StdOut("init", "db.user.test.password:", userTest.Password)
 	}
+	//init cfg
+	createDefaultCfg()
 }
 
 //如果传了db连接，使用传入的db连接（用于事务开启场景）

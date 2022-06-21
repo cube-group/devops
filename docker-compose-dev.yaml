@@ -24,7 +24,7 @@ services:
       - devops
   devops-shell:
     build:
-      context: dockerfiles/devops-shell
+      context: dockerfiles/shell
     image: devops-shell:latest
     platform: linux/amd64
   devops:

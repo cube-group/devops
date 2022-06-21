@@ -2,10 +2,7 @@ package models
 
 import (
 	"app/library/log"
-	"github.com/gin-gonic/gin"
 )
-
-var cfgList gin.H
 
 func Init() {
 	initDB()

@@ -119,7 +119,7 @@ func (t *History) Validator() error {
 func (t *History) ImageURL() string {
 	return fmt.Sprintf(
 		"%s/%s/%s:%s",
-		CfgRegistryHost(), CfgRegistryNamespace(), t.Project.Name, t.Version,
+		_cfg.RegistryHost, _cfg.RegistryNamespace, t.Project.Name, t.Version,
 	)
 }
 
@@ -324,7 +324,7 @@ docker build --platform=linux/amd64 -t %s .
 docker push %s
 `,
 			t.Workspace(),
-			CfgRegistryHost(), CfgRegistryUsername(), CfgRegistryPassword(),
+			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
 			fromImage,
 			imageName, imageName)
 	} else {
@@ -340,7 +340,7 @@ docker push %s
 				"docker pull %s;"+
 				"docker rm -f %s >/dev/null 2>&1;"+
 				"docker run -it -d --restart=always --name %s %s %s",
-			CfgRegistryHost(), CfgRegistryUsername(), CfgRegistryPassword(),
+			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
 			imageName,
 			t.Project.Name,
 			t.Project.Name, t.Project.Docker.RunOptions, imageName,

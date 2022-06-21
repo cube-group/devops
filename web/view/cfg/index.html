@@ -29,6 +29,42 @@
             </div>
         </div>
     </div>
+    <!-- ci镜像 -->
+    <div class="panel">
+        <div class="panel-heading">
+            <div class="panel-title">
+                基础ci镜像列表
+            </div>
+            <div class="right">
+                <button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i>
+                </button>
+            </div>
+        </div>
+        <div class="panel-body" style="padding-left: 40px;">
+            <label>image about ssh.</label>
+            <div class="form-group">
+                <div class="input-group">
+                    <div class="input-group-addon">image SSH</div>
+                    <input class="form-control" placeholder="cubegroup/devops-ssh" v-model="cfg.imageSsh">
+                </div>
+            </div>
+            <label>image list about ci.</label>
+            <div class="form-group" v-for="(v,i) in cfg.ci">
+                <div class="input-group">
+                    <div class="input-group-addon">name</div>
+                    <input class="form-control" placeholder="[A-Za-z0-9]*" v-model="v.key">
+                    <div class="input-group-addon">name</div>
+                    <input class="form-control" placeholder="image address" v-model="v.value">
+                    <div class="input-group-btn">
+                        <a class="btn btn-success" @click="cfg.ci.push({})">添加</a>
+                    </div>
+                    <div class="input-group-btn">
+                        <a class="btn btn-danger" @click="cfg.ci.splice(i,1)">移除</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="panel">
         <div class="panel-heading">
             <div class="panel-title">
@@ -55,6 +91,7 @@
         if (!cfg) {
             cfg = {};
         }
+        objectArrayInitForRender(cfg, "ci", {});
     </script>
     <!-- vue -->
     <script>

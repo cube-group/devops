@@ -18,10 +18,7 @@ func (t *CfgController) Init(group *gin.RouterGroup) {
 }
 
 func (t *CfgController) index(c *gin.Context) {
-	res, err := models.GetCfg()
-	if err != nil {
-		res = gin.H{}
-	}
+	res, _ := models.GetCfg()
 	g.HTML(c, "cfg/index.html", gin.H{"cfg": res})
 }
 
