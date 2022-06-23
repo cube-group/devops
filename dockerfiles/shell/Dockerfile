@@ -1,17 +1,20 @@
-FROM --platform=linux/amd64 alpine:3.15
+FROM docker:20.10.16-dind-alpine3.15
 #devops程序运行所需外壳环境
 USER root
 
 COPY gotty /usr/local/bin/gotty
+COPY run.sh /run.sh
 
 RUN echo "https://mirrors.aliyun.com/alpine/v3.15/main" > /etc/apk/repositories && \
     echo "https://mirrors.aliyun.com/alpine/v3.15/community" >> /etc/apk/repositories && \
-    apk update  && \
-    apk add docker-cli openssh sshpass bash git tzdata && \
+    apk update && \
+    apk add sshpass bash tzdata && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone && \
     chmod +x /usr/local/bin/gotty && \
     apk del tzdata && \
     rm -rf /var/cache/apk
 
-WORKDIR /
+WORKDIR /go
+
+ENTRYPOINT ["sh","-e","/run.sh"]

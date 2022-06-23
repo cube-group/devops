@@ -92,7 +92,7 @@ func (t *Node) Validator(c *gin.Context) error {
 
 //sync exec remote shell
 func (t *Node) Exec(cmd string) (res []byte, err error) {
-	s, err := sshtool.SSHConnect(t.SshUsername, t.SshPassword, t.IP, t.SshPort)
+	s, err := sshtool.SSHConnect(t.SshUsername, t.SshPassword, t.SshKey, t.IP, t.SshPort)
 	if err != nil {
 		return
 	}

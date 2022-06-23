@@ -22,18 +22,11 @@ services:
       - MYSQL_ROOT_PASSWORD=root
     networks:
       - devops
-  devops-shell:
-    build:
-      context: dockerfiles/shell
-    image: devops-shell:latest
-    platform: linux/amd64
   devops:
     depends_on:
       - mysql
-      - devops-shell
     privileged: true
-    image: devops-shell
-    platform: linux/amd64
+    image: cubegroup/devops-shell:v2
     container_name: devops
     restart: always
     ports:
@@ -46,13 +39,10 @@ services:
       - DB_PASSWORD=devops
       - DB_NAME=devops
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - ~/.ssh:/root/.ssh
       - ./bin/app:/go/app
       - ./web/public:/go/web/public
       - ./web/view:/go/web/view
-    working_dir: /go
-    entrypoint: ./app
     links:
       - mysql
     networks:

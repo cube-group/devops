@@ -2,10 +2,8 @@ package models
 
 import (
 	"app/library/consts"
-	"app/library/core"
-	"app/library/crypt/md5"
 	"app/library/log"
-	"app/library/types/times"
+	"app/library/uuid"
 	"context"
 	"encoding/json"
 	"errors"
@@ -28,6 +26,8 @@ const (
 	HistoryStatusFailed  HistoryStatus = "error"
 	HistoryStatusSuccess HistoryStatus = "ok"
 	HistoryStatusDeleted HistoryStatus = "deleted"
+
+	volumePath = ".volume"
 )
 
 //上线缓存
@@ -132,8 +132,8 @@ func (t *History) WorkspacePath(elem ...string) string {
 	return path.Join(elem...)
 }
 
-func (t *History) WorkspaceSshShellPath(md5 string) string {
-	return path.Join(t.Workspace(), "ssh-file-"+md5)
+func (t *History) WorkspaceNativePath(md5 string) string {
+	return path.Join(t.Workspace(), volumePath, md5)
 }
 
 func (t *History) WorkspaceFollowLog() string {
@@ -153,10 +153,6 @@ func (t *History) WorkspaceEndLog() (res string) {
 
 func (t *History) WorkspaceRun() string {
 	return path.Join(t.Workspace(), "run.sh")
-}
-
-func (t *History) WorkspaceDockerfile() string {
-	return path.Join(t.Workspace(), "Dockerfile")
 }
 
 func (t *History) IsEnd() bool {
@@ -188,28 +184,35 @@ func (t *History) Online() (err error) {
 	t.onlineCtxCancel = cancel
 	//store online history
 	onlineMaps.Store(t.ID, t)
-
+	//node check
 	var node = t.Node
 	if t.Project.Mode != ProjectModeImage && node == nil {
 		return errors.New("node not found")
 	}
 	//create workspace
-	var workspace = t.Workspace()
+	var workspace = t.WorkspacePath(volumePath)
 	if err = os.MkdirAll(workspace, os.ModePerm); err != nil {
 		return
 	}
-	//create run-dev.sh content
-	var runContent string
+	//ssh key ready
+	var sshKeyVolume string
+	if node != nil && node.SshKey != "" {
+		if err = os.MkdirAll(t.WorkspacePath("/.ssh"), 0700); err != nil {
+			return
+		}
+		if err = ioutil.WriteFile(t.WorkspacePath("/.ssh/id_rsa"), []byte(node.SshKey), 0600); err != nil {
+			return
+		}
+		sshKeyVolume = fmt.Sprintf("-v %s:/root/.ssh", t.WorkspacePath(".ssh"))
+	}
+	//exec docker run --rm
+	var execContent string
 	if t.Project.Mode == ProjectModeDocker || t.Project.Mode == ProjectModeImage { //deploy mode docker
-		runContent, err = t.createRunDockerMode(node)
+		execContent, err = t.createRunDockerExec(node, sshKeyVolume)
 	} else { //node shell
-		runContent, err = t.createRunNativeMode(node)
+		execContent, err = t.createRunNativeExec(node, sshKeyVolume)
 	}
 	if err != nil {
-		return
-	}
-	//create run-dev.sh
-	if err = ioutil.WriteFile(t.WorkspaceRun(), []byte(runContent), os.ModePerm); err != nil {
 		return
 	}
 	//create .follow.log
@@ -219,7 +222,7 @@ func (t *History) Online() (err error) {
 	}
 	go func() {
 		defer fileStream.Close()
-		cmd := exec.Command("sh", "-e", t.WorkspaceRun())
+		cmd := exec.Command("sh", "-c", execContent)
 		cmd.Stdout = fileStream
 		cmd.Stderr = fileStream
 		t.updateStatus(cmd)
@@ -238,7 +241,6 @@ func (t *History) updateStatus(cmd *exec.Cmd) {
 				select {
 				case <-t.onlineCtx.Done():
 					shutdownLogs = "shutdown 1"
-					log.StdOut("history", "online", "SIGKILL", t.WorkspaceRun(), core.KillProcessGroup(cmd))
 				}
 			}()
 			err = cmd.Wait()
@@ -247,13 +249,14 @@ func (t *History) updateStatus(cmd *exec.Cmd) {
 		shutdownLogs = "shutdown 2"
 		err = errors.New("shutdown online")
 	}
-
+	t.dockerRunClose() //close docker run
 	var status = HistoryStatusSuccess
 	if err != nil {
 		status = HistoryStatusFailed
 	}
 	logBytes, _ := ioutil.ReadFile(t.WorkspaceFollowLog())
 	defer func() {
+		time.Sleep(time.Second)
 		if er := os.RemoveAll(t.Workspace()); er != nil {
 			log.StdWarning("history", "online", "clear workspace", t.Workspace(), er)
 		}
@@ -269,23 +272,37 @@ func (t *History) updateStatus(cmd *exec.Cmd) {
 	onlineMaps.Delete(t.ID)
 }
 
-func (t *History) createRunDockerMode(node *Node) (runContent string, err error) {
+func (t *History) createRunDockerVolume(filePath string, content string) (copy string, err error) {
+	var fileName = uuid.GetUUID(t.ID, "@", filePath)
+	var localPath = t.WorkspaceNativePath(fileName)
+	if err = ioutil.WriteFile(localPath, []byte(content), os.ModePerm); err != nil {
+		return
+	}
+	copy = fmt.Sprintf("COPY %s %s", fileName, filePath)
+	return
+}
+
+//${workspace}/Dockerfile -> ${docker}/Dockerfile
+//${workspace}/.volume -> ${docker}/.volume
+//${workspace}/run.sh -> ${docker}/run.sh
+func (t *History) createRunDockerExec(node *Node, sshKeyVolume string) (execContent string, err error) {
 	//TODO 需要检测之前的history如果存在project.name不一致需要先移除container
 	var template = t.Project.Docker
-	//create volumeLines
+	//create Dockerfile COPY
 	var volumeLines = make([]string, 0)
 	if t.Project.Docker.Image == "" {
-		for k, v := range template.Volume {
+		for _, v := range template.Volume {
 			var volumeContent string
 			volumeContent, err = v.Load()
 			if err != nil {
 				return
 			}
-			var volumeCopyFileName = md5.MD5(fmt.Sprintf("%d@%s", k, v.Path))
-			if err = ioutil.WriteFile(t.WorkspacePath(volumeCopyFileName), []byte(volumeContent), os.ModePerm); err != nil {
+			copyLine, er := t.createRunDockerVolume(v.Path, volumeContent)
+			if er != nil {
+				err = er
 				return
 			}
-			volumeLines = append(volumeLines, fmt.Sprintf("COPY %s %s", volumeCopyFileName, v.Path))
+			volumeLines = append(volumeLines, copyLine)
 		}
 	}
 
@@ -312,21 +329,19 @@ func (t *History) createRunDockerMode(node *Node) (runContent string, err error)
 		}
 		dockerfile = strings.Join(newLines, "\n")
 		//create dockerfile
-		if err = ioutil.WriteFile(t.WorkspaceDockerfile(), []byte(dockerfile), os.ModePerm); err != nil {
+		if err = ioutil.WriteFile(t.WorkspacePath(volumePath, "Dockerfile"), []byte(dockerfile), os.ModePerm); err != nil {
 			return
 		}
 		imageName = t.ImageURL()
 		dockerBuild = fmt.Sprintf(`
-cd %s
 docker login %s --username=%s --password=%s
 docker pull %s
-docker build --platform=linux/amd64 -t %s . 
+docker build --platform=linux/amd64 -t %s /%s
 docker push %s
 `,
-			t.Workspace(),
 			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
-			fromImage,
-			imageName, imageName)
+			fromImage, imageName, volumePath,
+			imageName)
 	} else {
 		err = errors.New("dockerfile or image is nil")
 		return
@@ -345,79 +360,124 @@ docker push %s
 			t.Project.Name,
 			t.Project.Name, t.Project.Docker.RunOptions, imageName,
 		)
-		sshDockerRun = fmt.Sprintf(
-			"sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'",
-			node.SshPassword, node.SshPort, node.SshUsername, node.IP,
-			dockerRun,
-		)
+		if t.Node.SshKey != "" {
+			sshDockerRun = fmt.Sprintf(
+				"ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'",
+				node.SshPort, node.SshUsername, node.IP,
+				dockerRun,
+			)
+		} else {
+			sshDockerRun = fmt.Sprintf(
+				"sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'",
+				node.SshPassword, node.SshPort, node.SshUsername, node.IP,
+				dockerRun,
+			)
+		}
 	}
 
-	//create run.sh content
-	runContent = fmt.Sprintf(`
-#!/bin/sh
-date +"%%Y-%%m-%%d %%H:%%M:%%S"
-cd %s
-%s
-%s
-%s
-cd %s
-`,
-		t.Workspace(),
+	//${docker} /run.sh
+	dockerRun := fmt.Sprintf(
+		"#!/bin/sh\ncd /%s\n%s\n%s\n%s\n",
+		volumePath,
 		t.Project.Docker.Shell,
 		dockerBuild,
 		sshDockerRun,
-		t.Workspace(),
+	)
+	if err = ioutil.WriteFile(t.WorkspacePath("run.sh"), []byte(dockerRun), os.ModePerm); err != nil {
+		return
+	}
+
+	//exec
+	execContent = fmt.Sprintf(
+		"docker run -i --rm --name %s -v /var/run/docker.sock:/var/run/docker.sock -v %s:/%s -v %s:/run.sh %s %s",
+		t.dockerRunRmName(),
+		t.WorkspacePath(volumePath), volumePath,
+		t.WorkspacePath("run.sh"),
+		sshKeyVolume, "cubegroup/devops-ci-java",
 	)
 	return
 }
 
-func (t *History) createRunNativeMode(node *Node) (runContent string, err error) {
-	var now = time.Now()
+func (t *History) createRunNativeVolume(runFlag bool, filePath string, content string) (scp string, err error) {
+	var fileName string
+	if runFlag {
+		fileName = "run.sh"
+	} else {
+		fileName = uuid.GetUUID(t.ID, "@", filePath)
+	}
+	var localPath = t.WorkspaceNativePath(fileName)
+	if err = ioutil.WriteFile(localPath, []byte(content), os.ModePerm); err != nil {
+		return
+	}
+	var containerPath = path.Join("/"+volumePath, fileName)
+	var remoteNodePath = fmt.Sprintf("/tmp/devops-%d-%d-%s", t.ProjectId, t.ID, fileName)
+	if t.Node.SshKey != "" {
+		scp = fmt.Sprintf(
+			`scp -P %s -o StrictHostKeyChecking=no %s %s@%s:%s`,
+			t.Node.SshPort, containerPath,
+			t.Node.SshUsername, t.Node.IP, remoteNodePath,
+		)
+	} else {
+		scp = fmt.Sprintf(
+			`sshpass -p '%s' scp -P %s -o StrictHostKeyChecking=no %s %s@%s:%s`,
+			t.Node.SshPassword, t.Node.SshPort, containerPath,
+			t.Node.SshUsername, t.Node.IP, remoteNodePath,
+		)
+	}
+	return
+}
+
+//${workspace}/.volume -> ${docker}/.volume
+//${workspace}/run.sh -> ${docker}/run.sh
+func (t *History) createRunNativeExec(node *Node, sshKeyVolume string) (execContent string, err error) {
 	var template = t.Project.Native
-	//create volumeLines
+	//create scp files
 	var scpLines = make([]string, 0)
-	for k, v := range template.Volume {
+	for _, v := range template.Volume {
 		var volumeContent string
 		volumeContent, err = v.Load()
 		if err != nil {
 			return
 		}
-		var volumeFilePath = t.WorkspaceSshShellPath(md5.MD5(fmt.Sprintf("%d%s", k, v.Path)))
-		if err = ioutil.WriteFile(volumeFilePath, []byte(volumeContent), os.ModePerm); err != nil {
+		scp, er := t.createRunNativeVolume(false, v.Path, volumeContent)
+		if er != nil {
+			err = er
 			return
 		}
-		scpLines = append(scpLines, fmt.Sprintf(
-			`sshpass -p '%s' scp -P %s -o StrictHostKeyChecking=no %s %s@%s:%s`,
-			node.SshPassword, node.SshPort, volumeFilePath,
-			node.SshUsername, node.IP, v.Path,
-		))
+		scpLines = append(scpLines, scp)
 	}
-	//create ssh shell
-	var shellFilePath = t.WorkspaceSshShellPath("")
-	var tmpFilePath = fmt.Sprintf("/tmp/devops-%d-%s", t.Project.ID, times.FormatFileDatetime(now))
-	var shell = fmt.Sprintf("#!/bin/sh\n%s\n", template.Shell)
-	if err = ioutil.WriteFile(shellFilePath, []byte(shell), os.ModePerm); err != nil {
+	//create scp run.sh
+	scp, err := t.createRunNativeVolume(true, "",
+		fmt.Sprintf("#!/bin/sh\n%s\nrm -rf /tmp/devops-%d-%d-*", template.Shell, t.ProjectId, t.ID),
+	)
+	if err != nil {
 		return
 	}
-	scpLines = append(scpLines, fmt.Sprintf(
-		`sshpass -p '%s' scp -P %s -o StrictHostKeyChecking=no %s %s@%s:%s`,
-		node.SshPassword, node.SshPort, shellFilePath,
-		node.SshUsername, node.IP, tmpFilePath,
-	))
-	//create run-dev.sh content
-	runContent = fmt.Sprintf(`
-#!/bin/sh
-echo 'ProjectId: %d HistoryId: %d %s'
-echo '%s'
-cd %s
-%s
-sshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s "sh %s"
-`,
-		t.Project.ID, t.ID, times.FormatDatetime(now), tmpFilePath,
-		t.Workspace(),
-		strings.Join(scpLines, "\n"),
-		node.SshPassword, node.SshPort, node.SshUsername, node.IP,
-		tmpFilePath,
+	scpLines = append(scpLines, scp)
+	//create docker run /run.sh
+	var remoteNodePath = fmt.Sprintf("/tmp/devops-%d-%d-%s", t.ProjectId, t.ID, "run.sh")
+	var remoteShContent string
+	if t.Node.SshKey != "" {
+		remoteShContent = fmt.Sprintf("#!/bin/sh\n%s\nssh -p %s -o StrictHostKeyChecking=no %s@%s 'sh -ex %s'",
+			strings.Join(scpLines, "\n"), node.SshPort, node.SshUsername, node.IP, remoteNodePath,
+		)
+	} else {
+		remoteShContent = fmt.Sprintf("#!/bin/sh\n%s\nsshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s 'sh -ex %s'",
+			strings.Join(scpLines, "\n"),
+			node.SshPassword, node.SshPort, node.SshUsername, node.IP, remoteNodePath,
+		)
+	}
+	if err = ioutil.WriteFile(t.WorkspacePath("run.sh"), []byte(remoteShContent), os.ModePerm); err != nil {
+		return
+	}
+
+	//exec
+	execContent = fmt.Sprintf(
+		"docker run -i --rm --name %s -v %s:/%s -v %s:/run.sh %s %s",
+		t.dockerRunRmName(),
+		t.WorkspacePath(volumePath), volumePath,
+		t.WorkspacePath("run.sh"),
+		sshKeyVolume, _cfg.ImageSsh,
 	)
 	return
 }
@@ -427,5 +487,16 @@ func (t *History) Remove() error {
 		return nil
 	}
 	_, err := t.Node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name))
-	return err
+	if err != nil {
+		return err
+	}
+	return t.dockerRunClose()
+}
+
+func (t *History) dockerRunRmName() string {
+	return fmt.Sprintf("devops-ci-%d-%d", t.ProjectId, t.ID)
+}
+
+func (t *History) dockerRunClose() error {
+	return exec.Command("docker", "rm", "-f", t.dockerRunRmName()).Run()
 }

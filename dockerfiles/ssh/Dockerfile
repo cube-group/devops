@@ -1,8 +1,8 @@
-FROM --platform=linux/amd64 alpine:3.15
+FROM alpine:3.15
 #devops程序运行所需外壳环境
 USER root
 
-COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY run.sh /run.sh
 
 RUN echo "https://mirrors.aliyun.com/alpine/v3.15/main" > /etc/apk/repositories && \
     echo "https://mirrors.aliyun.com/alpine/v3.15/community" >> /etc/apk/repositories && \
@@ -14,4 +14,5 @@ RUN echo "https://mirrors.aliyun.com/alpine/v3.15/main" > /etc/apk/repositories 
     rm -rf /var/cache/apk
 
 WORKDIR /
-ENTRYPOINT ["sh","/docker-entrypoint.sh"]
+
+ENTRYPOINT ["sh","/run.sh"]
