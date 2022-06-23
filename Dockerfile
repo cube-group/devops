@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 devops-shell
+FROM cubegroup/devops-shell:v2
 USER root
 ENV APP_PATH /go
 ENV WEB_SERVER "0.0.0.0:80"

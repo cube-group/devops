@@ -26,10 +26,7 @@ services:
     depends_on:
       - mysql
     privileged: true
-    image: cubegroup/devops
-#    image: cubegroup/devops-devops-shell-java
-#    image: cubegroup/devops-devops-shell-devops-shell-java-node
-    platform: linux/amd64
+    image: cubegroup/devops:v2
     container_name: devops
     restart: always
     ports:
@@ -42,7 +39,6 @@ services:
       - DB_PASSWORD=devops
       - DB_NAME=devops
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - ~/.ssh:/root/.ssh
     links:
       - mysql
