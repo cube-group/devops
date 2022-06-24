@@ -7,8 +7,19 @@
                 <a href="/project">< 返回 | </a>项目构建/部署 (${project.name})
             </div>
             <div class="right">
-                <button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i>
-                </button>
+                {{/*                <button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i>*/}}
+                {{/*                </button>*/}}
+                <div class="form-inline" v-if="">
+                    <div class="input-group">
+                        <div class="input-group-btn">
+                            <a class="btn btn-warning">选择镜像构建器</a>
+                        </div>
+                        <select class="form-control" v-model="ci">
+                            <option value="">请选择</option>
+                            <option v-for="v in ciList" :value="v.key">${v.key}</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="panel-body">
@@ -39,22 +50,29 @@
         var project = {{.project}};
         var info = {{.history}};
         if (!info) {
-            info = {nodeId: 0};
+            info = {nodeId: 0, ci: {key: ''}};
         }
     </script>
     <!-- vue -->
     <script>
         vueMixin = {
             data: {
+                ciList:{{.ciList}},
                 nodes:{{.nodes}},
                 project: project,
                 info: info,
+                ci: info.ci.key,
             },
             methods: {
                 onOnline() {
                     displayConfirm('确认上线?', '确认', '取消', () => {
                         var requestURL = baseURL('/project/i/', this.project.id, '/online')
-                        var data = {version: this.info.version, desc: this.info.desc, nodeId: this.info.nodeId};
+                        var data = {
+                            ci: {key: this.ci},
+                            version: this.info.version,
+                            desc: this.info.desc,
+                            nodeId: this.info.nodeId
+                        };
                         reqPostJson(requestURL, data, (resData) => {
                             window.location = baseURL('/history/i', resData.id);
                         });

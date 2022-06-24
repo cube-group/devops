@@ -71,6 +71,7 @@ type History struct {
 	ProjectId uint32         `gorm:"" json:"projectId" form:"-"`
 	Project   *Project       `gorm:"" json:"project" form:"-"`
 	Log       string         `gorm:"" json:"-" form:"-"`
+	Ci        Kv             `gorm:"" json:"ci" form:"ci"`
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -102,7 +103,7 @@ func (t *History) Validator() error {
 			return fmt.Errorf("部署失败：project id %d not found", t.ProjectId)
 		}
 	}
-	if t.Project.Mode != ProjectModeImage {
+	if !t.IsDockerImageMode() {
 		if t.NodeId == 0 {
 			return errors.New("部署目标机器不能为空")
 		}
@@ -113,7 +114,31 @@ func (t *History) Validator() error {
 			return fmt.Errorf("部署失败：node id %d not found", t.NodeId)
 		}
 	}
+	if t.IsDockerMode() {
+		if ci, ok := t.findCi(); !ok {
+			return errors.New("构建器不能为空")
+		} else {
+			t.Ci = ci
+		}
+	}
 	return nil
+}
+
+func (t *History) findCi() (res Kv, ok bool) {
+	for _, item := range CfgGetCiList() {
+		if item.K == t.Ci.K {
+			return item, true
+		}
+	}
+	return
+}
+
+func (t *History) IsDockerMode() bool {
+	return t.Project.Mode == ProjectModeDocker || t.Project.Mode == ProjectModeImage
+}
+
+func (t *History) IsDockerImageMode() bool {
+	return t.Project.Mode == ProjectModeImage
 }
 
 func (t *History) ImageURL() string {
@@ -477,7 +502,7 @@ func (t *History) createRunNativeExec(node *Node, sshKeyVolume string) (execCont
 		t.dockerRunRmName(),
 		t.WorkspacePath(volumePath), volumePath,
 		t.WorkspacePath("run.sh"),
-		sshKeyVolume, _cfg.ImageSsh,
+		sshKeyVolume, t.Ci.V,
 	)
 	return
 }

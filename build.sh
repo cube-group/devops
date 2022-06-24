@@ -8,7 +8,6 @@ build()
 }
 
 build linux/arm64,linux/amd64 cubegroup/devops-shell:v2 $path/dockerfiles/shell/Dockerfile $path/dockerfiles/shell
-build linux/arm64,linux/amd64 cubegroup/devops-ssh $path/dockerfiles/ssh/Dockerfile $path/dockerfiles/ssh
 build linux/amd64 cubegroup/devops-ci-java $path/dockerfiles/ci-java/Dockerfile $path/dockerfiles/ci-java
 
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/app

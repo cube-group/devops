@@ -3,6 +3,7 @@ package models
 import (
 	"app/library/consts"
 	"app/library/sshtool"
+	"app/library/types/convert"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -90,11 +92,14 @@ func (t Node) MarshalJSON() ([]byte, error) {
 
 //k8s cluster visual Node data validator check
 func (t *Node) Validator(c *gin.Context) error {
+	t.IP = strings.Trim(t.IP, " ")
+	t.SshPort = strings.Trim(t.SshPort, " ")
+	t.SshPassword = strings.Trim(t.SshPassword, " ")
 	return nil
 }
 
 func (t *Node) WorkspacePath(ele ...string) string {
-	ele = append([]string{"/devops/workspace/node"}, ele...)
+	ele = append([]string{"/devops/workspace/.node", convert.MustString(t.ID)}, ele...)
 	return path.Join(ele...)
 }
 
@@ -110,43 +115,38 @@ func (t *Node) Exec(cmd string) (res []byte, err error) {
 }
 
 //node docker run
-func (t *Node) DockerRun(name, mainCmd, otherCmd string, volumes map[string]string) (args []string, err error) {
-	if volumes == nil {
-		volumes = make(map[string]string)
-	}
-	var remoteShContent string
+func (t *Node) RunArgs(sshRunCmd string) (args []string, err error) {
 	if t.SshKey != "" {
-		if err = os.MkdirAll(t.WorkspacePath(name, ".ssh"), 0700); err != nil {
+		if err = os.MkdirAll(t.WorkspacePath(".ssh"), 0700); err != nil {
 			return
 		}
-		if err = ioutil.WriteFile(t.WorkspacePath(name, ".ssh/id_rsa"), []byte(t.SshKey), 0600); err != nil {
+		var nodePrivateKeyFilePath = t.WorkspacePath(".ssh/id_rsa")
+		if err = ioutil.WriteFile(nodePrivateKeyFilePath, []byte(t.SshKey), 0600); err != nil {
 			return
 		}
-		volumes[t.WorkspacePath(name, ".ssh")] = "/root.ssh"
-		remoteShContent = fmt.Sprintf("#!/bin/sh\n%s\nsshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'",
-			otherCmd,
-			t.SshPassword, t.SshPort, t.SshUsername, t.IP, mainCmd,
-		)
+		args = []string{
+			"ssh",
+			"-i",
+			nodePrivateKeyFilePath,
+		}
 	} else {
-		remoteShContent = fmt.Sprintf("#!/bin/sh\n%s\nssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'",
-			otherCmd, t.SshPort, t.SshUsername, t.IP, mainCmd,
-		)
+		args = []string{
+			"sshpass",
+			"-P",
+			fmt.Sprintf("'%'", t.SshPassword),
+			"ssh",
+		}
 	}
-	if err = ioutil.WriteFile(t.WorkspacePath(name, "run.sh"), []byte(remoteShContent), os.ModePerm); err != nil {
-		return
+	args = append(args, []string{
+		"-p",
+		t.SshPort,
+		"-o",
+		"StrictHostKeyChecking=no",
+		fmt.Sprintf("%s@%s", t.SshUsername, t.IP),
+	}...)
+	if sshRunCmd != "" {
+		args = append(args, fmt.Sprintf("'%s'", sshRunCmd))
 	}
-	volumes[t.WorkspacePath(name, "run.sh")] = "/run.ssh"
-	args = []string{
-		"docker",
-		"run",
-		"-it",
-		"--rm",
-		"--name",
-		name,
-	}
-	for k, v := range volumes {
-		args = append(args, "-v", fmt.Sprintf("%s:%s", k, v))
-	}
-	args = append(args, _cfg.ImageSsh)
+	fmt.Println(strings.Join(args, " "))
 	return
 }

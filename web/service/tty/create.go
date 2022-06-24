@@ -34,49 +34,37 @@ func Create(c *gin.Context) (res gin.H, err error) {
 	var md5ID = uuid.GetUUID(val.Code)
 	switch val.Code {
 	case TTYCodeBash:
-		port, err = models.CreateGoTTY(
-			true,
-			"",
-			//"--close-signal", "1", // SIGHUP
-			"bash",
-		)
+		port, err = models.CreateGoTTY(true, "", "bash")
+		//default: "--close-signal", "1", // SIGHUP
 	case TTYCodeNode: //node
 		if node := models.GetNode(val.ID); node != nil {
 			var args []string
-			args, err = node.DockerRun(
-				md5ID,
-				"",
-				"",
-				nil,
-			)
+			args, err = node.RunArgs("")
 			if err != nil {
 				return
 			}
-			port, err = models.CreateGoTTY(true, md5ID, args...)
+			port, err = models.CreateGoTTY(true, md5ID, append([]string{"--close-cmd", "exit"}, args...)...)
 			//"--close-signal", "9", // SIGKILL, kill -9
-			//"--close-cmd", "exit",
 		}
 	case TTYCodeExec: //docker exec
 		if h := models.GetHistory(val.ID); h != nil {
-			port, err = models.CreateGoTTY(
-				true, md5ID,
-				//"--close-signal", "9", // SIGKILL, kill -9
-				"--close-cmd", "exit",
-				"sshpass", "-p", h.Node.SshPassword,
-				"ssh", "-t", "-o", "StrictHostKeyChecking=no", "-p", h.Node.SshPort, h.Node.SshUsername+"@"+h.Node.IP,
-				fmt.Sprintf("MD5=%s;docker exec -it %s sh", md5ID, h.Project.Name),
-			)
+			var args []string
+			args, err = h.Node.RunArgs(fmt.Sprintf("docker exec -it %s sh", h.Project.Name))
+			if err != nil {
+				return
+			}
+			port, err = models.CreateGoTTY(true, md5ID, append([]string{"--close-cmd", "exit"}, args...)...)
+			//"--close-signal", "9", // SIGKILL, kill -9
 		}
 	case TTYCodeLogs: //docker logs
 		if h := models.GetHistory(val.ID); h != nil {
-			port, err = models.CreateGoTTY(
-				false, md5ID,
-				"--close-cmd", "exit",
-				//"--close-signal", "9", // SIGKILL, kill -9
-				"sshpass", "-p", h.Node.SshPassword,
-				"ssh", "-o", "StrictHostKeyChecking=no", "-p", h.Node.SshPort, h.Node.SshUsername+"@"+h.Node.IP,
-				fmt.Sprintf("MD5=%s;docker logs -f -n 1000 %s", md5ID, h.Project.Name),
-			)
+			var args []string
+			args, err = h.Node.RunArgs(fmt.Sprintf("docker logs -f -n 1000 %s", h.Project.Name))
+			if err != nil {
+				return
+			}
+			port, err = models.CreateGoTTY(true, md5ID, append([]string{"--close-cmd", "exit"}, args...)...)
+			//"--close-signal", "9", // SIGKILL, kill -9
 		}
 	case TTYCodeTail: //history apply tail
 		if h := models.GetHistory(val.ID); h != nil {

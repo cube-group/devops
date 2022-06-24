@@ -2,6 +2,7 @@ package cfg
 
 import (
 	"app/library/ginutil"
+	"app/library/types/jsonutil"
 	"app/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -20,7 +21,14 @@ func Save(c *gin.Context) (err error) {
 			return er
 		}
 		for k, v := range val.Map() {
-			if er := tx.Save(&models.Cfg{Name: k, Value: v}).Error; er != nil {
+			var value string
+			switch vv := v.(type) {
+			case string:
+				value = vv
+			default:
+				value = jsonutil.ToString(vv)
+			}
+			if er := tx.Save(&models.Cfg{Name: k, Value: value}).Error; er != nil {
 				return er
 			}
 		}

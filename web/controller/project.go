@@ -54,6 +54,7 @@ func (t *ProjectController) apply(c *gin.Context) {
 		"project": obj,
 		"history": obj.GetLatestHistory(),
 		"nodes":   models.GetNodes(),
+		"ciList":  models.CfgGetCiList(),
 	})
 }
 

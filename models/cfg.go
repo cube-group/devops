@@ -18,20 +18,16 @@ type CfgStruct struct {
 	RegistryUsername  string `json:"registryUsername"`
 	RegistryPassword  string `json:"registryPassword"`
 	RegistryNamespace string `json:"registryNamespace"`
-	ImageSsh          string `json:"imageSsh"`
 	Ci                []Kv   `json:"ci"`
 	OnlineBlock       string `json:"onlineBlock"`
 }
 
-func (t *CfgStruct) Map() (res map[string]string) {
+func (t *CfgStruct) Map() (res map[string]interface{}) {
 	json.Unmarshal(jsonutil.ToBytes(t), &res)
 	return
 }
 
 func (t *CfgStruct) Validator() error {
-	if t.ImageSsh == "" {
-		return errors.New("image ssh不能为空")
-	}
 	for i := 0; i < len(t.Ci); {
 		if t.Ci[i].Validator() != nil {
 			t.Ci = append(t.Ci[:i], t.Ci[i+1:]...)
@@ -110,6 +106,10 @@ func CfgOnlineBlock() string {
 	return res
 }
 
+func CfgGetCiList() []Kv {
+	return _cfg.Ci
+}
+
 func createCfg(key, value string) (err error) {
 	var find Cfg
 	if DB().Take(&find, "`name`=?", key).Error != nil {
@@ -121,21 +121,16 @@ func createCfg(key, value string) (err error) {
 }
 
 func createDefaultCfg() (err error) {
-	//ssh image
-	if err = createCfg("imageSsh", "cubegroup/devops-ssh"); err != nil {
-		return
-	}
 	//ci default image
 	res, err := GetCfgKey("ci")
-	if err != nil {
-		return
-	}
-	var list []Kv
-	if json.Unmarshal([]byte(res), &list) == nil {
-		if len(list) > 0 {
-			return
+	if err == nil {
+		var list []Kv
+		if json.Unmarshal([]byte(res), &list) == nil {
+			if len(list) > 0 {
+				return
+			}
 		}
 	}
-	list = []Kv{{Key: "default", Value: "cubegroup/devops-ci-java"}}
+	list := []Kv{{K: "default", V: "cubegroup/devops-ci-java"}}
 	return createCfg("ci", jsonutil.ToString(list))
 }
