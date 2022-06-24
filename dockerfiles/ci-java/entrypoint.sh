@@ -10,4 +10,6 @@ fi
 
 if [ -f "/run.sh" ];then
     sh -e /run.sh
+else
+    echo "no /run.sh"
 fi

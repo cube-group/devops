@@ -42,14 +42,19 @@ func Create(c *gin.Context) (res gin.H, err error) {
 		)
 	case TTYCodeNode: //node
 		if node := models.GetNode(val.ID); node != nil {
-			port, err = models.CreateGoTTY(
-				true, md5ID,
-				//"--close-signal", "9", // SIGKILL, kill -9
-				"--close-cmd", "exit",
-				"sshpass", "-p", node.SshPassword,
-				"ssh", "-t", "-o", "StrictHostKeyChecking=no", "-p", node.SshPort, node.SshUsername+"@"+node.IP,
-				fmt.Sprintf("MD5=%s;bash", md5ID),
+			var args []string
+			args, err = node.DockerRun(
+				md5ID,
+				"",
+				"",
+				nil,
 			)
+			if err != nil {
+				return
+			}
+			port, err = models.CreateGoTTY(true, md5ID, args...)
+			//"--close-signal", "9", // SIGKILL, kill -9
+			//"--close-cmd", "exit",
 		}
 	case TTYCodeExec: //docker exec
 		if h := models.GetHistory(val.ID); h != nil {

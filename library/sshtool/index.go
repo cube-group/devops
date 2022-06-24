@@ -27,7 +27,7 @@ func SSHConnect(username, password, rsaPrivate, host, port string) (session *ssh
 	clientConfig := &ssh.ClientConfig{
 		User:            username,
 		Auth:            auth,
-		Timeout:         30 * time.Second,
+		Timeout:         10 * time.Second,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 	addr := fmt.Sprintf("%s:%s", host, port)

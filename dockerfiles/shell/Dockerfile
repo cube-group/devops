@@ -3,7 +3,7 @@ FROM docker:20.10.16-dind-alpine3.15
 USER root
 
 COPY gotty /usr/local/bin/gotty
-COPY run.sh /run.sh
+COPY entrypoint.sh /entrypoint.sh
 
 RUN echo "https://mirrors.aliyun.com/alpine/v3.15/main" > /etc/apk/repositories && \
     echo "https://mirrors.aliyun.com/alpine/v3.15/community" >> /etc/apk/repositories && \
@@ -17,4 +17,4 @@ RUN echo "https://mirrors.aliyun.com/alpine/v3.15/main" > /etc/apk/repositories 
 
 WORKDIR /go
 
-ENTRYPOINT ["sh","-e","/run.sh"]
+ENTRYPOINT ["sh","-e","/entrypoint.sh"]

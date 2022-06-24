@@ -2,7 +2,7 @@ FROM alpine:3.15
 #devops程序运行所需外壳环境
 USER root
 
-COPY run.sh /run.sh
+COPY entrypoint.sh /entrypoint.sh
 
 RUN echo "https://mirrors.aliyun.com/alpine/v3.15/main" > /etc/apk/repositories && \
     echo "https://mirrors.aliyun.com/alpine/v3.15/community" >> /etc/apk/repositories && \
@@ -15,4 +15,4 @@ RUN echo "https://mirrors.aliyun.com/alpine/v3.15/main" > /etc/apk/repositories 
 
 WORKDIR /
 
-ENTRYPOINT ["sh","/run.sh"]
+ENTRYPOINT ["sh","/entrypoint.sh"]

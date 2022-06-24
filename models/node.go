@@ -9,6 +9,9 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"io/ioutil"
+	"os"
+	"path"
 	"time"
 )
 
@@ -90,6 +93,11 @@ func (t *Node) Validator(c *gin.Context) error {
 	return nil
 }
 
+func (t *Node) WorkspacePath(ele ...string) string {
+	ele = append([]string{"/devops/workspace/node"}, ele...)
+	return path.Join(ele...)
+}
+
 //sync exec remote shell
 func (t *Node) Exec(cmd string) (res []byte, err error) {
 	s, err := sshtool.SSHConnect(t.SshUsername, t.SshPassword, t.SshKey, t.IP, t.SshPort)
@@ -97,9 +105,48 @@ func (t *Node) Exec(cmd string) (res []byte, err error) {
 		return
 	}
 	defer s.Close()
-	//var b bytes.Buffer
-	//s.Stderr = &b
-	//s.Stdout = &b
 	res, err = s.CombinedOutput(cmd)
+	return
+}
+
+//node docker run
+func (t *Node) DockerRun(name, mainCmd, otherCmd string, volumes map[string]string) (args []string, err error) {
+	if volumes == nil {
+		volumes = make(map[string]string)
+	}
+	var remoteShContent string
+	if t.SshKey != "" {
+		if err = os.MkdirAll(t.WorkspacePath(name, ".ssh"), 0700); err != nil {
+			return
+		}
+		if err = ioutil.WriteFile(t.WorkspacePath(name, ".ssh/id_rsa"), []byte(t.SshKey), 0600); err != nil {
+			return
+		}
+		volumes[t.WorkspacePath(name, ".ssh")] = "/root.ssh"
+		remoteShContent = fmt.Sprintf("#!/bin/sh\n%s\nsshpass -p '%s' ssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'",
+			otherCmd,
+			t.SshPassword, t.SshPort, t.SshUsername, t.IP, mainCmd,
+		)
+	} else {
+		remoteShContent = fmt.Sprintf("#!/bin/sh\n%s\nssh -p %s -o StrictHostKeyChecking=no %s@%s '%s'",
+			otherCmd, t.SshPort, t.SshUsername, t.IP, mainCmd,
+		)
+	}
+	if err = ioutil.WriteFile(t.WorkspacePath(name, "run.sh"), []byte(remoteShContent), os.ModePerm); err != nil {
+		return
+	}
+	volumes[t.WorkspacePath(name, "run.sh")] = "/run.ssh"
+	args = []string{
+		"docker",
+		"run",
+		"-it",
+		"--rm",
+		"--name",
+		name,
+	}
+	for k, v := range volumes {
+		args = append(args, "-v", fmt.Sprintf("%s:%s", k, v))
+	}
+	args = append(args, _cfg.ImageSsh)
 	return
 }

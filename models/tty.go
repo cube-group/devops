@@ -64,7 +64,7 @@ func CreateGoTTY(writeFlag bool, md5ID string, arg ...string) (port int, err err
 			}
 		}()
 		cmd = exec.Command("gotty", arg...)
-		log.StdOut("gotty", port, "end", cmd.Run())
+		log.StdOut("gotty", cmd.Args, port, "end", cmd.Run())
 		ttyPorts.Delete(port) //delete port maps
 	}()
 	//test connect
@@ -80,7 +80,7 @@ func CreateGoTTY(writeFlag bool, md5ID string, arg ...string) (port int, err err
 				waitChan <- 1
 				return
 			}
-			if time.Now().After(startTime.Add(time.Second * 3)) { //timeout
+			if time.Now().After(startTime.Add(time.Second * 5)) { //timeout
 				err = errors.New("timeout")
 				if cmd != nil && cmd.Process != nil {
 					log.StdWarning("gotty", "timeout killed", cmd.Process.Kill())
