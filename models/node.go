@@ -114,28 +114,32 @@ func (t *Node) Exec(cmd string) (res []byte, err error) {
 	return
 }
 
-//node docker run
-func (t *Node) RunArgs(sshRunCmd string) (args []string, err error) {
+func (t *Node) initReadyIdRsa() (sshPath, idRsaPath string, err error) {
 	if t.SshKey != "" {
-		if err = os.MkdirAll(t.WorkspacePath(".ssh"), 0700); err != nil {
+		sshPath = t.WorkspacePath(".ssh")
+		if err = os.MkdirAll(sshPath, 0700); err != nil {
 			return
 		}
-		var nodePrivateKeyFilePath = t.WorkspacePath(".ssh/id_rsa")
-		if err = ioutil.WriteFile(nodePrivateKeyFilePath, []byte(t.SshKey), 0600); err != nil {
+		idRsaPath = t.WorkspacePath(".ssh/id_rsa")
+		if err = ioutil.WriteFile(idRsaPath, []byte(t.SshKey), 0600); err != nil {
 			return
 		}
-		args = []string{
-			"ssh",
-			"-i",
-			nodePrivateKeyFilePath,
+	}
+	return
+}
+
+//node ssh args
+func (t *Node) RunSshArgs(idRsaPath, remoteShell string) (args []string, err error) {
+	if idRsaPath == "" {
+		_, idRsaPath, err = t.initReadyIdRsa()
+		if err != nil {
+			return
 		}
+	}
+	if idRsaPath != "" {
+		args = []string{"ssh", "-i", idRsaPath}
 	} else {
-		args = []string{
-			"sshpass",
-			"-P",
-			fmt.Sprintf("'%'", t.SshPassword),
-			"ssh",
-		}
+		args = []string{"sshpass", "-P", fmt.Sprintf("'%'", t.SshPassword), "ssh"}
 	}
 	args = append(args, []string{
 		"-p",
@@ -144,8 +148,8 @@ func (t *Node) RunArgs(sshRunCmd string) (args []string, err error) {
 		"StrictHostKeyChecking=no",
 		fmt.Sprintf("%s@%s", t.SshUsername, t.IP),
 	}...)
-	if sshRunCmd != "" {
-		args = append(args, fmt.Sprintf("'%s'", sshRunCmd))
+	if remoteShell != "" {
+		args = append(args, fmt.Sprintf("'%s'", remoteShell))
 	}
 	fmt.Println(strings.Join(args, " "))
 	return

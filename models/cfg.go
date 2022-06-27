@@ -131,6 +131,9 @@ func createDefaultCfg() (err error) {
 			}
 		}
 	}
-	list := []Kv{{K: "default", V: "cubegroup/devops-ci-java"}}
+	list := []Kv{
+		{K: "default", V: "cubegroup/devops-ci-default"},
+		{K: "java", V: "cubegroup/devops-ci-java"},
+	}
 	return createCfg("ci", jsonutil.ToString(list))
 }

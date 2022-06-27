@@ -39,7 +39,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 	case TTYCodeNode: //node
 		if node := models.GetNode(val.ID); node != nil {
 			var args []string
-			args, err = node.RunArgs("")
+			args, err = node.RunSshArgs("", "")
 			if err != nil {
 				return
 			}
@@ -49,7 +49,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 	case TTYCodeExec: //docker exec
 		if h := models.GetHistory(val.ID); h != nil {
 			var args []string
-			args, err = h.Node.RunArgs(fmt.Sprintf("docker exec -it %s sh", h.Project.Name))
+			args, err = h.Node.RunSshArgs("", fmt.Sprintf("docker exec -it %s sh", h.Project.Name))
 			if err != nil {
 				return
 			}
@@ -59,7 +59,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 	case TTYCodeLogs: //docker logs
 		if h := models.GetHistory(val.ID); h != nil {
 			var args []string
-			args, err = h.Node.RunArgs(fmt.Sprintf("docker logs -f -n 1000 %s", h.Project.Name))
+			args, err = h.Node.RunSshArgs("", fmt.Sprintf("docker logs -f -n 1000 %s", h.Project.Name))
 			if err != nil {
 				return
 			}
