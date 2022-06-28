@@ -139,7 +139,7 @@ func (t *Node) RunSshArgs(idRsaPath, remoteShell string) (args []string, err err
 	if idRsaPath != "" {
 		args = []string{"ssh", "-i", idRsaPath}
 	} else {
-		args = []string{"sshpass", "-P", fmt.Sprintf("'%'", t.SshPassword), "ssh"}
+		args = []string{"sshpass", "-P", fmt.Sprintf("'%s'", t.SshPassword), "ssh"}
 	}
 	args = append(args, []string{
 		"-p",
@@ -151,6 +151,27 @@ func (t *Node) RunSshArgs(idRsaPath, remoteShell string) (args []string, err err
 	if remoteShell != "" {
 		args = append(args, fmt.Sprintf("'%s'", remoteShell))
 	}
-	fmt.Println(strings.Join(args, " "))
+	return
+}
+
+//node scp args
+func (t *Node) RunScpArgs(localPath, remotePath string) (args []string, err error) {
+	_, idRsaPath, err := t.initReadyIdRsa()
+	if err != nil {
+		return
+	}
+	if idRsaPath != "" {
+		args = []string{"scp", "-i", idRsaPath}
+	} else {
+		args = []string{"sshpass", "-P", fmt.Sprintf("'%s'", t.SshPassword), "scp"}
+	}
+	args = append(args, []string{
+		"-p",
+		t.SshPort,
+		"-o",
+		"StrictHostKeyChecking=no",
+		localPath,
+		fmt.Sprintf("%s@%s:%s", t.SshUsername, t.IP, remotePath),
+	}...)
 	return
 }

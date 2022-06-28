@@ -29,3 +29,13 @@ func StringToMap(s string) map[string]string {
 	}
 	return m
 }
+
+func MapContact(option ...map[string]string) map[string]string {
+	var res = make(map[string]string)
+	for _, item := range option {
+		for k, v := range item {
+			res[k] = v
+		}
+	}
+	return res
+}

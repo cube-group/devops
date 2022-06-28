@@ -2,12 +2,14 @@ package models
 
 import (
 	"app/library/core"
+	"app/library/log"
 	"app/library/types/jsonutil"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"os/exec"
 	"time"
 )
 
@@ -122,18 +124,31 @@ func createCfg(key, value string) (err error) {
 
 func createDefaultCfg() (err error) {
 	//ci default image
+	var list []Kv
 	res, err := GetCfgKey("ci")
 	if err == nil {
-		var list []Kv
 		if json.Unmarshal([]byte(res), &list) == nil {
 			if len(list) > 0 {
-				return
+				goto PullImages
 			}
 		}
 	}
-	list := []Kv{
+
+	list = []Kv{
 		{K: "default", V: "cubegroup/devops-ci-default"},
 		{K: "java", V: "cubegroup/devops-ci-java"},
 	}
-	return createCfg("ci", jsonutil.ToString(list))
+	if err = createCfg("ci", jsonutil.ToString(list)); err != nil {
+		return
+	}
+
+PullImages:
+	go func() {
+		time.Sleep(10 * time.Second)
+		for _, item := range list {
+			log.StdOut("docker pull start: " + item.V)
+			log.StdOut("docker pull end: "+item.V, exec.Command("sh", "-c", "docker pull "+item.V).Run())
+		}
+	}()
+	return nil
 }

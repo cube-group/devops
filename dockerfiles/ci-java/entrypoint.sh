@@ -10,8 +10,8 @@ if [ -f "/root/.ssh2/id_rsa" ];then
      chmod 600 /root/.ssh2/id_rsa
 fi
 
-if [ -f "/.devops/run.sh" ];then
-    cd /.devops && sh -e run.sh
+if [ -f "/.devops/.volume/run.sh" ];then
+    cd /.devops/.volume && sh -e run.sh
 else
-    echo "no /.devops/run.sh"
+    echo "no /.devops/.volume/run.sh"
 fi
