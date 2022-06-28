@@ -166,7 +166,7 @@ func (t *Node) RunScpArgs(localPath, remotePath string) (args []string, err erro
 		args = []string{"sshpass", "-P", fmt.Sprintf("'%s'", t.SshPassword), "scp"}
 	}
 	args = append(args, []string{
-		"-p",
+		"-P",
 		t.SshPort,
 		"-o",
 		"StrictHostKeyChecking=no",

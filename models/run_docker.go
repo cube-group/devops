@@ -7,24 +7,25 @@ import (
 
 //运行本地docker
 //并且部署至此node上
-func RunDocker(node *Node, containerRunPath, localShell, remoteShell string) (run string, volumes map[string]string, err error) {
+func CreateContainerRun(node *Node, containerRunPath, localShell, remoteShell string) (run string, volumes map[string]string, err error) {
 	volumes = make(map[string]string)
-	volumes["/root/.ssh"] = "/root/.ssh"                     //for localShell git
+	volumes["/root/.ssh"] = "/root/.ssh" //for localShell git
 
 	var args []string
 	if node != nil {
 		var sshPath string
+		var dockerRemoteSshIdRsa string
 		sshPath, _, err = node.initReadyIdRsa()
 		if err != nil {
 			return
 		}
 		if sshPath != "" {
 			volumes[sshPath] = "/root/.ssh2" //for ssh/scp
-			dockerRemoteSshIdRsa := "/root/.ssh2/id_rsa"
-			args, err = node.RunSshArgs(dockerRemoteSshIdRsa, remoteShell)
-			if err != nil {
-				return
-			}
+			dockerRemoteSshIdRsa = "/root/.ssh2/id_rsa"
+		}
+		args, err = node.RunSshArgs(dockerRemoteSshIdRsa, remoteShell)
+		if err != nil {
+			return
 		}
 	}
 
@@ -35,6 +36,6 @@ func RunDocker(node *Node, containerRunPath, localShell, remoteShell string) (ru
 		strings.Join(args, " "),
 		containerRunPath,
 	)
-	fmt.Println("=========== container/run.sh ===========\n"+run)
+	fmt.Println("=========== container/run.sh ===========\n" + run)
 	return
 }

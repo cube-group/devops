@@ -305,7 +305,7 @@ func (t *History) createRunDockerVolume(filePath string, content string) (copy s
 
 //${workspace}/.volume/Dockerfile -> ${docker}:/.devops/.volume/Dockerfile
 //${workspace}/.volume -> ${docker}:/.devops/.volume
-//${workspace}/run.sh -> ${docker}:/.devops/run.sh
+//${workspace}/.volume/run.sh -> ${docker}:/.devops/.volume/run.sh
 func (t *History) createRunDockerExec(node *Node) (volumes map[string]string, err error) {
 	//TODO 需要检测之前的history如果存在project.name不一致需要先移除container
 	var template = t.Project.Docker
@@ -387,7 +387,7 @@ docker push %s
 	}
 
 	//run.sh
-	runShell, volumes, err := RunDocker(sshDockerNode, DockerRunRootPath, template.Shell+"\n"+dockerBuild, sshDockerRun)
+	runShell, volumes, err := CreateContainerRun(sshDockerNode, DockerRunRootPath, template.Shell+"\n"+dockerBuild, sshDockerRun)
 	if err != nil {
 		return
 	}
@@ -404,7 +404,7 @@ docker push %s
 func (t *History) createRunNativeExec(node *Node) (volumes map[string]string, err error) {
 	var template = t.Project.Native
 	//create scp files
-	var containerShell string
+	var scpShell string
 	var scpRemoteFilePrefix = fmt.Sprintf("/tmp/devops-%d-%d-", t.ProjectId, t.ID)
 	for _, v := range template.Volume {
 		var volumeContent string
@@ -424,22 +424,28 @@ func (t *History) createRunNativeExec(node *Node) (volumes map[string]string, er
 		if err != nil {
 			return
 		}
-		containerShell += strings.Join(scpArgs, " ") + "\n"
+		scpShell += strings.Join(scpArgs, " ") + "\n"
 	}
 	//init facade content
-	var localFacadePath = t.WorkspaceVolumePath("run.sh")
-	var containerFacadePath = path.Join(DockerRunRootPath, DockerVolumePathName, "run.sh")
+	var localFacadePath = t.WorkspaceVolumePath("run")
+	var containerFacadePath = path.Join(DockerRunRootPath, DockerVolumePathName, "run")
 	var remoteFacadePath = fmt.Sprintf("%s%s", scpRemoteFilePrefix, "run")
-	if err = ioutil.WriteFile(localFacadePath, []byte("!/bin/sh\n"+template.Shell+"\n"+fmt.Sprintf("rm -rf %s*", scpRemoteFilePrefix)), os.ModePerm); err != nil {
+	var remoteFacadeContent = fmt.Sprintf("#!/bin/sh\n%s\nrm -rf %s*\n", template.Shell, scpRemoteFilePrefix)
+	if err = ioutil.WriteFile(localFacadePath, []byte(remoteFacadeContent), os.ModePerm); err != nil {
 		return
 	}
 	scpRunArgs, err := node.RunScpArgs(containerFacadePath, remoteFacadePath)
 	if err != nil {
 		return
 	}
-	containerShell += strings.Join(scpRunArgs, " ") + "\n"
+	scpShell += strings.Join(scpRunArgs, " ") + "\n"
 
-	runShell, volumes, err := RunDocker(node, DockerRunRootPath, containerShell, fmt.Sprintf("sh -ex %s", remoteFacadePath))
+	runShell, volumes, err := CreateContainerRun(
+		node,
+		DockerRunRootPath,
+		scpShell+"\n",
+		fmt.Sprintf("sh -ex %s", remoteFacadePath),
+	)
 	if err != nil {
 		return
 	}
