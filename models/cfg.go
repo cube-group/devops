@@ -65,6 +65,14 @@ func ReloadCfg() error {
 	core.Lock(func() {
 		_cfg = i
 	})
+	//restart docker pull ci
+	go func() {
+		time.Sleep(10 * time.Second)
+		for _, item := range _cfg.Ci {
+			log.StdOut("docker pull start: " + item.V)
+			log.StdOut("docker pull end: "+item.V, exec.Command("sh", "-c", "docker pull "+item.V).Run())
+		}
+	}()
 	return nil
 }
 
@@ -129,7 +137,7 @@ func createDefaultCfg() (err error) {
 	if err == nil {
 		if json.Unmarshal([]byte(res), &list) == nil {
 			if len(list) > 0 {
-				goto PullImages
+				return
 			}
 		}
 	}
@@ -141,14 +149,5 @@ func createDefaultCfg() (err error) {
 	if err = createCfg("ci", jsonutil.ToString(list)); err != nil {
 		return
 	}
-
-PullImages:
-	go func() {
-		time.Sleep(10 * time.Second)
-		for _, item := range list {
-			log.StdOut("docker pull start: " + item.V)
-			log.StdOut("docker pull end: "+item.V, exec.Command("sh", "-c", "docker pull "+item.V).Run())
-		}
-	}()
 	return nil
 }
