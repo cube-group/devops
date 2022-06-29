@@ -4,6 +4,7 @@ import (
 	"app/db"
 	"app/models"
 	"app/setting"
+	"app/task"
 	"app/web"
 	"embed"
 	_ "embed"
@@ -23,12 +24,17 @@ func init() {
 
 func main() {
 	var cmd string
-	flag.StringVar(&cmd, "cmd", "web", "web|db")
+	flag.StringVar(&cmd, "cmd", "", "web|db|task")
 	flag.Parse()
 	switch cmd {
 	case "db":
 		db.Init()
+	case "task":
+		task.Init()
+	case "web":
+		web.Init()
 	default:
+		go task.Init()
 		web.Init()
 	}
 }

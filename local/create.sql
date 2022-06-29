@@ -1,4 +1,4 @@
--- 2022-06-09 17:08:32
+-- 2022-06-29 19:26:53
 
 
 
@@ -10,14 +10,14 @@ CREATE TABLE IF NOT EXISTS `d_cfg` (
   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `d_history` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` int(11) NOT NULL DEFAULT '0',
   `project_id` int(11) NOT NULL DEFAULT '0',
   `node_id` int(11) NOT NULL DEFAULT '0',
-  `node` varchar(1000) DEFAULT '',
+  `node` text,
   `version` varchar(100) NOT NULL DEFAULT '',
   `desc` varchar(1000) NOT NULL DEFAULT '',
   `project` mediumtext,
@@ -27,10 +27,11 @@ CREATE TABLE IF NOT EXISTS `d_history` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` datetime DEFAULT NULL,
+  `ci` varchar(1000) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_deleted_at` (`deleted_at`),
   KEY `idx_project_id` (`project_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=99 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=140 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `d_node` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -47,7 +48,7 @@ CREATE TABLE IF NOT EXISTS `d_node` (
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COMMENT='宿主机表';
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COMMENT='宿主机表';
 
 CREATE TABLE IF NOT EXISTS `d_project` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -64,7 +65,7 @@ CREATE TABLE IF NOT EXISTS `d_project` (
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COMMENT='虚拟项目表';
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COMMENT='虚拟项目表';
 
 CREATE TABLE IF NOT EXISTS `d_user` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -81,4 +82,7 @@ CREATE TABLE IF NOT EXISTS `d_user` (
   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+
+ALTER TABLE `d_history` MODIFY COLUMN `node` TEXT;
+ALTER TABLE `d_history` ADD COLUMN `ci` VARCHAR(1000);

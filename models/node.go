@@ -2,6 +2,7 @@ package models
 
 import (
 	"app/library/consts"
+	"app/library/log"
 	"app/library/sshtool"
 	"app/library/types/convert"
 	"database/sql/driver"
@@ -41,6 +42,13 @@ func GetNode(values ...interface{}) *Node {
 func GetNodes() (res []Node) {
 	DB().Order("id DESC").Find(&res)
 	return res
+}
+
+func NodeClean() {
+	for _, item := range GetNodes() {
+		_, err := item.Exec("docker system prune -a -f")
+		log.StdOut("nodeClean", item.IP, err)
+	}
 }
 
 type NodeMarshalJSON Node
@@ -129,7 +137,7 @@ func (t *Node) initReadyIdRsa() (sshPath, idRsaPath string, err error) {
 }
 
 //node ssh args
-func (t *Node) RunSshArgs(idRsaPath, remoteShell string) (args []string, err error) {
+func (t *Node) RunSshArgs(tty bool, idRsaPath, remoteShell string) (args []string, err error) {
 	if idRsaPath == "" {
 		_, idRsaPath, err = t.initReadyIdRsa()
 		if err != nil {
@@ -141,6 +149,9 @@ func (t *Node) RunSshArgs(idRsaPath, remoteShell string) (args []string, err err
 	} else {
 		args = []string{"sshpass", "-P", fmt.Sprintf("'%s'", t.SshPassword), "ssh"}
 	}
+	if tty {
+		args = append(args, "-t")
+	}
 	args = append(args, []string{
 		"-p",
 		t.SshPort,
@@ -149,7 +160,7 @@ func (t *Node) RunSshArgs(idRsaPath, remoteShell string) (args []string, err err
 		fmt.Sprintf("%s@%s", t.SshUsername, t.IP),
 	}...)
 	if remoteShell != "" {
-		args = append(args, fmt.Sprintf("'%s'", remoteShell))
+		args = append(args, fmt.Sprintf("%s", remoteShell))
 	}
 	return
 }

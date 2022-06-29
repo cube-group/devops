@@ -183,6 +183,15 @@ func (t *History) IsEnd() bool {
 	return t.Status == HistoryStatusFailed || t.Status == HistoryStatusSuccess
 }
 
+//delete history pod
+func (t *History) DelPod() error {
+	if t.Node == nil {
+		return errors.New("node信息未找到")
+	}
+	_, err := t.Node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name))
+	return err
+}
+
 //shutdown the history ing
 func (t *History) Shutdown() error {
 	if t.Status != HistoryStatusDefault {

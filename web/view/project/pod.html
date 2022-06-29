@@ -6,6 +6,7 @@
                 <a style="color: #0a6aa1" :href="baseURL('/project?name='+project.id)">< 返回 | </a>项目节点管理
             </div>
             <div class="right">
+                <a class="btn btn-sm btn-danger" @click="onDelPod()">DEL</a>
                 <a class="btn btn-sm btn-primary" @click="onTty()">TTY</a>
             </div>
         </div>
@@ -50,12 +51,20 @@
                         });
                     }
                 },
+                onDelPod() {
+                    displayConfirm('确认移除该服务', '确认', '取消', () => {
+                        reqDelWithoutData(baseURL('/project/i', this.project.id, 'pod'));
+                    });
+                },
                 onTty() {
                     reqPost(`/tty/create?code=exec&id=${this.history.id}`, null, (resData) => {
                         var frameURL = baseURL('/tty/port', resData.port, '/connect');
                         this.openTtyIndex = layui.layer.open({
-                            type: 1, area: [$(window).width() + 'px', $(window).height() + 'px'],
-                            title: `Node: ${this.history.node.ip} Container: ${this.project.name} Exec`, content: $('#tty-container'), anim: 2,
+                            type: 1,
+                            area: [$(window).width() + 'px', $(window).height() + 'px'],
+                            title: `Node: ${this.history.node.ip} Container: ${this.project.name} Exec`,
+                            content: $('#tty-container'),
+                            anim: 2,
                             success: (layero, index) => {
                                 //close log
                                 $(window).unbind("resize", this.onLogResize);

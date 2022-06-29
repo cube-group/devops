@@ -23,7 +23,7 @@ func CreateContainerRun(node *Node, containerRunPath, localShell, remoteShell st
 			volumes[sshPath] = "/root/.ssh2" //for ssh/scp
 			dockerRemoteSshIdRsa = "/root/.ssh2/id_rsa"
 		}
-		args, err = node.RunSshArgs(dockerRemoteSshIdRsa, remoteShell)
+		args, err = node.RunSshArgs(false, dockerRemoteSshIdRsa, fmt.Sprintf("'%s'", remoteShell))
 		if err != nil {
 			return
 		}

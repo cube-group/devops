@@ -11,6 +11,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.19.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/spf13/viper v1.12.0
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect

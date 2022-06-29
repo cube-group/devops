@@ -36,6 +36,7 @@
                 基础ci镜像列表
             </div>
             <div class="right">
+                <a class="btn btn-sm btn-success" @click="cfg.ci.push({})">添加</a>
                 <button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i>
                 </button>
             </div>
@@ -48,9 +49,6 @@
                     <input class="form-control" placeholder="[A-Za-z0-9]*" v-model="v.key">
                     <div class="input-group-addon">name</div>
                     <input class="form-control" placeholder="image address" v-model="v.value">
-                    <div class="input-group-btn">
-                        <a class="btn btn-success" @click="cfg.ci.push({})">添加</a>
-                    </div>
                     <div class="input-group-btn">
                         <a class="btn btn-danger" @click="cfg.ci.splice(i,1)">移除</a>
                     </div>
