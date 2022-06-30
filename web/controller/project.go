@@ -21,6 +21,7 @@ func (t *ProjectController) Init(group *gin.RouterGroup) {
 	detailGroup.DELETE(".", t.del)
 	detailGroup.GET("/apply", t.apply)
 	detailGroup.POST("/online", middleware.Block(), t.online)
+	detailGroup.POST("/offline", middleware.Block(), t.offline)
 	detailGroup.GET("/pod", t.pod)
 	detailGroup.DELETE("/pod", t.podDel)
 }
@@ -28,6 +29,7 @@ func (t *ProjectController) Init(group *gin.RouterGroup) {
 func (t *ProjectController) index(c *gin.Context) {
 	res := project.List(c)
 	res["registryPath"] = models.CfgRegistryPath()
+	res["tags"] = models.TagList()
 	g.HTML(c, "project/index.html", res)
 }
 
@@ -37,6 +39,7 @@ func (t *ProjectController) create(c *gin.Context) {
 
 func (t *ProjectController) info(c *gin.Context) {
 	g.HTML(c, "project/info.html", gin.H{
+		"tags":    models.TagList(),
 		"project": models.GetProject(c),
 	})
 }
@@ -62,6 +65,10 @@ func (t *ProjectController) apply(c *gin.Context) {
 func (t *ProjectController) online(c *gin.Context) {
 	res, err := project.Online(c)
 	ginutil.JsonAuto(c, "Success", err, res)
+}
+
+func (t *ProjectController) offline(c *gin.Context) {
+	ginutil.JsonAuto(c, "Success", project.Offline(c), nil)
 }
 
 func (t *ProjectController) pod(c *gin.Context) {

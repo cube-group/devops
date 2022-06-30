@@ -84,5 +84,16 @@ CREATE TABLE IF NOT EXISTS `d_user` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
-ALTER TABLE `d_history` MODIFY COLUMN `node` TEXT;
-ALTER TABLE `d_history` ADD COLUMN `ci` VARCHAR(1000);
+CREATE TABLE IF NOT EXISTS `d_project_cronjob` (
+ `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+ `project_id` int(11) NOT NULL DEFAULT '0',
+ `uid` int(11) NOT NULL DEFAULT '0',
+ `ci` varchar(1000) DEFAULT '',
+ `node_id` int(11) DEFAULT '0',
+ `node` text,
+ `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+ `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+ `deleted_at` datetime DEFAULT NULL,
+ PRIMARY KEY (`id`),
+ UNIQUE KEY `unq_project_id` (`project_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;

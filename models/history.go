@@ -115,6 +115,9 @@ func (t *History) Validator() error {
 			return fmt.Errorf("部署失败：node id %d not found", t.NodeId)
 		}
 	}
+	if t.Project.Cronjob != "" {
+		t.Version = "latest"
+	}
 	if ci, ok := t.findCi(); !ok {
 		return errors.New("构建器不能为空")
 	} else {
@@ -183,15 +186,6 @@ func (t *History) IsEnd() bool {
 	return t.Status == HistoryStatusFailed || t.Status == HistoryStatusSuccess
 }
 
-//delete history pod
-func (t *History) DelPod() error {
-	if t.Node == nil {
-		return errors.New("node信息未找到")
-	}
-	_, err := t.Node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name))
-	return err
-}
-
 //shutdown the history ing
 func (t *History) Shutdown() error {
 	if t.Status != HistoryStatusDefault {
@@ -217,11 +211,6 @@ func (t *History) Online() (err error) {
 	t.onlineCtx = ctx
 	t.onlineCtxCancel = cancel
 	onlineMaps.Store(t.ID, t)
-	//node check
-	var node = t.Node
-	if t.Project.Mode != ProjectModeImage && node == nil {
-		return errors.New("node not found")
-	}
 	//create workspace
 	if err = os.MkdirAll(t.WorkspacePath(DockerVolumePathName), os.ModePerm); err != nil {
 		return
@@ -229,9 +218,9 @@ func (t *History) Online() (err error) {
 	//exec docker run --rm
 	var volumes map[string]string
 	if t.IsDockerMode() { //deploy mode docker
-		volumes, err = t.createRunDockerExec(node)
+		volumes, err = t.createRunDockerExec()
 	} else { //node shell
-		volumes, err = t.createRunNativeExec(node)
+		volumes, err = t.createRunNativeExec()
 	}
 	var volumeString string
 	for k, v := range volumes {
@@ -315,7 +304,7 @@ func (t *History) createRunDockerVolume(filePath string, content string) (copy s
 //${workspace}/.volume/Dockerfile -> ${docker}:/.devops/.volume/Dockerfile
 //${workspace}/.volume -> ${docker}:/.devops/.volume
 //${workspace}/.volume/run.sh -> ${docker}:/.devops/.volume/run.sh
-func (t *History) createRunDockerExec(node *Node) (volumes map[string]string, err error) {
+func (t *History) createRunDockerExec() (volumes map[string]string, err error) {
 	//TODO 需要检测之前的history如果存在project.name不一致需要先移除container
 	var template = t.Project.Docker
 	//create Dockerfile COPY
@@ -379,7 +368,6 @@ docker push %s
 	}
 
 	//docker run check
-	var sshDockerNode *Node
 	var sshDockerRun string
 	if t.Project.Mode == ProjectModeDocker {
 		sshDockerRun = fmt.Sprintf(
@@ -392,11 +380,10 @@ docker push %s
 			t.Project.Name,
 			t.Project.Name, t.Project.Docker.RunOptions, imageName,
 		)
-		sshDockerNode = node
 	}
 
 	//run.sh
-	runShell, volumes, err := CreateContainerRun(sshDockerNode, DockerRunRootPath, template.Shell+"\n"+dockerBuild, sshDockerRun)
+	runShell, volumes, err := CreateContainerRun(t.Node, DockerRunRootPath, template.Shell+"\n"+dockerBuild, sshDockerRun)
 	if err != nil {
 		return
 	}
@@ -410,7 +397,12 @@ docker push %s
 
 //${workspace}/.volume -> ${docker}:/.devops/.volume
 //${workspace}/run.sh -> ${docker}:/.devops/run.sh
-func (t *History) createRunNativeExec(node *Node) (volumes map[string]string, err error) {
+func (t *History) createRunNativeExec() (volumes map[string]string, err error) {
+	var node = t.Node
+	if node == nil {
+		err = errors.New("node is nil")
+		return
+	}
 	var template = t.Project.Native
 	//create scp files
 	var scpShell string
@@ -466,6 +458,9 @@ func (t *History) createRunNativeExec(node *Node) (volumes map[string]string, er
 }
 
 func (t *History) Remove() error {
+	if err := CronjobStop(t.ProjectId); err != nil {
+		return err
+	}
 	if t.Project.Mode != ProjectModeDocker {
 		return nil
 	}

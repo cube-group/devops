@@ -35,14 +35,10 @@ func queryList(val valList) *gorm.DB {
 		}
 	}
 	if val.Pid != "" {
-		projectId := convert.MustUint32(val.Pid)
-		if projectId == 0 {
-			if p := models.GetProject(val.Pid); p != nil {
-				projectId = p.ID
+		if projectId := convert.MustUint32(val.Pid); projectId > 0 {
+			if p := models.GetProject(projectId); p != nil {
+				query = query.Where("project_id=?", projectId)
 			}
-		}
-		if projectId > 0 {
-			query = query.Where("project_id=?", projectId)
 		}
 	}
 	return query

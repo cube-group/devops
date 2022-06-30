@@ -111,6 +111,22 @@ func (t *Node) WorkspacePath(ele ...string) string {
 	return path.Join(ele...)
 }
 
+func (t *Node) WorkspaceSshPath() string {
+	return t.WorkspacePath(".ssh")
+}
+
+func (t *Node) WorkspaceSshIdRsaPath() string {
+	return t.WorkspacePath(".ssh", "id_rsa")
+}
+
+func (t *Node) ContainerSshPath() string {
+	return "/root/.ssh2"
+}
+
+func (t *Node) ContainerSshIdRsaPath() string {
+	return "/root/.ssh2/id_rsa"
+}
+
 //sync exec remote shell
 func (t *Node) Exec(cmd string) (res []byte, err error) {
 	s, err := sshtool.SSHConnect(t.SshUsername, t.SshPassword, t.SshKey, t.IP, t.SshPort)
@@ -122,14 +138,12 @@ func (t *Node) Exec(cmd string) (res []byte, err error) {
 	return
 }
 
-func (t *Node) initReadyIdRsa() (sshPath, idRsaPath string, err error) {
+func (t *Node) initWorkspace() (err error) {
 	if t.SshKey != "" {
-		sshPath = t.WorkspacePath(".ssh")
-		if err = os.MkdirAll(sshPath, 0700); err != nil {
+		if err = os.MkdirAll(t.WorkspaceSshPath(), 0700); err != nil {
 			return
 		}
-		idRsaPath = t.WorkspacePath(".ssh/id_rsa")
-		if err = ioutil.WriteFile(idRsaPath, []byte(t.SshKey), 0600); err != nil {
+		if err = ioutil.WriteFile(t.WorkspaceSshIdRsaPath(), []byte(t.SshKey), 0600); err != nil {
 			return
 		}
 	}
@@ -139,12 +153,13 @@ func (t *Node) initReadyIdRsa() (sshPath, idRsaPath string, err error) {
 //node ssh args
 func (t *Node) RunSshArgs(tty bool, idRsaPath, remoteShell string) (args []string, err error) {
 	if idRsaPath == "" {
-		_, idRsaPath, err = t.initReadyIdRsa()
+		err = t.initWorkspace()
 		if err != nil {
 			return
 		}
+		idRsaPath = t.WorkspaceSshIdRsaPath()
 	}
-	if idRsaPath != "" {
+	if t.SshKey != "" {
 		args = []string{"ssh", "-i", idRsaPath}
 	} else {
 		args = []string{"sshpass", "-P", fmt.Sprintf("'%s'", t.SshPassword), "ssh"}
@@ -166,13 +181,14 @@ func (t *Node) RunSshArgs(tty bool, idRsaPath, remoteShell string) (args []strin
 }
 
 //node scp args
+//container special
 func (t *Node) RunScpArgs(localPath, remotePath string) (args []string, err error) {
-	_, idRsaPath, err := t.initReadyIdRsa()
+	err = t.initWorkspace()
 	if err != nil {
 		return
 	}
-	if idRsaPath != "" {
-		args = []string{"scp", "-i", idRsaPath}
+	if t.SshKey != "" {
+		args = []string{"scp", "-i", t.ContainerSshIdRsaPath()} //containerSsh2Path
 	} else {
 		args = []string{"sshpass", "-P", fmt.Sprintf("'%s'", t.SshPassword), "scp"}
 	}

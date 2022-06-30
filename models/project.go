@@ -43,6 +43,14 @@ func GetProject(values ...interface{}) (res *Project) {
 			}
 		}
 	}
+	if res != nil {
+		var rel TagRel
+		if DB().Last(&rel, "pid=?", res.ID).Error == nil {
+			if tag := GetTag(rel.Tid); tag != nil {
+				res.Tag = tag.ID
+			}
+		}
+	}
 	return
 }
 
@@ -72,6 +80,8 @@ type Project struct {
 	CreatedAt time.Time             `json:"createdAt"`
 	UpdatedAt time.Time             `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt        `gorm:"index" json:"-"`
+
+	Tag uint32 `gorm:"-" json:"tag" form:"tag"`
 }
 
 func (t *Project) TableName() string {
@@ -121,14 +131,34 @@ func (t *Project) Validator() error {
 	if err := t.Docker.Validator(); err != nil {
 		return err
 	}
-	if t.Mode == ProjectModeDocker {
+	switch t.Mode {
+	case ProjectModeDocker:
 		if t.Docker.Dockerfile == "" && t.Docker.Image == "" {
 			return errors.New("docker部署模式Dockerfile或Image不能同时为空")
 		}
-	} else if t.Mode == ProjectModeNative {
+	case ProjectModeNative:
 		if t.Native.Shell == "" {
 			return errors.New("native部署模式Shell不能为空")
 		}
+	default:
+		t.Cronjob = ""
 	}
 	return nil
+}
+
+func (t *Project) Apply(history *History) (err error) {
+	return DB().Transaction(func(tx *gorm.DB) error {
+		//在上线阻断
+		if tx.Last(&History{}, "project_id=? AND status=?", t.ID, HistoryStatusDefault).Error == nil {
+			return errors.New("正在上线中请稍后或中断之前的上线...")
+		}
+		if er := tx.Save(history).Error; er != nil {
+			return er
+		}
+		return history.Online()
+	})
+}
+
+func (t *Project) StopCronjob() (err error) {
+	return CronjobStop(t.ID)
 }

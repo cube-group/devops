@@ -9,7 +9,7 @@
             <div class="right">
                 {{/*                <button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i>*/}}
                 {{/*                </button>*/}}
-                <div class="form-inline" v-if="">
+                <div class="form-inline" v-if="project.mode!='image'">
                     <div class="input-group">
                         <div class="input-group-btn">
                             <a class="btn btn-warning">选择镜像构建器</a>
@@ -23,9 +23,13 @@
             </div>
         </div>
         <div class="panel-body">
-            <div class="form-group">
+            <div class="form-group" v-if="!project.cronjob">
                 <label>版本标号 (默认: latest)</label>
                 <input type="text" class="form-control" v-model="info.version" placeholder="如: v1.1">
+            </div>
+            <div class="form-group" v-if="project.cronjob">
+                <label>Cronjob</label>
+                <input type="text" class="form-control" :value="project.cronjob" disabled>
             </div>
             <div class="form-group">
                 <label>上线内容<span style="color: #FF1717">*</span></label>
@@ -74,7 +78,11 @@
                             nodeId: this.info.nodeId
                         };
                         reqPostJson(requestURL, data, (resData) => {
-                            window.location = baseURL('/history/i', resData.id);
+                            if (resData.id) {
+                                window.location = baseURL('/history/i', resData.id);
+                            } else {
+                                window.location = baseURL('/project');
+                            }
                         });
                     });
                 },

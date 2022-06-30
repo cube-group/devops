@@ -4,7 +4,6 @@ import (
 	"app/db"
 	"app/models"
 	"app/setting"
-	"app/task"
 	"app/web"
 	"embed"
 	_ "embed"
@@ -30,11 +29,11 @@ func main() {
 	case "db":
 		db.Init()
 	case "task":
-		task.Init()
+		models.InitCronjob()
 	case "web":
 		web.Init()
 	default:
-		go task.Init()
+		go models.InitCronjob()
 		web.Init()
 	}
 }

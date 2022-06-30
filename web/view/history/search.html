@@ -1,7 +1,9 @@
 {{define "history/search.html"}}
     <div class="form-inline">
+        <input type="text" class="form-control" placeholder="部署ID"
+               v-model="search.id" @keyup.enter="onSearch">
         <input type="text" class="form-control" placeholder="项目ID"
-               v-model="search.name" @keyup.enter="onSearch">
+               v-model="search.pid" @keyup.enter="onSearch">
         <div class="input-group">
             <div class="input-group-btn">
                 <button type="submit" class="btn btn-primary" @click="onSearch">

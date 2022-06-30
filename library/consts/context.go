@@ -9,4 +9,5 @@ const (
 	ContextNode    = "contextNode"
 	ContextProject = "contextProject"
 	ContextHistory = "contextHistory"
+	ContextTag = "contextTag"
 )

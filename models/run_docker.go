@@ -13,14 +13,9 @@ func CreateContainerRun(node *Node, containerRunPath, localShell, remoteShell st
 
 	var args []string
 	if node != nil {
-		var sshPath string
 		var dockerRemoteSshIdRsa string
-		sshPath, _, err = node.initReadyIdRsa()
-		if err != nil {
-			return
-		}
-		if sshPath != "" {
-			volumes[sshPath] = "/root/.ssh2" //for ssh/scp
+		if node.SshKey != "" {
+			volumes[node.WorkspaceSshPath()] = "/root/.ssh2" //for ssh/scp
 			dockerRemoteSshIdRsa = "/root/.ssh2/id_rsa"
 		}
 		args, err = node.RunSshArgs(false, dockerRemoteSshIdRsa, fmt.Sprintf("'%s'", remoteShell))

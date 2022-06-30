@@ -43,7 +43,8 @@
                     <td>
                         <a data-toggle="tooltip" data-placement="bottom" :title="v.desc"
                            :href="baseURL('/project/i',v.id)">${v.name}</a>
-                        <div v-if="v.mode=='image'">镜像项目：${registryPath}/${v.name}</div>
+                        <div v-if="v.mode=='image'">镜像构建：${registryPath}/${v.name}</div>
+                        <div v-if="v.cronjob">定时任务：${v.cronjob}</div>
                     </td>
                     <td>
                         <div v-if="!v.history">
@@ -58,7 +59,7 @@
                             ${v.history.createdAt}
                         </div>
                         <div v-if="v.history && v.history.status=='ok'">
-                            <span class="label label-success">成功</span>
+                            <a class="label label-success" :href="baseURL('/history?pid='+v.id)">成功</a>
                             ${v.history.updatedAt}
                         </div>
                         <div v-if="v.history && v.history.status=='error'">
@@ -67,9 +68,14 @@
                         </div>
                     </td>
                     <td>
-                        <a :href="baseURL('/project/i',v.id,'/apply')" class="btn btn-xs btn-default">
+                        <a :href="baseURL('/project/i',v.id,'/apply')" class="btn btn-xs btn-default" v-if="!v.cronjob">
                             ${v.mode=='image'?'构建':'部署'}
                         </a>
+                        <span v-if="v.cronjob">
+                            <a class="btn btn-xs btn-default" v-if="!v.cronjobInstance"
+                               :href="baseURL('/project/i',v.id,'/apply')">启动</a>
+                            <a class="btn btn-xs btn-warning" v-if="v.cronjobInstance" @click="onCronjobStop(v)">停止</a>
+                        </span>
                         <span v-if="v.mode=='docker'">
                             <a class="btn btn-xs btn-primary" v-if="v.history && v.history.status!='deleted'"
                                :href="baseURL('/project/i',v.id,'/pod')">节点</a>
@@ -92,8 +98,10 @@
         vueMixin = {
             data: {
                 registryPath:{{.registryPath}},
+                tags:{{.tags}},
                 list:{{.list}},
                 historyList:{{.historyList}},
+                cronjobList:{{.cronjobList}},
                 search:{{.search}},
                 location: '/project',
             },
@@ -105,6 +113,11 @@
                     displayConfirm('确认移除该项目？', '确认', '取消', () => {
                         reqDel(baseURL('/project/i', project.id));
                     });
+                },
+                onCronjobStop(project) {
+                    displayConfirm(`确认停止该项目${project.name}的cronjob`, '确认', '取消', () => {
+                        reqPost(baseURL('/project/i', project.id, '/offline'));
+                    });
                 }
             },
             created() {
@@ -112,6 +125,11 @@
                     for (var history of this.historyList) {
                         if (history.projectId === project.id) {
                             project.history = history;
+                        }
+                    }
+                    for (var cronjob of this.cronjobList) {
+                        if (cronjob.projectId === project.id) {
+                            project.cronjobInstance = cronjob;
                         }
                     }
                 }
