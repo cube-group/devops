@@ -70,10 +70,8 @@ func Create(c *gin.Context) (res gin.H, err error) {
 		if h := models.GetHistory(val.ID); h != nil {
 			var logFilePath = h.WorkspaceFollowLog()
 			if h.IsEnd() {
-				if endLogPath := h.WorkspaceEndLog(); endLogPath == "" {
+				if err = h.WorkspaceEndLog(); err != nil {
 					return
-				} else {
-					logFilePath = endLogPath
 				}
 			}
 			port, err = models.CreateGoTTY(

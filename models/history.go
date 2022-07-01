@@ -167,15 +167,14 @@ func (t *History) WorkspaceFollowLog() string {
 	return path.Join(t.Workspace(), ".follow.log")
 }
 
-func (t *History) WorkspaceEndLog() (res string) {
-	if err := os.MkdirAll(t.Workspace(), os.ModePerm); err != nil {
+func (t *History) WorkspaceEndLog() (err error) {
+	if err = os.MkdirAll(t.Workspace(), os.ModePerm); err != nil {
 		return
 	}
-	var endLogPath = path.Join(t.Workspace(), ".end.log")
-	if err := ioutil.WriteFile(endLogPath, []byte(t.Log), os.ModePerm); err != nil {
+	if err = ioutil.WriteFile(t.WorkspaceFollowLog(), []byte(t.Log), os.ModePerm); err != nil {
 		return
 	}
-	return endLogPath
+	return
 }
 
 func (t *History) WorkspaceRun() string {
@@ -228,7 +227,10 @@ func (t *History) Online() (err error) {
 	}
 	//exec
 	var execContent = fmt.Sprintf(
-		"docker run -i --rm --name %s %s %s",
+		"docker login %s --username=%s --password=%s >/dev/null 2>&1\ndocker run -i --rm --name %s %s %s",
+		_cfg.RegistryHost,
+		_cfg.RegistryUsername,
+		_cfg.RegistryPassword,
 		t.dockerRunRmName(),
 		volumeString,
 		t.Ci.V,
