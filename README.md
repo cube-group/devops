@@ -6,13 +6,14 @@ fast ops v2
 ```shell
 #!/bin/sh
 docker run -it -d --restart=always \
--p 8080:80 \
+--net=host \
+--privileged \
+-e WEB_PORT=8080 \
 -e DB_HOST=xx \
 -e DB_USERNAME=xx \
 -e DB_PASSWORD=xx \
 -e DB_NAME=xx \
 -e WEB_DEBUG=0 \
---privileged \
 #for git
 -v ~/.ssh:/root/.ssh \ 
 --name devops \
