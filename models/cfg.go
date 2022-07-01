@@ -60,6 +60,7 @@ func (t *Cfg) TableName() string {
 func ReloadCfg() error {
 	i, err := GetCfg()
 	if err != nil {
+		log.StdWarning("cfg", "reload", err)
 		return err
 	}
 	core.Lock(func() {
@@ -90,7 +91,7 @@ func GetCfg() (res CfgStruct, err error) {
 			kv[v.Name] = i
 		}
 	}
-	json.Unmarshal(jsonutil.ToBytes(kv), &res)
+	err = json.Unmarshal(jsonutil.ToBytes(kv), &res)
 	return
 }
 

@@ -16,7 +16,7 @@ func Save(c *gin.Context) (err error) {
 	if err = val.Validator(); err != nil {
 		return
 	}
-	return models.DB().Transaction(func(tx *gorm.DB) error {
+	if err = models.DB().Transaction(func(tx *gorm.DB) error {
 		if er := tx.Unscoped().Delete(&models.Cfg{}, "1=1").Error; er != nil {
 			return er
 		}
@@ -32,6 +32,9 @@ func Save(c *gin.Context) (err error) {
 				return er
 			}
 		}
-		return models.ReloadCfg()
-	})
+		return nil
+	}); err != nil {
+		return
+	}
+	return models.ReloadCfg()
 }
