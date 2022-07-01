@@ -260,6 +260,7 @@ func (t *History) updateStatus(cmd *exec.Cmd) {
 				select {
 				case <-t.onlineCtx.Done():
 					shutdownLogs = "shutdown 1"
+					t.dockerRunClose()
 				}
 			}()
 			err = cmd.Wait()

@@ -18,7 +18,6 @@ func Init() {
 
 //init gin server
 func initServer() {
-	log.StdOut("init", "web.server", setting.SysWebServer)
 	engine := gin.New()
 	if setting.SysWebDebug {
 		engine.Use(gin.Logger())
@@ -38,9 +37,13 @@ func initServer() {
 		if _, err := os.Stat("ssl.key"); err != nil {
 			return
 		}
-		log.StdErr("Init", "TLS", engine.RunTLS(setting.SysWebServerTls, "ssl.pem", "ssl.key"))
+		var sysWebServerTlsAddress = "0.0.0.0:" + setting.SysWebPortTls
+		log.StdOut("Init", "HTTPS", sysWebServerTlsAddress)
+		log.StdErr("Init", "TLS", engine.RunTLS(sysWebServerTlsAddress, "ssl.pem", "ssl.key"))
 	}()
-	log.StdFatal("Init", "HTTP", engine.Run(setting.SysWebServer))
+	var sysWebServerAddress = "0.0.0.0:" + setting.SysWebPort
+	log.StdOut("Init", "HTTP", sysWebServerAddress)
+	log.StdFatal("Init", "HTTP", engine.Run(sysWebServerAddress))
 }
 
 //404页面

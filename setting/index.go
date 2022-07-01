@@ -9,8 +9,8 @@ import (
 )
 
 var SysWebDebug bool
-var SysWebServer string
-var SysWebServerTls string
+var SysWebPort string
+var SysWebPortTls string
 
 var SqlHost string
 var SqlPort int
@@ -37,8 +37,8 @@ func Init(fs map[string]embed.FS) {
 
 func initEnv() {
 	SysWebDebug = env.GetInt(consts.WEB_DEBUG, 1) == 1
-	SysWebServer = env.GetString(consts.WEB_SERVER, "0.0.0.0:80")
-	SysWebServerTls = env.GetString(consts.WEB_SERVER_TLS, "0.0.0.0:443")
+	SysWebPort = env.GetString(consts.WEB_PORT, "80")
+	SysWebPortTls = env.GetString(consts.WEB_PORT_TLS, "443")
 	SqlHost = env.GetString(consts.DB_HOST, "127.0.0.1")
 	SqlPort = env.GetInt(consts.DB_PORT, 3306, 1, 65534)
 	SqlUsername = env.GetString(consts.DB_USERNAME, "root")
