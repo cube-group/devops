@@ -122,8 +122,8 @@ func (t *Project) GetLatestHistory() *History {
 
 //k8s cluster visual project data validator check
 func (t *Project) Validator() error {
-	if matched, err := regexp.MatchString("^[a-z0-9]{4,40}$", t.Name); err != nil || !matched {
-		return errors.New("项目名称不合法，须符合^[a-z0-9]{4,40}$")
+	if matched, err := regexp.MatchString("^[a-z0-9-]{4,40}$", t.Name); err != nil || !matched {
+		return errors.New("项目名称不合法，须符合^[a-z0-9-]{4,40}$")
 	}
 	if err := t.Native.Validator(); err != nil {
 		return err

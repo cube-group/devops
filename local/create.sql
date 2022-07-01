@@ -1,4 +1,4 @@
--- 2022-06-29 19:26:53
+-- 2022-07-01 09:13:51
 
 
 
@@ -27,11 +27,11 @@ CREATE TABLE IF NOT EXISTS `d_history` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` datetime DEFAULT NULL,
-  `ci` varchar(1000) DEFAULT NULL,
+  `ci` varchar(1000) DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `idx_deleted_at` (`deleted_at`),
   KEY `idx_project_id` (`project_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=140 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=162 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `d_node` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -65,7 +65,43 @@ CREATE TABLE IF NOT EXISTS `d_project` (
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COMMENT='虚拟项目表';
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COMMENT='虚拟项目表';
+
+CREATE TABLE IF NOT EXISTS `d_project_cronjob` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `project_id` int(11) NOT NULL DEFAULT '0',
+  `uid` int(11) NOT NULL DEFAULT '0',
+  `ci` varchar(1000) DEFAULT '',
+  `node_id` int(11) DEFAULT '0',
+  `node` text,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unq_project_id` (`project_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `d_tag` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL DEFAULT '',
+  `desc` varchar(500) NOT NULL DEFAULT '',
+  `uid` int(11) NOT NULL DEFAULT '0',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unq_name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `d_tag_rel` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `tid` int(11) NOT NULL DEFAULT '0',
+  `pid` int(11) DEFAULT '0',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `d_user` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -83,17 +119,3 @@ CREATE TABLE IF NOT EXISTS `d_user` (
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
-
-CREATE TABLE IF NOT EXISTS `d_project_cronjob` (
- `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
- `project_id` int(11) NOT NULL DEFAULT '0',
- `uid` int(11) NOT NULL DEFAULT '0',
- `ci` varchar(1000) DEFAULT '',
- `node_id` int(11) DEFAULT '0',
- `node` text,
- `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
- `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
- `deleted_at` datetime DEFAULT NULL,
- PRIMARY KEY (`id`),
- UNIQUE KEY `unq_project_id` (`project_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;

@@ -7,13 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func TagList(c *gin.Context) ([]models.Tag) {
+func TagList(c *gin.Context) []models.Tag {
 	return models.TagList()
 }
 
 func TagSave(c *gin.Context) (err error) {
 	var val models.Tag
 	if err = ginutil.ShouldBind(c, &val); err != nil {
+		return
+	}
+	if err = val.Validator(); err != nil {
 		return
 	}
 	val.Uid = models.UID(c)

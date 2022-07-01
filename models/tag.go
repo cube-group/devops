@@ -3,8 +3,10 @@ package models
 import (
 	"app/library/consts"
 	"encoding/json"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"regexp"
 	"time"
 )
 
@@ -91,6 +93,13 @@ func (t Tag) MarshalJSON() ([]byte, error) {
 	}{
 		TagMarshalJSON(t),
 	})
+}
+
+func (t *Tag) Validator() error {
+	if matched, err := regexp.MatchString("^[a-z0-9]{4,40}$", t.Name); err != nil || !matched {
+		return errors.New("名称不合法，须符合^[a-z0-9]{4,40}$")
+	}
+	return nil
 }
 
 func (t *Tag) ProjectIds() (res []uint32) {
