@@ -11,5 +11,5 @@ build linux/arm64,linux/amd64 cubegroup/devops-shell:v2 $path/dockerfiles/shell/
 build linux/arm64,linux/amd64 cubegroup/devops-ci-default $path/dockerfiles/ci-default/Dockerfile $path/dockerfiles/ci-default
 build linux/amd64 cubegroup/devops-ci-java $path/dockerfiles/ci-java/Dockerfile $path/dockerfiles/ci-java
 
-#CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/app
-#build linux/arm64,linux/amd64 cubegroup/devops:v2 $path/Dockerfile $path
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./bin/app
+build linux/arm64,linux/amd64 cubegroup/devops:v2 $path/Dockerfile $path
