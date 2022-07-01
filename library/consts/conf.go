@@ -11,4 +11,5 @@ const (
 	DB_DEBUG         = "DB_DEBUG"         //mysql debug flag
 	WEB_DEBUG        = "WEB_DEBUG"        //gin debug log flag
 	WEB_SERVER       = "WEB_SERVER"       //gin server address
+	WEB_SERVER_TLS   = "WEB_SERVER_TLS"   //gin server address
 )

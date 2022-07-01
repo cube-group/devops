@@ -38,7 +38,7 @@ func initServer() {
 		if _, err := os.Stat("ssl.key"); err != nil {
 			return
 		}
-		log.StdErr("Init", "TLS", engine.RunTLS("0.0.0.0:443", "ssl.pem", "ssl.key"))
+		log.StdErr("Init", "TLS", engine.RunTLS(setting.SysWebServerTls, "ssl.pem", "ssl.key"))
 	}()
 	log.StdFatal("Init", "HTTP", engine.Run(setting.SysWebServer))
 }
