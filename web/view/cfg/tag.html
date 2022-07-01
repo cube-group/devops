@@ -1,0 +1,99 @@
+{{define "cfg/tag.html"}}
+    {{template "layout/top.html" .}}
+
+    <div class="panel">
+        <div class="panel-heading">
+            <div class="panel-title">标签管理</div>
+            <div class="right">
+                <a class="btn btn-sm btn-success" @click="onCreate">
+                    <span class="lnr lnr-plus-circle"></span>
+                    创建
+                </a>
+            </div>
+        </div>
+        <div class="panel-body">
+            <table class="table table-hover" style="margin-top: 10px;">
+                <thead>
+                <tr>
+                    <th>名称</th>
+                    <th>描述</th>
+                    <th>时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="v in list">
+                    <td>
+                        <a @click="onEdit(v)">${v.name}</a>
+                    </td>
+                    <td>
+                        ${v.desc}
+                    </td>
+                    <td>
+                        ${v.updatedAt}
+                    </td>
+                    <td>
+                        <a class="btn btn-xs btn-primary" @click="onEdit(v)">编辑</a>
+                        <a class="btn btn-xs btn-danger" @click="onDel(v)">移除</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="editor" style="padding: 20px;" hidden>
+        <div class="form-group">
+            <label>名称</label>
+            <input class="form-control" v-model="edit.name" placeholder="英文">
+        </div>
+        <div class="form-group">
+            <label>描述</label>
+            <input class="form-control" v-model="edit.desc" placeholder="简单的描述下">
+        </div>
+        <a class="btn btn-primary" @click="onSave()">保存</a>
+    </div>
+
+    <script>
+        vueMixin = {
+            data: {
+                list:{{.list}},
+                edit: {},
+            },
+            methods: {
+                onDel(tag) {
+                    displayConfirm('确认移除该标签？', '确认', '取消', () => {
+                        reqDelWithoutData(baseURL('/cfg/tag/' + tag.id));
+                    });
+                },
+                onCreate() {
+                    this.edit = {};
+                    showDiv('#editor', '创建tag', ['500px', '300px']);
+                },
+                onEdit(project) {
+                    this.edit = deepCloneObject(project);
+                    showDiv('#editor', '编辑tag: ' + project.name, ['500px', '300px']);
+                },
+                onSave() {
+                    displayConfirm('确认保存?', '确认', '取消', () => {
+                        var data = deepCloneObject(this.edit, 'deletedAt');
+                        reqPostJson('/cfg/tag', data);
+                    })
+                }
+            },
+            created() {
+            }
+        };
+    </script>
+
+    {{template "layout/footer.html" . }}
+{{end}}
+
+
+
+
+
+
+
+
+

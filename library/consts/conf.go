@@ -10,5 +10,6 @@ const (
 	DB_POOL_MAX_IDLE = "DB_POOL_MAX_IDLE" //mysql pool max idle
 	DB_DEBUG         = "DB_DEBUG"         //mysql debug flag
 	WEB_DEBUG        = "WEB_DEBUG"        //gin debug log flag
-	WEB_SERVER       = "WEB_SERVER"       //gin server address
+	WEB_PORT         = "WEB_PORT"         //gin server http address port
+	WEB_PORT_TLS     = "WEB_PORT_TLS"     //gin server https address port
 )

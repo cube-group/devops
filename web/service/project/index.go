@@ -11,8 +11,8 @@ import (
 
 type valList struct {
 	Name string `form:"name"`
-	Kind string `form:"kind"`
-	Env  string `form:"env"`
+	Mode string `form:"mode"`
+	Tag  string `form:"tag"`
 }
 
 type ProjectLatestHistory struct {
@@ -34,7 +34,7 @@ func (t ProjectLatestHistoryList) HistoryList() []models.History {
 
 //k8s project list
 func List(c *gin.Context) (res gin.H) {
-	var obj = page.ListReturnStruct{"search": gin.H{"name": "", "env": "", "kind": ""}}
+	var obj = page.ListReturnStruct{"search": gin.H{"name": "", "mode": "", "tag": ""}}
 	res = gin.H(obj)
 	var val valList
 	if ginutil.ShouldBind(c, &val) != nil {
@@ -52,16 +52,22 @@ func List(c *gin.Context) (res gin.H) {
 	if err := query.Scan(&historyList).Error; err == nil {
 		result["historyList"] = historyList.HistoryList()
 	}
+	var cronjobList []models.ProjectCronjob
+	if models.DB().Find(&cronjobList, "project_id IN (?)", list.IDs()).Error == nil {
+		result["cronjobList"] = cronjobList
+	}
 	return result
 }
 
 func queryList(val valList) *gorm.DB {
 	var query = models.DB().Order("id DESC")
-	if val.Env != "" {
-		query = query.Where("env=?", val.Env)
+	if val.Tag != "" {
+		if tag := models.GetTag(convert.MustUint32(val.Tag)); tag != nil {
+			query = query.Where("id IN (?)", tag.ProjectIds())
+		}
 	}
-	if val.Kind != "" {
-		query = query.Where("kind=?", val.Kind)
+	if val.Mode != "" {
+		query = query.Where("mode=?", val.Mode)
 	}
 	if val.Name != "" {
 		if id := convert.MustUint32(val.Name); id > 0 {

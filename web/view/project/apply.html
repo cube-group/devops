@@ -12,9 +12,13 @@
             </div>
         </div>
         <div class="panel-body">
-            <div class="form-group">
+            <div class="form-group" v-if="!project.cronjob">
                 <label>版本标号 (默认: latest)</label>
                 <input type="text" class="form-control" v-model="info.version" placeholder="如: v1.1">
+            </div>
+            <div class="form-group" v-if="project.cronjob">
+                <label>Cronjob</label>
+                <input type="text" class="form-control" :value="project.cronjob" disabled>
             </div>
             <div class="form-group">
                 <label>上线内容<span style="color: #FF1717">*</span></label>
@@ -54,9 +58,17 @@
                 onOnline() {
                     displayConfirm('确认上线?', '确认', '取消', () => {
                         var requestURL = baseURL('/project/i/', this.project.id, '/online')
-                        var data = {version: this.info.version, desc: this.info.desc, nodeId: this.info.nodeId};
+                        var data = {
+                            version: this.info.version,
+                            desc: this.info.desc,
+                            nodeId: this.info.nodeId
+                        };
                         reqPostJson(requestURL, data, (resData) => {
-                            window.location = baseURL('/history/i', resData.id);
+                            if (resData.id) {
+                                window.location = baseURL('/history/i', resData.id);
+                            } else {
+                                window.location = baseURL('/project');
+                            }
                         });
                     });
                 },

@@ -22,18 +22,11 @@ services:
       - MYSQL_ROOT_PASSWORD=root
     networks:
       - devops
-  devops-shell:
-    build:
-      context: dockerfiles/devops-shell
-    image: devops-shell:latest
-    platform: linux/amd64
   devops:
     depends_on:
       - mysql
-      - devops-shell
     privileged: true
-    image: devops-shell
-    platform: linux/amd64
+    image: cubegroup/devops-shell:v1.1
     container_name: devops
     restart: always
     ports:

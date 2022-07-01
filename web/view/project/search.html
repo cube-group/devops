@@ -2,6 +2,10 @@
     <div class="form-inline">
         <input type="text" class="form-control" placeholder="项目名称或ID"
                v-model="search.name" @keyup.enter="onSearch">
+        <select class="form-control" v-model="search.tag" @change="onSearch">
+            <option value="">选择标签</option>
+            <option v-for="v in tags" :value="v.id">${v.name}</option>
+        </select>
         <div class="input-group">
             <div class="input-group-btn">
                 <button type="submit" class="btn btn-primary" @click="onSearch">

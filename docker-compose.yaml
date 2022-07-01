@@ -26,14 +26,11 @@ services:
     depends_on:
       - mysql
     privileged: true
-    image: cubegroup/devops
-#    image: cubegroup/devops-devops-shell-java
-#    image: cubegroup/devops-devops-shell-devops-shell-java-node
-    platform: linux/amd64
+    image: cubegroup/devops:v1.1
     container_name: devops
     restart: always
     ports:
-      - 8080:80
+      - 80:80
     environment:
       - WEB_DEBUG=1
       - DB_DEBUG=1

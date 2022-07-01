@@ -23,12 +23,17 @@ func init() {
 
 func main() {
 	var cmd string
-	flag.StringVar(&cmd, "cmd", "web", "web|db")
+	flag.StringVar(&cmd, "cmd", "", "web|db|task")
 	flag.Parse()
 	switch cmd {
 	case "db":
 		db.Init()
+	case "task":
+		models.InitCronjob()
+	case "web":
+		web.Init()
 	default:
+		go models.InitCronjob()
 		web.Init()
 	}
 }

@@ -1,7 +1,8 @@
-FROM --platform=linux/amd64 maven:3.8.6-eclipse-temurin-8-alpine
+FROM --platform=linux/amd64 alpine:3.15
 #devops程序运行所需外壳环境
 USER root
 
+COPY entrypoint.sh /entrypoint.sh
 COPY gotty /usr/local/bin/gotty
 
 RUN echo "https://mirrors.aliyun.com/alpine/v3.15/main" > /etc/apk/repositories && \
@@ -15,3 +16,4 @@ RUN echo "https://mirrors.aliyun.com/alpine/v3.15/main" > /etc/apk/repositories 
     rm -rf /var/cache/apk
 
 WORKDIR /
+ENTRYPOINT ["sh","/entrypoint.sh"]

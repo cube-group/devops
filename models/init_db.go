@@ -69,6 +69,9 @@ func initDBPreHeating() {
 	if sqlBytes, err := setting.EmbedLocal().ReadFile("local/create.sql"); err == nil {
 		var sqlItems = strings.Split(string(sqlBytes), ";")
 		sqlItems = sqlItems[:len(sqlItems)-1]
+		//兼容性SQL
+		sqlItems = append(sqlItems, "ALTER TABLE `d_history` MODIFY COLUMN `node` TEXT;")
+		sqlItems = append(sqlItems, "ALTER TABLE `d_history` ADD COLUMN `ci` VARCHAR(1000) DEFAULT '' COMMENT '构建器json';")
 		for _, sqlItem := range sqlItems {
 			if err = _db.Exec(sqlItem).Error; err != nil {
 				log.StdWarning("init", "db.table.init.err", err)
@@ -86,6 +89,8 @@ func initDBPreHeating() {
 	} else {
 		log.StdOut("init", "db.user.test.password:", userTest.Password)
 	}
+
+	createDefaultCfg()
 }
 
 //如果传了db连接，使用传入的db连接（用于事务开启场景）

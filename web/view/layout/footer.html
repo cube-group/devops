@@ -30,6 +30,7 @@
         vueMixinList.push({
             data: {
                 user:{{._u}},
+                appVersion: {{._appVersion}},
                 assist: vueAssist,
                 messageCount: 0,
                 notice: '',
@@ -43,6 +44,7 @@
                         name: 'System',
                         children: [
                             {name: 'Config', href: '/cfg'},
+                            {name: 'Tag', href: '/cfg/tag'},
                             {name: 'TTY', href: '/cfg/tty'},
                         ]
                     },

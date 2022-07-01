@@ -3,39 +3,42 @@ package project
 import (
 	"app/library/ginutil"
 	"app/models"
-	"errors"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 //cluster project online
-func Online(c *gin.Context) (history *models.History, err error) {
+func Online(c *gin.Context) (history models.History, err error) {
 	var val models.History
 	if err = ginutil.ShouldBind(c, &val); err != nil {
 		return
 	}
-	if project := models.GetProject(c); project != nil {
-		val.ProjectId = project.ID
-		val.Project = project
-	}
+	project := models.GetProject(c)
+	val.ProjectId = project.ID
+	val.Project = project
 	val.ID = 0
 	val.Uid = models.UID(c)
 	val.Status = models.HistoryStatusDefault
-
 	if err = val.Validator(); err != nil {
 		return
 	}
-	if err = models.DB().Transaction(func(tx *gorm.DB) error {
-		//在上线阻断
-		if tx.Last(&models.History{}, "project_id=? AND status=?", val.ProjectId, models.HistoryStatusDefault).Error == nil {
-			return errors.New("正在上线中请稍后或中断之前的上线...")
+
+	if project.Cronjob == "" { //normal online
+		if err = project.Apply(&val); err != nil {
+			return
 		}
-		if er := tx.Save(&val).Error; er != nil {
-			return er
-		}
-		return val.Online()
-	}); err == nil {
-		history = &val
+		history = val
+	} else { //cronjob online
+		err = models.CronjobAdd(models.ProjectCronjob{
+			Uid:       val.Uid,
+			NodeId:    val.NodeId,
+			Node:      val.Node,
+			ProjectId: project.ID,
+		})
 	}
 	return
+}
+
+//project cronjob stop
+func Offline(c *gin.Context) error {
+	return models.CronjobStop(models.GetProject(c).ID)
 }

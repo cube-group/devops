@@ -2,13 +2,19 @@ package models
 
 import (
 	"app/library/consts"
+	"app/library/log"
 	"app/library/sshtool"
+	"app/library/types/convert"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"io/ioutil"
+	"os"
+	"path"
+	"strings"
 	"time"
 )
 
@@ -36,6 +42,13 @@ func GetNode(values ...interface{}) *Node {
 func GetNodes() (res []Node) {
 	DB().Order("id DESC").Find(&res)
 	return res
+}
+
+func NodeClean() {
+	for _, item := range GetNodes() {
+		_, err := item.Exec("docker system prune -a -f")
+		log.StdOut("nodeClean", item.IP, err)
+	}
 }
 
 type NodeMarshalJSON Node
@@ -87,19 +100,97 @@ func (t Node) MarshalJSON() ([]byte, error) {
 
 //k8s cluster visual Node data validator check
 func (t *Node) Validator(c *gin.Context) error {
+	t.IP = strings.Trim(t.IP, " ")
+	t.SshPort = strings.Trim(t.SshPort, " ")
+	t.SshPassword = strings.Trim(t.SshPassword, " ")
 	return nil
+}
+
+func (t *Node) WorkspacePath(ele ...string) string {
+	ele = append([]string{"/devops/workspace/.node", convert.MustString(t.ID)}, ele...)
+	return path.Join(ele...)
+}
+
+func (t *Node) WorkspaceSshPath() string {
+	return t.WorkspacePath(".ssh")
+}
+
+func (t *Node) WorkspaceSshIdRsaPath() string {
+	return t.WorkspacePath(".ssh", "id_rsa")
 }
 
 //sync exec remote shell
 func (t *Node) Exec(cmd string) (res []byte, err error) {
-	s, err := sshtool.SSHConnect(t.SshUsername, t.SshPassword, t.IP, t.SshPort)
+	s, err := sshtool.SSHConnect(t.SshUsername, t.SshPassword, t.SshKey, t.IP, t.SshPort)
 	if err != nil {
 		return
 	}
 	defer s.Close()
-	//var b bytes.Buffer
-	//s.Stderr = &b
-	//s.Stdout = &b
 	res, err = s.CombinedOutput(cmd)
+	return
+}
+
+func (t *Node) initWorkspace() (err error) {
+	if t.SshKey != "" {
+		if err = os.MkdirAll(t.WorkspaceSshPath(), 0700); err != nil {
+			return
+		}
+		if err = ioutil.WriteFile(t.WorkspaceSshIdRsaPath(), []byte(t.SshKey), 0600); err != nil {
+			return
+		}
+	}
+	return
+}
+
+//node ssh args
+func (t *Node) RunSshArgs(tty bool, idRsaPath, remoteShell string) (args []string, err error) {
+	if idRsaPath == "" {
+		err = t.initWorkspace()
+		if err != nil {
+			return
+		}
+		idRsaPath = t.WorkspaceSshIdRsaPath()
+	}
+	if t.SshKey != "" {
+		args = []string{"ssh", "-i", idRsaPath}
+	} else {
+		args = []string{"sshpass", "-p", fmt.Sprintf("'%s'", t.SshPassword), "ssh"}
+	}
+	if tty {
+		args = append(args, "-t")
+	}
+	args = append(args, []string{
+		"-p",
+		t.SshPort,
+		"-o",
+		"StrictHostKeyChecking=no",
+		fmt.Sprintf("%s@%s", t.SshUsername, t.IP),
+	}...)
+	if remoteShell != "" {
+		args = append(args, fmt.Sprintf("%s", remoteShell))
+	}
+	return
+}
+
+//node scp args
+//container special
+func (t *Node) RunScpArgs(localPath, remotePath string) (args []string, err error) {
+	err = t.initWorkspace()
+	if err != nil {
+		return
+	}
+	if t.SshKey != "" {
+		args = []string{"scp", "-i", t.WorkspaceSshIdRsaPath()} //containerSsh2Path
+	} else {
+		args = []string{"sshpass", "-p", fmt.Sprintf("'%s'", t.SshPassword), "scp"}
+	}
+	args = append(args, []string{
+		"-P",
+		t.SshPort,
+		"-o",
+		"StrictHostKeyChecking=no",
+		localPath,
+		fmt.Sprintf("%s@%s:%s", t.SshUsername, t.IP, remotePath),
+	}...)
 	return
 }

@@ -132,3 +132,20 @@ func (t *Project) Validator() error {
 	}
 	return nil
 }
+
+func (t *Project) Apply(history *History) (err error) {
+	return DB().Transaction(func(tx *gorm.DB) error {
+		//在上线阻断
+		if tx.Last(&History{}, "project_id=? AND status=?", t.ID, HistoryStatusDefault).Error == nil {
+			return errors.New("正在上线中请稍后或中断之前的上线...")
+		}
+		if er := tx.Save(history).Error; er != nil {
+			return er
+		}
+		return history.Online()
+	})
+}
+
+func (t *Project) StopCronjob() (err error) {
+	return CronjobStop(t.ID)
+}

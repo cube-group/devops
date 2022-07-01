@@ -9,8 +9,17 @@
                 <span v-if="project.id">Project Edit</span>
             </div>
             <div class="right">
-                <button type="button" class="btn-toggle-collapse"><i class="lnr lnr-chevron-up"></i>
-                </button>
+                <div class="form-inline">
+                    <div class="input-group">
+                        <div class="input-group-btn">
+                            <a class="btn btn-warning">关联标签</a>
+                        </div>
+                        <select class="form-control" v-model.number="project.tag">
+                            <option value="0">选择标签</option>
+                            <option v-for="v in tags" :value="v.id">${v.name}</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="panel-body" style="padding-left: 40px;">
@@ -33,6 +42,10 @@
                     <option value="docker">远程docker</option>
                     <option value="image">docker镜像</option>
                 </select>
+            </div>
+            <div class="form-group" v-if="project.mode!='image'">
+                <label>Cronjob</label>
+                <input class="form-control" v-model="project.cronjob" placeholder="cronjob 分时日月周"/>
             </div>
         </div>
     </div>
@@ -58,7 +71,7 @@
     <script>
         var project = {{.project}};
         if (!project) {
-            project = {mode: 'native'};
+            project = {mode: 'native', tag: 0};
         }
         objectArrayInitForRender(project, "native.volume", {type: 'content'})
         objectArrayInitForRender(project, "docker.volume", {type: 'content'})
@@ -67,6 +80,7 @@
     <script>
         vueMixin = {
             data: {
+                tags: {{.tags}},
                 project: project,
             },
             methods: {
@@ -79,6 +93,9 @@
                 },
             },
             created() {//初始化数据合法化
+                if (!this.project.tag) {
+                    this.project.tag = 0;
+                }
             },
         };
     </script>

@@ -2,6 +2,7 @@ package setting
 
 import (
 	"app/library/log"
+	"bytes"
 	"github.com/spf13/viper"
 )
 
@@ -9,19 +10,15 @@ var Local *viper.Viper
 
 func initLocal() {
 	//local/config.yaml
-	vip := viper.New()
-	f, err := EmbedLocal().Open("local/config.yaml")
-	if err != nil {
-		goto ERROR
+	result, err := EmbedLocal().ReadFile("local/config.yaml")
+	if err == nil {
+		vip := viper.New()
+		vip.SetConfigType("yaml")
+		if err = vip.ReadConfig(bytes.NewBuffer(result)); err == nil {
+			Local = vip
+		}
 	}
-	defer f.Close()
-	err = vip.ReadConfig(f)
 	if err != nil {
-		goto ERROR
+		log.StdFatal("init", "initLocal", err)
 	}
-	Local = vip
-	return
-
-ERROR:
-	log.StdFatal("init", "initLocal", err)
 }

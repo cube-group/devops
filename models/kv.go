@@ -3,12 +3,12 @@ package models
 import "errors"
 
 type Kv struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	K   string `json:"key"`
+	V string `json:"value"`
 }
 
 func (t *Kv) Validator() error {
-	if t.Key == "" || t.Value == "" {
+	if t.K == "" || t.V == "" {
 		return errors.New("key or value is nil")
 	}
 	return nil
