@@ -195,6 +195,18 @@ func (t *History) Shutdown() error {
 		} else {
 			return errors.New("online no cancel")
 		}
+		//duration wait check
+		var startTime = time.Now()
+		for {
+			if time.Now().After(startTime.Add(5 * time.Second)) {
+				break
+			}
+			if t.Status == HistoryStatusDefault {
+				time.Sleep(time.Millisecond * 100)
+			} else {
+				break
+			}
+		}
 	} else {
 		t.updateStatus(nil)
 	}
