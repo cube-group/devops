@@ -247,13 +247,13 @@ func (t *History) Online(async bool) (err error) {
 	cmd := exec.Command("sh", "-e", t.WorkspaceRun())
 	cmd.Stdout = fileStream
 	cmd.Stderr = fileStream
-	if async {
+	if async { //async for online apply
 		go func() {
 			defer fileStream.Close()
 			t.updateStatus(cmd)
 			cancel()
 		}()
-	} else {
+	} else { //sync for cronjob online
 		defer fileStream.Close()
 		t.updateStatus(cmd)
 		cancel()
@@ -272,7 +272,7 @@ func (t *History) updateStatus(cmd *exec.Cmd) {
 				select {
 				case <-t.onlineCtx.Done():
 					shutdownLogs = "shutdown 1"
-					log.StdOut("history", "online", "SIGKILL", t.WorkspaceRun(), core.KillProcessGroup(cmd))
+					log.StdOut("history", "shutdown", t.WorkspaceRun(), core.KillProcessGroup(cmd))
 				}
 			}()
 			err = cmd.Wait()
