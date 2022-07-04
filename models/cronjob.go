@@ -96,6 +96,10 @@ func CronjobAdd(cronjob ProjectCronjob) (err error) {
 	}
 	//add
 	entryID, err := c.AddFunc(project.Cronjob, func() {
+		project = GetProject(cronjob.ProjectId)
+		if project == nil {
+			return
+		}
 		var version = "cronjob-" + times.FormatFileDatetime(time.Now())
 		var er = project.Apply(&History{
 			Uid:       cronjob.Uid,
@@ -105,7 +109,7 @@ func CronjobAdd(cronjob ProjectCronjob) (err error) {
 			Node:      cronjob.Node,
 			ProjectId: project.ID,
 			Project:   project,
-		})
+		}, false)
 		if er != nil {
 			log.StdWarning("cronjob", "projectID", project.ID, project.Cronjob, er)
 		}

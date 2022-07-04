@@ -23,13 +23,13 @@ docker build之前的准备脚本，如：git、maven、java、npm等处理"
         </div>
         <!-- run options -->
         <div class="form-group" v-if="project.mode=='docker'">
-            <label>Docker run options (无需 -it -d --restart=always --name)</label>
+            <label>Docker run options (系统会自动追加 -i --name)</label>
             <div class="input-group">
                 <div class="input-group-addon">直接镜像</div>
                 <input class="form-control" v-model="project.docker.image" placeholder="直接运行镜像（会覆盖上方Dockerfile）"/>
             </div>
             <textarea rows="10" class="form-control"
-                      placeholder="--privileged -v xx:/xx -p 8080:80 -e ABC=true ..."
+                      placeholder="--privileged -v xx:/xx -p 8080:80 -e ABC=true ... -d --restart=always"
                       v-model="project.docker.runOptions"></textarea>
         </div>
         <!-- fast copy -->

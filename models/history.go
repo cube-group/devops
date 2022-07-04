@@ -100,9 +100,10 @@ func (t *History) Validator() error {
 	if t.ProjectId > 0 {
 		if i := GetProject(t.ProjectId); i != nil {
 			t.Project = i
-		} else {
-			return fmt.Errorf("部署失败：project id %d not found", t.ProjectId)
 		}
+	}
+	if t.Project == nil {
+		return fmt.Errorf("部署失败：project id %d not found", t.ProjectId)
 	}
 	if t.Project.Mode != ProjectModeImage {
 		if t.NodeId == 0 {
@@ -114,6 +115,16 @@ func (t *History) Validator() error {
 		} else {
 			return fmt.Errorf("部署失败：node id %d not found", t.NodeId)
 		}
+	}
+	if t.IsDockerMode() {
+		t.Project.Native.Shell = ""
+		t.Project.Native.Volume = VolumeList{}
+	} else {
+		t.Project.Docker.Shell = ""
+		t.Project.Docker.Image = ""
+		t.Project.Docker.RunOptions = ""
+		t.Project.Docker.Dockerfile = ""
+		t.Project.Docker.Volume = VolumeList{}
 	}
 	return nil
 }
@@ -191,7 +202,7 @@ func (t *History) Shutdown() error {
 }
 
 //project online
-func (t *History) Online() (err error) {
+func (t *History) Online(async bool) (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.onlineCtx = ctx
 	t.onlineCtxCancel = cancel
@@ -203,11 +214,12 @@ func (t *History) Online() (err error) {
 	}
 	//create run.sh content
 	var runContent string
-	if t.IsEnd() { //deploy mode docker
+	if t.IsDockerMode() { //deploy mode docker
 		runContent, err = t.createRunDockerMode()
 	} else { //node shell
 		runContent, err = t.createRunNativeMode()
 	}
+	fmt.Println(runContent)
 	if err != nil {
 		return
 	}
@@ -220,14 +232,21 @@ func (t *History) Online() (err error) {
 	if err != nil {
 		return
 	}
-	go func() {
+	cmd := exec.Command("sh", "-e", t.WorkspaceRun())
+	cmd.Stdout = fileStream
+	cmd.Stderr = fileStream
+	if async {
+		go func() {
+			defer fileStream.Close()
+			t.updateStatus(cmd)
+			cancel()
+		}()
+	} else {
 		defer fileStream.Close()
-		cmd := exec.Command("sh", "-e", t.WorkspaceRun())
-		cmd.Stdout = fileStream
-		cmd.Stderr = fileStream
 		t.updateStatus(cmd)
 		cancel()
-	}()
+	}
+
 	return nil
 }
 
@@ -343,7 +362,7 @@ docker push %s
 			"docker login %s --username=%s --password=%s;"+
 				"docker pull %s;"+
 				"docker rm -f %s >/dev/null 2>&1;"+
-				"docker run -it -d --restart=always --name %s %s %s",
+				"docker run -i --name %s %s %s",
 			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
 			imageName,
 			t.Project.Name,

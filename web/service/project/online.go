@@ -23,7 +23,7 @@ func Online(c *gin.Context) (history models.History, err error) {
 	}
 
 	if project.Cronjob == "" { //normal online
-		if err = project.Apply(&val); err != nil {
+		if err = project.Apply(&val, true); err != nil {
 			return
 		}
 		history = val
