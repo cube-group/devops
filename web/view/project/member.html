@@ -4,7 +4,7 @@
     <div class="panel">
         <div class="panel-heading">
             <div class="panel-title">
-                <a :href="'/project/info?id='+project.id">
+                <a :href="baseURL('/project/i',project.id)">
                     ${project.name}
                 </a>
                 项目协作成员(数量: ${total})
