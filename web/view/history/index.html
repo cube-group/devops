@@ -1,8 +1,8 @@
 {{define "history/index.html"}}
     {{template "layout/top.html" .}}
-{{/*    <script>*/}}
-{{/*        redirectTLS();*/}}
-{{/*    </script>*/}}
+    {{/*    <script>*/}}
+    {{/*        redirectTLS();*/}}
+    {{/*    </script>*/}}
 
     <div class="panel">
         <div class="panel-heading">
@@ -15,11 +15,11 @@
             <table class="table table-hover" style="margin-top: 10px;">
                 <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>部署ID</th>
+                    <th>开发者</th>
                     <th>Node</th>
                     <th>Project / Version</th>
                     <th>状态</th>
-                    <th>时间</th>
                     <th>操作</th>
                 </tr>
                 </thead>
@@ -27,6 +27,9 @@
                 <tr v-for="v in list">
                     <td>
                         ${v.id}
+                    </td>
+                    <td>
+                        <div :data-developer="v.uid" v-html="developersHtml[v.uid]"></div>
                     </td>
                     <td>
                         <a v-if="v.node" :href="baseURL('/node?name='+v.node.ip)">${v.node.ip}</a>
@@ -38,17 +41,17 @@
                         </span>
                         <span class="badge">
                             <a style="color: #FFFFFF;" data-toggle="tooltip" data-placement="bottom"
-                                               :title="v.desc"
-                                               :href="baseURL('/history/i',v.id)">${v.version}</a>
+                               :title="v.desc"
+                               :href="baseURL('/history/i',v.id)">${v.version}</a>
                         </span>
                     </td>
                     <td>
                         <div v-if="v.status==''"><i class="fa fa-spinner fa-spin"></i>部署中</div>
                         <div v-if="v.status=='ok'"><label class="label label-success">成功</label></div>
                         <div v-if="v.status=='error'"><label class="label label-danger">失败</label></div>
-                    </td>
-                    <td>
-                        ${v.createdAt}
+                        <div>
+                            ${v.createdAt}
+                        </div>
                     </td>
                     <td>
                         <div><a :href="baseURL('/history/i',v.id)">查看</a></div>

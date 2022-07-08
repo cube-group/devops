@@ -27,7 +27,6 @@ const (
 	HistoryStatusDefault HistoryStatus = ""
 	HistoryStatusFailed  HistoryStatus = "error"
 	HistoryStatusSuccess HistoryStatus = "ok"
-	HistoryStatusDeleted HistoryStatus = "deleted"
 
 	DockerVolumePathName = ".volume"
 )
@@ -86,10 +85,16 @@ func (t *History) TableName() string {
 }
 
 func (t History) MarshalJSON() ([]byte, error) {
+	var useTime = t.UpdatedAt.Unix() - t.CreatedAt.Unix()
+	if useTime < 0 {
+		useTime = 0
+	}
 	return json.Marshal(struct {
 		HistoryMarshalJSON
+		UseTime int64 `json:"useTime"`
 	}{
 		HistoryMarshalJSON(t),
+		useTime,
 	})
 }
 
@@ -181,6 +186,14 @@ func (t *History) IsDockerMode() bool {
 
 func (t *History) IsDockerImageMode() bool {
 	return t.Project.Mode == ProjectModeImage
+}
+
+func (t *History) getBeforeHistory() *History {
+	var res History
+	if DB().Last(&res, "project_id=? AND id<?", t.ProjectId, t.ID).Error != nil {
+		return nil
+	}
+	return &res
 }
 
 func (t *History) Shutdown() error {
@@ -305,7 +318,15 @@ func (t *History) updateStatus(cmd *exec.Cmd) {
 }
 
 func (t *History) createRunDockerMode() (runContent string, err error) {
-	//TODO 需要检测之前的history如果存在project.name不一致需要先移除container
+	//需要检测之前的history如果存在project.name不一致需要先移除container
+	if beforeHistory := t.getBeforeHistory(); beforeHistory != nil {
+		if beforeHistory.Project.Name != t.Project.Name {
+			if err = beforeHistory.Remove(); err != nil {
+				return
+			}
+		}
+	}
+
 	var template = t.Project.Docker
 	//create volumeLines
 	var volumeLines = make([]string, 0)
@@ -455,6 +476,7 @@ func (t *History) createRunNativeMode() (runContent string, err error) {
 	return
 }
 
+//移除上线
 func (t *History) Remove() error {
 	if err := CronjobStop(t.ProjectId); err != nil {
 		return err
@@ -462,6 +484,8 @@ func (t *History) Remove() error {
 	if t.Project.Mode != ProjectModeDocker {
 		return nil
 	}
-	_, err := t.Node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name))
-	return err
+	if _, err := t.Node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
+		return err
+	}
+	return DB().Model(t.Project).Where("id=?", t.ProjectId).Update("deleted", 1).Error
 }

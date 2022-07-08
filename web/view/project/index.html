@@ -50,21 +50,21 @@
                         <div v-if="!v.history">
                             <span class="label label-default">-</span>
                         </div>
-                        <div v-if="v.history && !v.history.status">
-                            <i class="fa fa-spinner fa-spin"></i>部署中
-                            ${v.history.createdAt}
+                        <div v-if="v.history && !v.deleted">
+                            <span v-if="!v.history.status"><i class="fa fa-spinner fa-spin"></i>部署中</span>
+                            <a class="label label-success" :href="baseURL('/history?pid='+v.id)"
+                               v-if="v.history.status=='ok'">成功</a>
+                            <a class="label label-danger" :href="baseURL('/history?id='+v.history.id)"
+                               v-if="v.history.status=='error'">失败</a>
+                            <span v-if="v.history.status=='ok' || v.history.status=='error'">
+                                耗时：${secondToString(v.history.useTime)}
+                            </span>
+                            <div>
+                                ${v.history.updatedAt}
+                            </div>
                         </div>
-                        <div v-if="v.history && v.history.status=='deleted'">
+                        <div v-if="v.deleted">
                             <span class="label label-warning">已删除</span>
-                            ${v.history.createdAt}
-                        </div>
-                        <div v-if="v.history && v.history.status=='ok'">
-                            <a class="label label-success" :href="baseURL('/history?pid='+v.id)">成功</a>
-                            ${v.history.updatedAt}
-                        </div>
-                        <div v-if="v.history && v.history.status=='error'">
-                            <a class="label label-danger" :href="baseURL('/history?id='+v.history.id)">失败</a>
-                            ${v.history.updatedAt}
                         </div>
                     </td>
                     <td>
@@ -77,7 +77,7 @@
                             <a class="btn btn-xs btn-warning" v-if="v.cronjobInstance" @click="onCronjobStop(v)">停止</a>
                         </span>
                         <span v-if="v.mode=='docker'">
-                            <a class="btn btn-xs btn-primary" v-if="v.history && v.history.status!='deleted'"
+                            <a class="btn btn-xs btn-primary" v-if="!v.deleted && v.history && v.history.status=='ok'"
                                :href="baseURL('/project/i',v.id,'/pod')">节点</a>
                         </span>
                         <span>

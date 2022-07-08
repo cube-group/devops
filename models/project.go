@@ -69,6 +69,7 @@ type Project struct {
 	Native    ProjectTemplateNative `gorm:"" json:"native" form:"native"`
 	Docker    ProjectTemplateDocker `gorm:"" json:"docker" form:"docker"`
 	Cronjob   string                `gorm:"" json:"cronjob" form:"cronjob"`
+	Deleted   uint32                `gorm:"" json:"deleted" form:"-"`
 	CreatedAt time.Time             `json:"createdAt"`
 	UpdatedAt time.Time             `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt        `gorm:"index" json:"-"`
@@ -138,6 +139,9 @@ func (t *Project) Apply(history *History, async bool) (err error) {
 		//在上线阻断
 		if tx.Last(&History{}, "project_id=? AND status=?", t.ID, HistoryStatusDefault).Error == nil {
 			return errors.New("正在上线中请稍后或中断之前的上线...")
+		}
+		if er := tx.Model(t).Where("id=?", t.ID).Update("deleted", 0).Error; er != nil {
+			return er
 		}
 		if er := tx.Save(history).Error; er != nil {
 			return er

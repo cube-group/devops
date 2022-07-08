@@ -7,6 +7,7 @@ import (
 	"app/library/types/slice"
 	"app/library/uuid"
 	"encoding/json"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"time"
@@ -17,8 +18,30 @@ const (
 	UserTest = "test"
 )
 
-var UserAutoList = []string{
+var UserBossList = []string{
 	UserRoot, UserTest,
+}
+
+func GetUser(values ...interface{}) (res *User) {
+	for _, v := range values {
+		switch vv := v.(type) {
+		case uint32:
+			var i User
+			if err := DB().Take(&i, "id=?", vv).Error; err != nil {
+				return nil
+			}
+			res = &i
+		case string:
+			var i User
+			if err := DB().Take(&i, "username=?", vv).Error; err != nil {
+				return nil
+			}
+			res = &i
+		case *gin.Context:
+			res = SessionUser(vv)
+		}
+	}
+	return
 }
 
 //获取所有开发者了列表
@@ -39,31 +62,42 @@ type UserMarshalJSON User
 //users表模型
 type User struct {
 	ID             uint32    `gorm:"primarykey;column:id" json:"id"`
-	Username       string    `gorm:""`
-	RealName       string    `gorm:""`
-	Email          string    `gorm:""`
-	Password       string    `gorm:"" json:"-"`
-	AvatarUrl      string    `gorm:""`
-	Adm            uint8     `gorm:""` //是否为超管
-	Token          string    `gorm:""` //最近一次登录token
-	TokenCreatedAt time.Time `gorm:""` //最近一次时间
-	TokenExpiredAt time.Time `gorm:""` //过期时间
+	Username       string    `gorm:"" json:"username" form:"username"`
+	RealName       string    `gorm:"" json:"realName" form:"realName"`
+	Email          string    `gorm:"" json:"email" form:"email"`
+	Password       string    `gorm:"" json:"password" form:"password"`
+	AvatarUrl      string    `gorm:"" json:"avatarUrl" form:"avatarUrl"`
+	Adm            uint8     `gorm:"" json:"adm" form:"adm"`          //是否为超管
+	Token          string    `gorm:"" json:"-" form:"-"`              //最近一次登录token
+	TokenCreatedAt time.Time `gorm:"" json:"tokenCreatedAt" form:"-"` //最近一次时间
+	TokenExpiredAt time.Time `gorm:"" json:"-" form:"-"`              //过期时间
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	CreatedAt time.Time      `json:"createdAt" form:"-"`
+	UpdatedAt time.Time      `json:"updatedAt" form:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-" form:"-"`
 }
 
 func (t *User) TableName() string {
 	return "d_user"
 }
 
+func (t *User) Validator() error {
+	if t.Username == "" || t.Password == "" {
+		return errors.New("用户名或密码不能为空")
+	}
+	if !slice.InArrayString(t.Username, UserBossList) {
+		t.Password = md5.MD5("visible." + t.Password)
+	}
+	return nil
+}
+
 func (t User) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		UserMarshalJSON
-		IsBlock bool
+		Password string `json:"password"`
 	}{
 		UserMarshalJSON: UserMarshalJSON(t),
+		Password:        "",
 	})
 }
 
@@ -99,35 +133,6 @@ func (t *User) LoginCookie(c *gin.Context) error {
 	return nil
 }
 
-//查询用户
-func (t *User) Get(option ...interface{}) *User {
-	var gid uint
-	var username string
-	for _, v := range option {
-		switch vv := v.(type) {
-		case uint:
-			gid = vv
-		case string:
-			username = vv
-		case *gin.Context:
-			return SessionUser(vv)
-		}
-	}
-	var user User
-	if gid > 0 {
-		if err := DB().Where("id=?", gid).Take(&user).Error; err != nil {
-			return nil
-		}
-	} else if username != "" {
-		if err := DB().Where("username=?", username).Take(&user).Error; err != nil {
-			return nil
-		}
-	} else {
-		return nil
-	}
-	return &user
-}
-
 func (t *User) IsRoot() bool {
 	return t.Username == UserRoot
 }
@@ -143,7 +148,7 @@ func (t *User) PwdAddUser(password string) error {
 
 func (t *User) PwdCheckUser(username, password string) *User {
 	t.Username = username
-	if slice.InArrayString(username, UserAutoList) {
+	if slice.InArrayString(username, UserBossList) {
 		t.Password = password
 	} else {
 		t.Password = md5.MD5("visible." + password)
@@ -154,9 +159,16 @@ func (t *User) PwdCheckUser(username, password string) *User {
 	return t
 }
 
+func (t *User) HasPermissionProject(pid uint32) error {
+	if t.IsAdm() {
+		return nil
+	}
+	return DB().Take(&ProjectUser{}, "uid=? AND pid=?", t.ID, pid).Error
+}
+
 func CreateUser(username string) (user *User, err error) {
 	var rootRandPwd string
-	var find = new(User).Get(username)
+	var find = GetUser(username)
 	if find != nil {
 		user = find
 	} else {

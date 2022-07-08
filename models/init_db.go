@@ -72,6 +72,8 @@ func initDBPreHeating() {
 		//兼容性SQL
 		sqlItems = append(sqlItems, "ALTER TABLE `d_history` MODIFY COLUMN `node` TEXT;")
 		sqlItems = append(sqlItems, "ALTER TABLE `d_history` ADD COLUMN `ci` VARCHAR(1000) DEFAULT '' COMMENT '构建器json';")
+		sqlItems = append(sqlItems, "ALTER TABLE `d_project` ADD COLUMN `deleted` TINYINT(1) DEFAULT '0' COMMENT 'pod是否被删';")
+		sqlItems = append(sqlItems, "ALTER TABLE `d_user` ADD UNIQUE KEY `unq_username` (`username`);")
 		for _, sqlItem := range sqlItems {
 			if err = _db.Exec(sqlItem).Error; err != nil {
 				log.StdWarning("init", "db.table.init.err", err)

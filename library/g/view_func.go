@@ -24,28 +24,6 @@ func ViewFunc() template.FuncMap {
 		"available":  Available,
 		"disabled":   Disabled,
 
-		//构建状态
-		//"IsStatusBuildFail": consts.IsStatusBuildFail,
-		//"IsStatusBuildOk":   consts.IsStatusBuildOk,
-		//"IsStatusBuilding":  consts.IsStatusBuilding,
-		//"IsStatusBuildDone": consts.IsStatusBuildDone,
-		//
-		////部署状态
-		//"IsStatusDeploying":  consts.IsStatusDeploying,
-		//"IsStatusDeployFail": consts.IsStatusDeployFail,
-		//"IsStatusDeployOk":   consts.IsStatusDeployOk,
-		//
-		////上线总状态
-		//"IsStatusDone": consts.IsStatusDone,
-		//
-		////首页提示状态
-		//"IsStatusOnline":            consts.IsStatusOnline,
-		//"IsStatusWarning":           consts.IsStatusWarning,
-		//"IsStatusSuccess":           consts.IsStatusSuccess,
-		//"IsStatusInBuild":           consts.IsStatusInBuild,
-		//"IsStatusInDeploy":          consts.IsStatusInDeploy,
-		//"ProjectStatusCn":           consts.ProjectStatusCn,
-		//"OnlineCn":                  consts.ProjectOnlineCn,
 		"AccessLevelCn":             consts.AccessLevelCn,
 		"AccessLevelPermission":     consts.AccessLevelPermission,
 

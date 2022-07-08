@@ -1,7 +1,0 @@
-{{define "user/_name.html"}}
-<img width="23" height="23" src="{{ .AvatarUrl }}" class="img-circle" alt="Avatar">
-<a href="{{ .WebUrl }}"><span>{{ .Name }}</span></a>
-{{ if .IsStateBlocked }}
-    <span class="label label-danger">blocked</span>
-{{end}}
-{{end}}

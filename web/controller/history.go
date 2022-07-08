@@ -17,7 +17,7 @@ func (t *HistoryController) Init(group *gin.RouterGroup) {
 	group.POST("/state", t.state)
 	detailGroup := group.Group("/i/:historyId", middleware.History())
 	detailGroup.GET(".", t.info)
-	detailGroup.POST("/shutdown", t.shutdown)
+	detailGroup.POST("/shutdown", middleware.HistoryPermission(), t.shutdown)
 }
 
 func (t *HistoryController) index(c *gin.Context) {

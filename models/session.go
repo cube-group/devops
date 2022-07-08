@@ -106,7 +106,7 @@ func checkUserStatus(c *gin.Context, user *User) {
 			return
 		}
 	}
-	latestUser := user.Get()
+	latestUser := GetUser(user.ID)
 	if latestUser == nil {
 		return
 	}

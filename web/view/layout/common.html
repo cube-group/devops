@@ -999,25 +999,22 @@
             var avatarURL = '';
             var aCss = '';
             if (user) {
-                name = user.RealName;
+                name = user.realName;
                 if (!name) {
-                    name = user.Name;
+                    name = user.username;
                 }
                 if (!name) {
-                    name = user.UserName;
+                    name = user.id;
                 }
-                if (!name) {
-                    name = user.ID;
-                }
-                avatarURL = user.AvatarUrl;
+                avatarURL = user.avatarUrl;
                 aCss = disabledClickMaps[user.ID] ? 'style="pointer-events:none;"' : '';
             }
-            var html = `<a @click="onDisplayDeveloper(${user.ID})" href="javascript:" ${aCss}>`;
+            var html = `<a @click="onDisplayDeveloper(${user.id})" href="javascript:" ${aCss}>`;
             if (avatarURL) {
-                html += `<img width="23" height="23" src="${user.AvatarUrl}" class="img-circle" alt="Avatar">&nbsp;`;
+                html += `<img width="23" height="23" src="${user.avatarUrl}" class="img-circle" alt="Avatar">&nbsp;`;
             }
             html += name;
-            if (user.IsBlock) {//block
+            if (user.block) {//block
                 html += `<span class="label label-danger">Blocked</span>`;
             }
             html += '</a>';
@@ -1068,6 +1065,28 @@
                 }
             }
             return fmt;
+        }
+
+        function secondToString(time) {
+            // 转换为式分秒
+            let h = parseInt(time / 60 / 60 % 24)
+            h = h < 10 ? '0' + h : h
+            let m = parseInt(time / 60 % 60)
+            m = m < 10 ? '0' + m : m
+            let s = parseInt(time % 60)
+            s = s < 10 ? '0' + s : s
+            // 作为返回值返回
+            let result = '';
+            if (h && h !== '00') {
+                result += `${h}时`;
+            }
+            if (m && m !== '00') {
+                result += `${m}分`;
+            }
+            if (s) {
+                result += `${s}秒`;
+            }
+            return result;
         }
 
         //k8s Ki/Mi/Gi/Ti/K/M/G/T转为标准字节

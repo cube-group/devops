@@ -45,6 +45,7 @@
                         children: [
                             {name: 'Config', href: '/cfg'},
                             {name: 'Tag', href: '/cfg/tag'},
+                            {name: 'User', href: '/user'},
                             {name: 'TTY', href: '/cfg/tty'},
                         ]
                     },
@@ -258,7 +259,7 @@
                     if (!list.length) {
                         return;
                     }
-                    reqPostJson(`/global/gid/list`, list, (resData) => {
+                    reqPostJson(`/open/user/list`, list, (resData) => {
                         for (var i in resData) {
                             this.developers[i] = resData[i];
                             this.developersHtml[i] = componentDeveloper(resData[i], listDisabled);
@@ -290,7 +291,7 @@
                 $('#vue-app').show();
                 this.onInitLeftButtonClick();
                 // this.onLoadNotice();
-                // this.onRenderDeveloper();
+                this.onRenderDeveloper();
             }
         });
     </script>

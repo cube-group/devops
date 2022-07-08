@@ -4,7 +4,7 @@
     <div class="panel">
         <div class="panel-heading">
             <h3 class="panel-title">
-                gitlab用户列表
+                User List
             </h3>
         </div>
         <div class="panel-body">
@@ -14,27 +14,26 @@
                 <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Username(蓝色为超管)</th>
-                    <th>姓名</th>
-                    <th>邮箱</th>
+                    <th>Username(Blue is adm)</th>
+                    <th>RealName</th>
+                    <th>Email</th>
                     <th>最近登录</th>
                     <th>操作</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr v-for="v in list">
-                    <td class="col-md-1">${v.ID}</td>
+                    <td class="col-md-1">${v.id}</td>
                     <td class="col-md-1">
-                        <span v-if="!v.Adm">${v.Username}</span>
-                        <span class="label label-primary" v-if="v.Adm">${v.Username}</span></td>
+                        <span v-if="!v.adm">${v.username}</span>
+                        <span class="label label-primary" v-if="v.adm">${v.username}</span></td>
                     <td class="col-md-1">
-                        <span v-html="developersHtml[v.ID]" :data-developer="v.ID" @click="onDisplayDeveloper(v.ID)">
-                        </span>
+                        ${v.realName}
                     </td>
                     <td class="col-md-1">
-                        ${v.Email}
+                        ${v.email}
                     </td>
-                    <td class="col-md-1">${v.TokenCreateAt}</td>
+                    <td class="col-md-1">${v.tokenCreatedAt}</td>
                     <td class="col-md-1">
                         <div class="btn-group">
                             <a class="btn btn-default dropdown-toggle" data-toggle="dropdown"
@@ -42,27 +41,31 @@
                                 Action <span class="caret"></span>
                             </a>
                             <ul class="dropdown-menu">
+                                {{/*                                <li>*/}}
+                                {{/*                                    <a :href="baseURL+'/projects?uid='+v.ID">*/}}
+                                {{/*                                        所属项目*/}}
+                                {{/*                                    </a>*/}}
+                                {{/*                                </li>*/}}
+                                {{/*                                <li>*/}}
+                                {{/*                                    <a :href="baseURL+'/createProjects?uid='+v.ID">*/}}
+                                {{/*                                        已建项目*/}}
+                                {{/*                                    </a>*/}}
+                                {{/*                                </li>*/}}
+                                {{/*                                <li>*/}}
+                                {{/*                                    <a :href="'/sys/log?uid='+v.ID">操作日志*/}}
+                                {{/*                                    </a>*/}}
+                                {{/*                                </li>*/}}
+                                {{/*                                <li role="separator" class="divider"></li>*/}}
+                                {{/*                                <li>*/}}
+                                {{/*                                    <a :href="baseURL+'/acc?uid='+v.ID">权限*/}}
+                                {{/*                                    </a>*/}}
+                                {{/*                                </li>*/}}
                                 <li>
-                                    <a :href="baseURL+'/projects?uid='+v.ID">
-                                        所属项目
+                                    <a href="javascript:" @click="onEdit(v)">编辑
                                     </a>
                                 </li>
                                 <li>
-                                    <a :href="baseURL+'/createProjects?uid='+v.ID">
-                                        已建项目
-                                    </a>
-                                </li>
-                                <li>
-                                    <a :href="'/sys/log?uid='+v.ID">操作日志
-                                    </a>
-                                </li>
-                                <li role="separator" class="divider"></li>
-                                <li>
-                                    <a :href="baseURL+'/acc?uid='+v.ID">权限
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="javascript:" @click="onCreateTotp(v)">无障碍部署totp码
+                                    <a href="javascript:" @click="onDel(v)">移除
                                     </a>
                                 </li>
                             </ul>
@@ -77,29 +80,78 @@
             {{ .rendering }}
         </div>
     </div>
-    {{/*    {{template "user/info.html" . }}*/}}
+
+    <!-- display editor -->
+    <div id="editor" style="padding: 20px;" hidden>
+        <div class="form-group">
+            <label>Role</label>
+            <select class="form-control" v-model.number="edit.adm">
+                <option value="0">普通开发者</option>
+                <option value="1">超级管理员</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Username</label>
+            <input class="form-control" v-model="edit.username" placeholder="账号">
+        </div>
+        <div class="form-group">
+            <label>RealName</label>
+            <input class="form-control" v-model="edit.realName" placeholder="真实名称">
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input class="form-control" type="password" v-model="edit.password" placeholder="密码">
+        </div>
+        <div class="form-group" v-if="!edit.id">
+            <label>Password repeat</label>
+            <input class="form-control" type="password" v-model="edit.password2" placeholder="再次密码">
+        </div>
+        <a class="btn btn-primary" @click="onSave()">保存</a>
+    </div>
 
     <script>
         vueMixin = {
             data: {
-                baseURL: '/sys/user',
                 list:{{.list}},
                 search:{{.search}},
+                edit: {adm: 0},
             },
             methods: {
                 onSearch() {
                     this.search.page = 1;
-                    window.location = this.baseURL + '?' + $.param(this.search);
+                    window.location = baseURL('/user?' + $.param(this.search))
                 },
                 onCreateTotp(v) {//激活用户畅通部署totp码
                     displayConfirm('确认开通无障碍部署totp码?', '全局类秘钥', '用户类秘钥', () => {
-                        reqPost(`${this.baseURL}/totp`, {uid:v.ID,type:1}, (resData) => {
+                        reqPost(`${this.baseURL}/totp`, {uid: v.ID, type: 1}, (resData) => {
                             layer.alert(`totp秘钥：${resData.secret}`, {title: 'totp资料'});
                         });
                     }, () => {
-                        reqPost(`${this.baseURL}/totp`, {uid:v.ID}, (resData) => {
+                        reqPost(`${this.baseURL}/totp`, {uid: v.ID}, (resData) => {
                             layer.alert(`totp秘钥：${resData.secret}`, {title: 'totp资料'});
                         });
+                    })
+                },
+                onCreate() {
+                    this.edit = {adm: 0};
+                    showDiv('#editor', '用户创建', ['700px', '500px']);
+                },
+                onEdit(item) {
+                    this.edit = deepCloneObject(item);
+                    showDiv('#editor', `用户编辑 ${item.username}`, ['700px', '500px']);
+                },
+                onDel(item) {
+                    displayConfirm(`确认移除用户 ${item.username}？`, '确认', '取消', () => {
+                        reqDelWithoutData(baseURL('/user/i/' + item.id));
+                    });
+                },
+                onSave() {
+                    if (!this.edit.id && this.edit.password !== this.edit.password2) {
+                        showAlert('两次密码不一致');
+                    }
+                    displayConfirm('确认保存?', '确认', '取消', () => {
+                        var data = deepCloneObject(this.edit, 'password2');
+                        reqPostJson('/user', data);
                     })
                 }
             }

@@ -8,6 +8,7 @@ import (
 	"app/library/g"
 	"app/library/ginutil"
 	"app/models"
+	"errors"
 	"net/http"
 	"net/url"
 
@@ -38,6 +39,17 @@ func Auth() gin.HandlerFunc {
 		//if action != nil {
 		//	go new(models.ActionLog).InsertLog(c, action)
 		//}
+		c.Next()
+	}
+}
+
+func Adm() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user := models.SessionUser(c)
+		if !user.IsAdm() {
+			g.Warning(c, errors.New("只有系统管理员才有权限"))
+			return
+		}
 		c.Next()
 	}
 }
