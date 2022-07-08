@@ -1,5 +1,5 @@
 #!/bin/sh -e
-
+version=$(cat )
 path=$(pwd)
 docker buildx create --use --name build --node build --driver-opt network=host
 build()

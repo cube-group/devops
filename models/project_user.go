@@ -7,8 +7,8 @@ import (
 
 type ProjectUser struct {
 	ID        uint32         `gorm:"primarykey;column:id" json:"id" form:"id"`
-	Uid       uint32         `gorm:"" json:"-" form:"-"`
-	Pid       uint32         `gorm:"" json:"-" form:"-"`
+	Uid       uint32         `gorm:"" json:"uid" form:"-"`
+	Pid       uint32         `gorm:"" json:"pid" form:"-"`
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`

@@ -14,10 +14,15 @@ import (
 
 type ProjectMode string
 
+type ProjectAccessLevel string
+
 const (
 	ProjectModeNative ProjectMode = "native"
 	ProjectModeDocker ProjectMode = "docker"
 	ProjectModeImage  ProjectMode = "image"
+
+	ProjectAccessLevelNone   = "none"
+	ProjectAccessLevelMember = "member"
 )
 
 func GetProject(values ...interface{}) (res *Project) {
@@ -63,7 +68,7 @@ type Project struct {
 	ID        uint32                `gorm:"primarykey;column:id" json:"id" form:"id"`
 	Name      string                `gorm:"index;column:name" json:"name" form:"name" binding:"required"`
 	Desc      string                `gorm:"" json:"desc" form:"desc" binding:"required"`
-	Uid       *uint32               `gorm:"" json:"uid" form:"-"`
+	Uid       uint32                `gorm:"" json:"uid" form:"-"`
 	Ding      string                `gorm:"" json:"ding" form:"ding"`
 	Mode      ProjectMode           `gorm:"" json:"mode" form:"mode"`
 	Native    ProjectTemplateNative `gorm:"" json:"native" form:"native"`

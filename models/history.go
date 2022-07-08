@@ -63,7 +63,7 @@ type HistoryMarshalJSON History
 
 type History struct {
 	ID        uint32         `gorm:"primarykey;column:id" json:"id" form:"-"`
-	Uid       *uint32        `gorm:"" json:"uid" form:"-"`
+	Uid       uint32         `gorm:"" json:"uid" form:"-"`
 	NodeId    uint32         `gorm:"" json:"nodeId" form:"nodeId"`
 	Node      *Node          `gorm:"" json:"node" form:"node" binding:"-"`
 	Version   string         `gorm:"" json:"version" form:"version"`

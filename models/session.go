@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/gogo/protobuf/proto"
 	jsoniter "github.com/json-iterator/go"
 	"sync"
 	"time"
@@ -28,7 +27,7 @@ func SessionUid(c *gin.Context) (res uint) {
 	return 0
 }
 
-func UID(values ...interface{}) *uint32 {
+func UID(values ...interface{}) uint32 {
 	var user *User
 	for _, v := range values {
 		switch vv := v.(type) {
@@ -37,9 +36,9 @@ func UID(values ...interface{}) *uint32 {
 		}
 	}
 	if user == nil {
-		return proto.Uint32(0)
+		return 0
 	}
-	return proto.Uint32(user.ID)
+	return user.ID
 }
 
 //获取用户登录名

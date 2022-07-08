@@ -55,15 +55,15 @@ type NodeMarshalJSON Node
 
 //virtual Node
 type Node struct {
-	ID          uint32  `gorm:"primarykey;column:id" json:"id" form:"id"`
-	Name        string  `gorm:"" json:"name" form:"name" binding:"required"`
-	Desc        string  `gorm:"column:desc" json:"desc" form:"desc" binding:"required"`
-	IP          string  `gorm:"" json:"ip" form:"ip" binding:"required"` //内网IP
-	Uid         *uint32 `gorm:"" json:"uid" form:"-"`
-	SshPort     string  `gorm:"" json:"sshPort" form:"required"`
-	SshKey      string  `gorm:"" json:"sshKey" form:"required"` //private key
-	SshUsername string  `gorm:"" json:"sshUsername" form:"required"`
-	SshPassword string  `gorm:"" json:"sshPassword" form:"required"`
+	ID          uint32 `gorm:"primarykey;column:id" json:"id" form:"id"`
+	Name        string `gorm:"" json:"name" form:"name" binding:"required"`
+	Desc        string `gorm:"column:desc" json:"desc" form:"desc" binding:"required"`
+	IP          string `gorm:"" json:"ip" form:"ip" binding:"required"` //内网IP
+	Uid         uint32 `gorm:"" json:"uid" form:"-"`
+	SshPort     string `gorm:"" json:"sshPort" form:"required"`
+	SshKey      string `gorm:"" json:"sshKey" form:"required"` //private key
+	SshUsername string `gorm:"" json:"sshUsername" form:"required"`
+	SshPassword string `gorm:"" json:"sshPassword" form:"required"`
 
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`

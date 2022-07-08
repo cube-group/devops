@@ -26,7 +26,7 @@ func GetProjectCronjob(values ...interface{}) (res *ProjectCronjob) {
 
 type ProjectCronjob struct {
 	ID        uint32         `gorm:"primarykey;column:id" json:"id"`
-	Uid       *uint32        `gorm:"" json:"uid"`
+	Uid       uint32         `gorm:"" json:"uid"`
 	NodeId    uint32         `gorm:"" json:"nodeId"`
 	Node      *Node          `gorm:"" json:"node"`
 	ProjectId uint32         `gorm:"" json:"projectId"`

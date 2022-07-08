@@ -1,0 +1,122 @@
+{{define "project/member.html"}}
+    {{template "layout/top.html" .}}
+
+    <div class="panel">
+        <div class="panel-heading">
+            <div class="panel-title">
+                <a :href="'/project/info?id='+project.id">
+                    ${project.name}
+                </a>
+                项目协作成员(数量: ${total})
+            </div>
+            <div class="right">
+
+            </div>
+        </div>
+        <div class="panel-body">
+            <div class="form-inline">
+                <div class="input-group">
+                    <span class="input-group-addon">模糊搜索</span>
+                    <input type="text" autocomplete="off" v-model="search" placeholder="输入用户名称或id"
+                           class="form-control" @keyup="onSearch">
+                </div>
+            </div>
+            <br>
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>开发者UID</th>
+                    <th>开发者信息</th>
+                    <th>加入时间</th>
+                    <th>当前状态</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="v in list" :class="v.selected?'info':''">
+                    <td>${v.id}</td>
+                    <td>
+                        <span v-html="developersHtml[v.id]" :data-developer="v.id"></span>
+                    </td>
+                    <td>
+                        ${v.joinAt}
+                    </td>
+                    <td>
+                        <select class="form-control" v-model.number="v.accessLevel" @change="onMemberChange(v)">
+                            <option value="none">未加入该项目</option>
+                            <option value="developer">加入该项目</option>
+                        </select>
+
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- vue -->
+    <script>
+        vueCanUsed = true;
+        vueMixin = {
+            data: {
+                project:{{.project}},
+                all:{{.all}},
+                owned:{{.owned}},
+                list: [],
+                search: '',
+            },
+            methods: {
+                onSearch() {
+                    var newList = [];
+                    if (this.search) {
+                        for (var k in this.all) {
+                            var itemContent = (this.all[k].id + this.all[k].username + this.all[k].realName + this.all[k].email);
+                            if (itemContent.indexOf(this.search) !== -1) {
+                                newList.push(this.all[k]);
+                            }
+                        }
+                    } else {
+                        newList = this.all;
+                    }
+                    this.list = newList;
+                },
+                onSelectChange() {
+                    var total = 0;
+                    for (var item of this.all) {
+                        if (item.selected) {
+                            total++;
+                        }
+                    }
+                    this.total = total;
+                },
+                onMemberChange(item) {//角色变更
+                    reqPostJson(baseURL('/project/i', this.project.id, '/member'), {
+                        uid: item.id,
+                        accessLevel: item.accessLevel,
+                    });
+                },
+            },
+            created() {//初始化
+                for (var item of this.all) {
+                    item.accessLevel = 'none';
+                }
+                for (var ownerRel of this.owned) {
+                    for (var item of this.all) {
+                        if (item.id === ownerRel.uid) {
+                            item.selected = true;
+                            item.joinAt = item.updatedAt;
+                            item.accessLevel = 'developer';
+                            break;
+                        }
+                    }
+                }
+                this.list = this.all;
+                this.onSelectChange();
+            }
+        };
+    </script>
+
+    {{template "layout/footer.html" . }}
+{{end}}
+
+
+

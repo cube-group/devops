@@ -76,7 +76,7 @@ type Tag struct {
 	ID        uint32         `gorm:"primarykey;column:id" json:"id" form:"id"`
 	Name      string         `gorm:"" json:"name" form:"name" binding:"required"`
 	Desc      string         `gorm:"column:desc" json:"desc" form:"desc" binding:"required"`
-	Uid       *uint32        `gorm:"" json:"uid" form:"-"`
+	Uid       uint32         `gorm:"" json:"uid" form:"-"`
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`

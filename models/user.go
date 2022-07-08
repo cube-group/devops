@@ -88,6 +88,9 @@ func (t *User) Validator() error {
 	if !slice.InArrayString(t.Username, UserBossList) {
 		t.Password = md5.MD5("visible." + t.Password)
 	}
+	if t.AvatarUrl == "" {
+		t.AvatarUrl = "/public/assets/img/avatar.png"
+	}
 	return nil
 }
 
@@ -164,6 +167,18 @@ func (t *User) HasPermissionProject(pid uint32) error {
 		return nil
 	}
 	return DB().Take(&ProjectUser{}, "uid=? AND pid=?", t.ID, pid).Error
+}
+
+func (t *User) HasOwnPermissionProject(pid uint32) error {
+	if t.IsAdm() {
+		return nil
+	}
+	if i := GetProject(pid); i != nil {
+		if i.Uid == t.ID {
+			return nil
+		}
+	}
+	return errors.New("no own permission")
 }
 
 func CreateUser(username string) (user *User, err error) {

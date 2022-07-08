@@ -14,8 +14,8 @@ import (
 )
 
 func JsonSuccess(c *gin.Context, msg interface{}, data interface{}) {
-	c.Header("x-server", setting.Local.GetString("name"))
-	c.Header("x-server-version", setting.Local.GetString("version"))
+	c.Header("x-server", "devops")
+	c.Header("x-server-version", setting.Version)
 	if gMsg := Msg(c); gMsg != "" {
 		msg = gMsg
 	}
@@ -31,8 +31,8 @@ func JsonSuccess(c *gin.Context, msg interface{}, data interface{}) {
  * @code 返回code码，如果为空，返回3000
  */
 func JsonError(c *gin.Context, msg interface{}, data interface{}, code ...int) {
-	c.Header("x-server", setting.Local.GetString("name"))
-	c.Header("x-server-version", setting.Local.GetString("version"))
+	c.Header("x-server", "devops")
+	c.Header("x-server-version", setting.Version)
 	resCode := CODE_ERR
 	codeContext, exist := c.Get(CODE_KEY)
 	if exist {
@@ -68,8 +68,8 @@ func JsonData(code int, data interface{}, msg interface{}) map[string]interface{
 
 //显示HTML，加上头部公共信息(如登录用户)
 func HTML(c *gin.Context, template string, data map[string]interface{}, code ...int) {
-	c.Header("x-server", setting.Local.GetString("name"))
-	c.Header("x-server-version", setting.Local.GetString("version"))
+	c.Header("x-server", "devops")
+	c.Header("x-server-version", setting.Version)
 	if data == nil {
 		data = gin.H{}
 	}

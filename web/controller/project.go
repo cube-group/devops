@@ -16,14 +16,18 @@ func (t *ProjectController) Init(group *gin.RouterGroup) {
 	group.GET(".", t.index)
 	group.GET("/create", t.create)
 	group.POST("/save", t.save)
-	detailGroup := group.Group("/i/:pid", middleware.Project(), middleware.ProjectPermission())
+	detailGroup := group.Group("/i/:pid", middleware.Project())
+	detailGroup.Use(middleware.ProjectPermission())
 	detailGroup.GET(".", t.info)
-	detailGroup.DELETE(".", t.del)
 	detailGroup.GET("/apply", t.apply)
 	detailGroup.POST("/online", middleware.Block(), t.online)
 	detailGroup.POST("/offline", middleware.Block(), t.offline)
 	detailGroup.GET("/pod", t.pod)
+	detailGroup.GET("/member", t.member)
+	detailGroup.Use(middleware.ProjectOwnPermission())
+	detailGroup.POST("/member", t.memberSave)
 	detailGroup.DELETE("/pod", t.podDel)
+	detailGroup.DELETE(".", t.del)
 }
 
 func (t *ProjectController) index(c *gin.Context) {
@@ -68,6 +72,18 @@ func (t *ProjectController) online(c *gin.Context) {
 
 func (t *ProjectController) offline(c *gin.Context) {
 	ginutil.JsonAuto(c, "Success", project.Offline(c), nil)
+}
+
+func (t *ProjectController) member(c *gin.Context) {
+	g.HTML(c, "project/member.html", gin.H{
+		"project": models.GetProject(c),
+		"owned":   project.MemberList(c),
+		"all":     models.GetAllUser(),
+	})
+}
+
+func (t *ProjectController) memberSave(c *gin.Context) {
+	ginutil.JsonAuto(c, "Success", project.MemberSave(c), nil)
 }
 
 func (t *ProjectController) pod(c *gin.Context) {

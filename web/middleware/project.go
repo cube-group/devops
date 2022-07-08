@@ -51,3 +51,23 @@ func ProjectPermission() gin.HandlerFunc {
 		g.Warning(c, err)
 	}
 }
+
+func ProjectOwnPermission() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var err error
+		var project = models.GetProject(c)
+		if project == nil {
+			err = errors.New("project resource not found")
+			goto Error
+		}
+		if models.GetUser(c).HasOwnPermissionProject(project.ID) != nil {
+			err = errors.New("没有权限操作")
+			goto Error
+		}
+		c.Next()
+		return
+
+	Error:
+		g.Warning(c, err)
+	}
+}

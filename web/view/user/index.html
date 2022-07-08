@@ -28,7 +28,7 @@
                         <span v-if="!v.adm">${v.username}</span>
                         <span class="label label-primary" v-if="v.adm">${v.username}</span></td>
                     <td class="col-md-1">
-                        ${v.realName}
+                        <img width="23" height="23" :src="v.avatarUrl" class="img-circle" alt="Avatar">&nbsp;${v.realName}
                     </td>
                     <td class="col-md-1">
                         ${v.email}

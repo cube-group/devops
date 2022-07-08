@@ -12,6 +12,7 @@
                 <div class="form-inline">
                     <div class="input-group">
                         <div class="input-group-btn">
+                            <a class="btn btn-primary" :href="baseURL('/project/i',project.id,'/member')">开发者</a>
                             <a class="btn btn-warning">关联标签</a>
                         </div>
                         <select class="form-control" v-model.number="project.tag">
