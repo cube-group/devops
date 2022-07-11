@@ -122,10 +122,10 @@ func CronjobAdd(cronjob ProjectCronjob) (err error) {
 }
 
 //remove or stop cronjob
-func CronjobStop(projectID uint32) error {
+func CronjobStop(projectID uint32, option ...interface{}) error {
 	var i = GetProjectCronjob(projectID)
 	if i != nil {
-		if err := DB().Unscoped().Delete(i).Error; err != nil {
+		if err := DB(option...).Unscoped().Delete(i).Error; err != nil {
 			return err
 		}
 	}

@@ -151,19 +151,11 @@ func (t *Project) Apply(history *History, async bool) (err error) {
 		if er := tx.Save(history).Error; er != nil {
 			return er
 		}
-		if async {
-			if er := history.Online(true); er != nil {
-				return er
-			}
-		}
 		return nil
 	}); err != nil {
 		return
 	}
-	if !async {
-		return history.Online(false)
-	}
-	return nil
+	return history.Online(async)
 }
 
 func (t *Project) StopCronjob() (err error) {

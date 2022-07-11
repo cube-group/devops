@@ -46,9 +46,13 @@
                         </span>
                     </td>
                     <td>
-                        <div v-if="v.status==''"><i class="fa fa-spinner fa-spin"></i>部署中</div>
-                        <div v-if="v.status=='ok'"><label class="label label-success">成功</label></div>
-                        <div v-if="v.status=='error'"><label class="label label-danger">失败</label></div>
+                        <div>
+                            <span v-if="v.status==''"><i class="fa fa-spinner fa-spin"></i>部署中</span>
+                            <span v-if="v.status=='ok'"><label class="label label-success">成功</label></span>
+                            <span v-if="v.status=='error'"><label class="label label-danger">失败</label></span>
+                            耗时：${secondToString(v.useTime)}
+                        </div>
+
                         <div>
                             ${v.createdAt}
                         </div>

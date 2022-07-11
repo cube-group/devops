@@ -1,0 +1,32 @@
+{{define "dashboard/index.html"}}
+    {{template "layout/top.html" .}}
+    <div>
+        <div class="panel">
+            <div class="panel-heading">
+                <div class="panel-title">
+                    Dashboard
+                </div>
+            </div>
+            <div class="panel-body">
+                <div>
+                    <div class="label label-success">运行时间：${secondToString(info.runTime)}</div>
+                    <div class="label label-primary">协程数量：${info.numGoroutine}</div>
+                </div>
+                <br>
+                <div>
+                    <div class="label label-default">操作系统：${info.os}</div>
+                    <div class="label label-default">Go Version：${info.goVersion}</div>
+                </div>
+                <br>
+            </div>
+        </div>
+    </div>
+    <script>
+        vueMixin = {
+            data: {
+                info:{{.info}},
+            }
+        }
+    </script>
+    {{template "layout/footer.html" . }}
+{{end}}

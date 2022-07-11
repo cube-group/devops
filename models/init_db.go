@@ -96,9 +96,15 @@ func initDBPreHeating() {
 }
 
 //如果传了db连接，使用传入的db连接（用于事务开启场景）
-func DB(tx ...*gorm.DB) *gorm.DB {
-	if len(tx) != 0 && tx[0] != nil {
-		return tx[0]
+func DB(option ...interface{}) (res *gorm.DB) {
+	for _, v := range option {
+		switch vv := v.(type) {
+		case *gorm.DB:
+			res = vv
+		}
 	}
-	return _db
+	if res == nil {
+		res = _db
+	}
+	return
 }

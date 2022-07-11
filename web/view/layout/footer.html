@@ -14,11 +14,11 @@
     </div>
     <!-- vue app end -->
 
-    {{/*    <footer>*/}}
-    {{/*        <div class="container-fluid">*/}}
-    {{/*            <p class="copyright">&copy; 2019-2021 visible SYS. {{ .appName }} {{ .appVersion }}</p>*/}}
-    {{/*        </div>*/}}
-    {{/*    </footer>*/}}
+{{/*        <footer>*/}}
+{{/*            <div class="container-fluid">*/}}
+{{/*                <p class="copyright">&copy; 2019-2021 FastOps. </p>*/}}
+{{/*            </div>*/}}
+{{/*        </footer>*/}}
     <!-- END wrapper div -->
     </div>
     {{template "layout/my.html" .}}
@@ -37,6 +37,7 @@
                 developers: {},
                 developersHtml: {},
                 leftButtons: [
+                    {name: 'Dashboard', href: '/dashboard', relRegExp: ["\/dashboard\/[A-Za-z0-9/]+$"]},
                     {name: 'Project', href: '/project', relRegExp: ["\/project\/[A-Za-z0-9/]+$"]},
                     {name: 'History', href: '/history', relRegExp: ["\/history\/[A-Za-z0-9/]+$"]},
                     {name: 'Node', href: '/node', relRegExp: ["\/node\/[A-Za-z0-9/]+$"]},

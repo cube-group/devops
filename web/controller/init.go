@@ -8,10 +8,11 @@ import (
 
 func Init(e *gin.Engine) {
 	e.GET("/", func(c *gin.Context) {
-		c.Redirect(http.StatusFound, "/project")
+		c.Redirect(http.StatusFound, "/dashboard")
 	})
 	new(LoginController).Init(e.Group("/login"))
 	e.Use(middleware.Auth())
+	new(DashboardController).Init(e.Group("/dashboard"))
 	new(OpenController).Init(e.Group("/open"))
 	new(TtyController).Init(e.Group("/tty"))
 	new(ProjectController).Init(e.Group("/project"))

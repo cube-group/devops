@@ -477,7 +477,7 @@ func (t *History) createRunNativeMode() (runContent string, err error) {
 }
 
 //移除上线
-func (t *History) Remove() error {
+func (t *History) Remove(option ...interface{}) error {
 	if err := CronjobStop(t.ProjectId); err != nil {
 		return err
 	}
@@ -487,5 +487,5 @@ func (t *History) Remove() error {
 	if _, err := t.Node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
 		return err
 	}
-	return DB().Model(t.Project).Where("id=?", t.ProjectId).Update("deleted", 1).Error
+	return DB(option...).Model(t.Project).Where("id=?", t.ProjectId).Update("deleted", 1).Error
 }
