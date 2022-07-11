@@ -7,10 +7,15 @@ import (
 )
 
 func Del(c *gin.Context) (err error) {
-	var user = models.GetUser(c)
+	var obj = models.GetProject(c)
 	return models.DB().Transaction(func(tx *gorm.DB) error {
-		if er := tx.Delete(&models.User{}, "id=?", user.ID).Error; er != nil {
+		if er := tx.Delete(&models.Project{}, "id=?", obj.ID).Error; er != nil {
 			return er
+		}
+		if h := obj.GetLatestHistory(); h != nil {
+			if er := h.Remove(); er != nil {
+				return er
+			}
 		}
 		return nil
 	})
