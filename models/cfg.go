@@ -5,11 +5,9 @@ import (
 	"app/library/log"
 	"app/library/types/jsonutil"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"os/exec"
 	"time"
 )
 
@@ -20,7 +18,6 @@ type CfgStruct struct {
 	RegistryUsername  string `json:"registryUsername"`
 	RegistryPassword  string `json:"registryPassword"`
 	RegistryNamespace string `json:"registryNamespace"`
-	Ci                []Kv   `json:"ci"`
 	OnlineBlock       string `json:"onlineBlock"`
 }
 
@@ -30,16 +27,6 @@ func (t *CfgStruct) Map() (res map[string]interface{}) {
 }
 
 func (t *CfgStruct) Validator() error {
-	for i := 0; i < len(t.Ci); {
-		if t.Ci[i].Validator() != nil {
-			t.Ci = append(t.Ci[:i], t.Ci[i+1:]...)
-		} else {
-			i++
-		}
-	}
-	if len(t.Ci) == 0 {
-		return errors.New("ci镜像不能为空，至少保证有一个可用")
-	}
 	return nil
 }
 
@@ -66,14 +53,6 @@ func ReloadCfg() error {
 	core.Lock(func() {
 		_cfg = i
 	})
-	//restart docker pull ci
-	go func() {
-		time.Sleep(10 * time.Second)
-		for _, item := range _cfg.Ci {
-			log.StdOut("docker pull start: " + item.V)
-			log.StdOut("docker pull end: "+item.V, exec.Command("sh", "-c", "docker pull "+item.V).Run())
-		}
-	}()
 	return nil
 }
 
@@ -115,10 +94,6 @@ func CfgRegistryPath() (res string) {
 func CfgOnlineBlock() string {
 	res, _ := GetCfgKey("onlineBlock")
 	return res
-}
-
-func CfgGetCiList() []Kv {
-	return _cfg.Ci
 }
 
 func createCfg(key, value string) (err error) {
