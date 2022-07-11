@@ -108,9 +108,9 @@ func (t Project) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (t *Project) GetLatestHistory() *History {
+func (t *Project) GetLatestHistory(option ...interface{}) *History {
 	var i History
-	if DB().Last(&i, "project_id=?", t.ID).Error != nil {
+	if DB(option...).Last(&i, "project_id=?", t.ID).Error != nil {
 		return nil
 	}
 	return &i

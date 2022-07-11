@@ -13,7 +13,7 @@ func Del(c *gin.Context) (err error) {
 			return er
 		}
 		if h := obj.GetLatestHistory(); h != nil {
-			if er := h.Remove(); er != nil {
+			if er := h.Remove(true, tx); er != nil {
 				return er
 			}
 		}

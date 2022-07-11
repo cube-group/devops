@@ -321,7 +321,7 @@ func (t *History) createRunDockerMode() (runContent string, err error) {
 	//需要检测之前的history如果存在project.name不一致需要先移除container
 	if beforeHistory := t.getBeforeHistory(); beforeHistory != nil {
 		if beforeHistory.Project.Name != t.Project.Name {
-			if err = beforeHistory.Remove(); err != nil {
+			if err = beforeHistory.Remove(false); err != nil {
 				return
 			}
 		}
@@ -477,7 +477,7 @@ func (t *History) createRunNativeMode() (runContent string, err error) {
 }
 
 //移除上线
-func (t *History) Remove(option ...interface{}) error {
+func (t *History) Remove(statusUpdateFlag bool, option ...interface{}) error {
 	if err := CronjobStop(t.ProjectId); err != nil {
 		return err
 	}
@@ -487,5 +487,8 @@ func (t *History) Remove(option ...interface{}) error {
 	if _, err := t.Node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
 		return err
 	}
-	return DB(option...).Model(t.Project).Where("id=?", t.ProjectId).Update("deleted", 1).Error
+	if statusUpdateFlag {
+		return DB(option...).Model(t.Project).Where("id=?", t.ProjectId).Update("deleted", 1).Error
+	}
+	return nil
 }

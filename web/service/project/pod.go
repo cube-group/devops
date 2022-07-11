@@ -12,5 +12,5 @@ func PodDel(c *gin.Context) error {
 	if history == nil {
 		return errors.New("未找到近期部署信息")
 	}
-	return history.Remove()
+	return history.Remove(false)
 }
