@@ -6,6 +6,8 @@ package api
 
 import (
 	"app/library/crypt/md5"
+	"app/library/log"
+	"app/library/request"
 	"app/library/types/jsonutil"
 	"context"
 	"errors"
@@ -122,13 +124,14 @@ func (t *GitlabUser) getGitlabAddressURL(gitlabAddress, requestURL string) strin
 }
 
 func (t *GitlabUser) GetAvatar() (imgContent string, imgURL string) {
+	log.StdOut("avatar", "imgURL", t.AvatarUrl)
 	var requestURL = t.AvatarUrl
 	if strings.Contains(requestURL, "?") {
 		requestURL += "&access_token=" + t.AccessToken
 	} else {
 		requestURL += "?access_token=" + t.AccessToken
 	}
-	resp, err := req.Get(requestURL)
+	resp, err := request.Get(requestURL, 3)
 	if err == nil && resp.Response().StatusCode == http.StatusOK {
 		imgContent = resp.String()
 	}
