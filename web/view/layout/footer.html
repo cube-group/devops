@@ -14,11 +14,11 @@
     </div>
     <!-- vue app end -->
 
-{{/*        <footer>*/}}
-{{/*            <div class="container-fluid">*/}}
-{{/*                <p class="copyright">&copy; 2019-2021 FastOps. </p>*/}}
-{{/*            </div>*/}}
-{{/*        </footer>*/}}
+    {{/*        <footer>*/}}
+    {{/*            <div class="container-fluid">*/}}
+    {{/*                <p class="copyright">&copy; 2019-2021 FastOps. </p>*/}}
+    {{/*            </div>*/}}
+    {{/*        </footer>*/}}
     <!-- END wrapper div -->
     </div>
     {{template "layout/my.html" .}}
@@ -127,21 +127,6 @@
                 },
                 isMe(uid) {
                     return this.user.ID === uid;
-                },
-                onDisplayDeveloper(id) {//展示开发者信息
-                    if (!this.developers[id]) {
-                        layui.alert('未找到开发者信息');
-                        return;
-                    }
-                    var user = this.developers[id];
-                    console.log(user)
-                    layui.layer.open({
-                        type: 1, area: ['480px', '250px'], title: false, closeBtn: false, shadeClose: true,
-                        content: "<div style='width：100%;height:100%;text-align:center;background-color: #EEEEEE'> " +
-                            `<br><img src='${user.AvatarUrl}' class='layui-circle' style='width:120px;height:120px;background-color: #CCCCCC;'/>` +
-                            `<br><br><h4>${user.Username} ${user.RealName}（GID: ${user.ID}）</h4><br>` +
-                            `<a class='btn btn-primary' target='_blank' href='${user.WebUrl}'>点击查看</a></div>`,
-                    });
                 },
                 getQueryString: getQueryString,
                 getWsSchema: getWsSchema,
@@ -260,7 +245,7 @@
                     if (!list.length) {
                         return;
                     }
-                    reqPostJson(`/open/user/list`, list, (resData) => {
+                    reqPostJson(`/api/user/list`, list, (resData) => {
                         for (var i in resData) {
                             this.developers[i] = resData[i];
                             this.developersHtml[i] = componentDeveloper(resData[i], listDisabled);
@@ -270,6 +255,8 @@
                                 this.developersHtml[uid] = componentDeveloperNone();
                             }
                         }
+                        window.developers = this.developers;
+                        window.developersHtml = this.developersHtml;
                         this.$forceUpdate();
                     });
                 },

@@ -3,7 +3,7 @@
     <html lang="en" class="fullscreen-bg">
 
     <head>
-        <title>Gitlab Oauth Service</title>
+        <title>Ops Login</title>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
@@ -40,7 +40,7 @@
             <div class="vertical-align-middle">
                 <div class="auth-box lockscreen clearfix">
                     <form class="content" method="post" action="/login" enctype="application/x-www-form-urlencoded">
-                        <h3 style="text-align: center" v-if="!pic">Fast Ops v1</h3>
+                        <h3 style="text-align: center" v-if="!pic">Fast Ops ${appVersion}</h3>
                         <div class="user text-center" v-if="pic">
                             <img :src="pic" style="width: 100%;">
                         </div>
@@ -57,6 +57,9 @@
                             <input type="submit" class="btn btn-danger btn-block"
                                    style="overflow: hidden;text-overflow: ellipsis;" value="Sign In">
                         </div>
+                        <div style="text-align: right">
+                            <a :href="gitlabOAuthURL">Gitlab OAuth</a>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -65,16 +68,15 @@
     <script>
         vueMixinList.push({
             data: {
-                pic:{{.pic}},
-                disableButton: false,
-                auth: {},
+                pic: '{{.pic}}',
+                gitlabOAuthURL: '{{.gitlabOAuthURL}}',
                 form: {},
             },
             methods: {}
         });
     </script>
 
-    {{template "layout/footer-vue.html"}}
+    {{template "layout/footer.html" .}}
     </body>
     </html>
 {{end}}

@@ -39,6 +39,7 @@ services:
       - DB_PASSWORD=devops
       - DB_NAME=devops
     volumes:
+#      - ./local:/go/local
       - /var/run/docker.sock:/var/run/docker.sock
       - ~/.ssh:/root/.ssh
       - ./bin/app:/go/app
@@ -46,6 +47,7 @@ services:
       - ./web/view:/go/web/view
     working_dir: /go
     entrypoint: ./app
+#    entrypoint: ./app --cmd=db
     links:
       - mysql
     networks:

@@ -63,16 +63,4 @@ func initCmd() {
 	if err := exec.Command("gotty", "-v").Run(); err != nil {
 		log.StdWarning("init", "cmd/gotty", err.Error())
 	}
-	//} else {
-	//	if er := exec.Command("bash", "--version").Run(); er == nil {
-	//		SysGoTtyPortBash = "30000"
-	//	} else {
-	//		log.StdWarning("init", "cmd/bash", er.Error())
-	//	}
-	//	if er := exec.Command("sshpass", "-V").Run(); er == nil {
-	//		SysGoTtyPortSshpass = "30002"
-	//	} else {
-	//		log.StdWarning("init", "cmd/sshpass", er.Error())
-	//	}
-	//}
 }

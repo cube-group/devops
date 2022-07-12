@@ -51,7 +51,7 @@ func handle404(c *gin.Context) {
 	if util.IsAjax(c) {
 		c.JSON(http.StatusNotFound, gin.H{"code": http.StatusNotFound, "msg": "404！您访问的页面未找到！"})
 	} else {
-		c.HTML(http.StatusNotFound, "errors/404.html", nil)
+		g.HTML(c, "errors/404.html", nil, http.StatusNotFound)
 	}
 }
 

@@ -2,12 +2,14 @@
 package models
 
 import (
+	"app/library/api"
 	v1 "app/library/consts/v1"
 	"app/library/crypt/md5"
 	"app/library/types/slice"
 	"app/library/uuid"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"time"
@@ -64,9 +66,12 @@ type User struct {
 	ID             uint32    `gorm:"primarykey;column:id" json:"id"`
 	Username       string    `gorm:"" json:"username" form:"username"`
 	RealName       string    `gorm:"" json:"realName" form:"realName"`
+	From           string    `gorm:"" json:"from" form:"from"`
 	Email          string    `gorm:"" json:"email" form:"email"`
 	Password       string    `gorm:"" json:"password" form:"password"`
 	AvatarUrl      string    `gorm:"" json:"avatarUrl" form:"avatarUrl"`
+	AvatarBlob     string    `gorm:"" json:"-" form:"-"`
+	WebUrl         string    `gorm:"" json:"webUrl" form:"webUrl"`
 	Adm            uint8     `gorm:"" json:"adm" form:"adm"`          //是否为超管
 	Token          string    `gorm:"" json:"-" form:"-"`              //最近一次登录token
 	TokenCreatedAt time.Time `gorm:"" json:"tokenCreatedAt" form:"-"` //最近一次时间
@@ -95,6 +100,11 @@ func (t *User) Validator() error {
 }
 
 func (t User) MarshalJSON() ([]byte, error) {
+	//TODO 自定义AvatarUrl
+	if t.AvatarBlob != "" {
+		t.AvatarUrl = fmt.Sprintf("/api/img/avatar/%d", t.ID)
+	}
+
 	return json.Marshal(struct {
 		UserMarshalJSON
 		Password string `json:"password"`
@@ -191,6 +201,7 @@ func CreateUser(username string) (user *User, err error) {
 		var newUser = &User{
 			Username: username,
 			RealName: username,
+			From:     "init",
 			Adm:      1,
 		}
 		if err = newUser.PwdAddUser(rootRandPwd); err != nil {
@@ -199,4 +210,31 @@ func CreateUser(username string) (user *User, err error) {
 		user = newUser
 	}
 	return
+}
+
+//同步gitlab用户
+func SyncGitlabUser(gitlabUser *api.GitlabUser) (u *User, err error) {
+	imgContent, imgURL := gitlabUser.GetAvatar()
+	var find User
+	err = DB().Transaction(func(tx *gorm.DB) error {
+		if tx.Take(&find, "username=?", gitlabUser.Username).Error != nil {
+			find = User{
+				Username: gitlabUser.Username,
+			}
+		}
+		if imgContent != "" {
+			find.AvatarBlob = imgContent
+		} else {
+			find.AvatarUrl = imgURL
+		}
+		find.From = "gitlab"
+		find.RealName = gitlabUser.Name
+		find.Email = gitlabUser.Email
+		find.WebUrl = gitlabUser.WebUrl
+		return tx.Save(&find).Error
+	})
+	if err != nil {
+		return
+	}
+	return &find, nil
 }

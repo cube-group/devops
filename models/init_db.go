@@ -74,6 +74,9 @@ func initDBPreHeating() {
 		sqlItems = append(sqlItems, "ALTER TABLE `d_history` ADD COLUMN `ci` VARCHAR(1000) DEFAULT '' COMMENT '构建器json';")
 		sqlItems = append(sqlItems, "ALTER TABLE `d_project` ADD COLUMN `deleted` TINYINT(1) DEFAULT '0' COMMENT 'pod是否被删';")
 		sqlItems = append(sqlItems, "ALTER TABLE `d_user` ADD UNIQUE KEY `unq_username` (`username`);")
+		sqlItems = append(sqlItems, "ALTER TABLE `d_user` ADD COLUMN `web_url` VARCHAR(500) DEFAULT '' COMMENT 'user web url';")
+		sqlItems = append(sqlItems, "ALTER TABLE `d_user` ADD COLUMN `avatar_blob` BLOB COMMENT 'user avatar blob';")
+		sqlItems = append(sqlItems, "ALTER TABLE `d_user` ADD COLUMN `from` VARCHAR(20) DEFAULT '' COMMENT 'user register from';")
 		for _, sqlItem := range sqlItems {
 			if err = _db.Exec(sqlItem).Error; err != nil {
 				log.StdWarning("init", "db.table.init.err", err)
@@ -91,8 +94,6 @@ func initDBPreHeating() {
 	} else {
 		log.StdOut("init", "db.user.test.password:", userTest.Password)
 	}
-
-	createDefaultCfg()
 }
 
 //如果传了db连接，使用传入的db连接（用于事务开启场景）

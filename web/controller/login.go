@@ -5,6 +5,9 @@
 package controller
 
 import (
+	"app/library/g"
+	"app/library/ginutil"
+	"app/models"
 	"app/web/service/sys"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -22,10 +25,13 @@ func (t *LoginController) Init(group *gin.RouterGroup) {
 }
 
 func (t *LoginController) Index(c *gin.Context) {
-	c.HTML(
-		http.StatusAccepted,
+	g.HTML(
+		c,
 		"login/login.html",
-		gin.H{},
+		gin.H{
+			"gitlabOAuthURL": models.GitlabOAuthURL(ginutil.Input(c, "ref")),
+		},
+		http.StatusAccepted,
 	)
 }
 
@@ -43,7 +49,7 @@ func (t *LoginController) Login(c *gin.Context) {
 	refUrl, _ := url.Parse(c.Request.Referer())
 	ref := refUrl.Query().Get("ref")
 	if ref == "" {
-		ref = "/project"
+		ref = "/"
 	}
 	c.Redirect(http.StatusFound, ref)
 }

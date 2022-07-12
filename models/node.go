@@ -154,7 +154,7 @@ func (t *Node) RunSshArgs(tty bool, idRsaPath, remoteShell string) (args []strin
 	if t.SshKey != "" {
 		args = []string{"ssh", "-i", idRsaPath}
 	} else {
-		args = []string{"sshpass", "-p", fmt.Sprintf("'%s'", t.SshPassword), "ssh"}
+		args = []string{"sshpass", "-p", fmt.Sprintf("%s", t.SshPassword), "ssh"}
 	}
 	if tty {
 		args = append(args, "-t")
@@ -185,7 +185,7 @@ func (t *Node) RunScpArgs(localPath, remotePath string) (args []string, err erro
 		args = []string{"sshpass", "-p", fmt.Sprintf("'%s'", t.SshPassword), "scp"}
 	}
 	args = append(args, []string{
-		"-P",
+		"-p",
 		t.SshPort,
 		"-o",
 		"StrictHostKeyChecking=no",

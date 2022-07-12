@@ -44,7 +44,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 		}
 		if node := models.GetNode(val.ID); node != nil {
 			var args []string
-			args, err = node.RunSshArgs(false, "", "")
+			args, err = node.RunSshArgs(true, "", "")
 			if err != nil {
 				return
 			}

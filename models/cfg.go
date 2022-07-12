@@ -1,10 +1,12 @@
 package models
 
 import (
+	"app/library/api"
 	"app/library/core"
 	"app/library/log"
 	"app/library/types/jsonutil"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -18,6 +20,10 @@ type CfgStruct struct {
 	RegistryUsername  string `json:"registryUsername"`
 	RegistryPassword  string `json:"registryPassword"`
 	RegistryNamespace string `json:"registryNamespace"`
+	GitlabAddress     string `json:"gitlabAddress"`
+	GitlabAppId       string `json:"gitlabAppId"`
+	GitlabAppSecret   string `json:"gitlabAppSecret"`
+	GitlabRedirectUri string `json:"gitlabRedirectUri"`
 	OnlineBlock       string `json:"onlineBlock"`
 }
 
@@ -96,6 +102,20 @@ func CfgOnlineBlock() string {
 	return res
 }
 
+func Gitlab() (res *api.Gitlab, err error) {
+	if _cfg.GitlabAddress == "" || _cfg.GitlabAppId == "" || _cfg.GitlabAppSecret == "" {
+		err = errors.New("gitlab option is not enough")
+		return
+	}
+	res = api.NewGitlab(api.GitlabOption{
+		GitlabAddress:     _cfg.GitlabAddress,
+		GitlabAppId:       _cfg.GitlabAppId,
+		GitlabAppSecret:   _cfg.GitlabAppSecret,
+		GitlabRedirectUri: _cfg.GitlabRedirectUri,
+	})
+	return
+}
+
 func createCfg(key, value string) (err error) {
 	var find Cfg
 	if DB().Take(&find, "`name`=?", key).Error != nil {
@@ -104,26 +124,4 @@ func createCfg(key, value string) (err error) {
 		find.Value = value
 	}
 	return DB().Save(&find).Error
-}
-
-func createDefaultCfg() (err error) {
-	//ci default image
-	var list []Kv
-	res, err := GetCfgKey("ci")
-	if err == nil {
-		if json.Unmarshal([]byte(res), &list) == nil {
-			if len(list) > 0 {
-				return
-			}
-		}
-	}
-
-	list = []Kv{
-		{K: "default", V: "cubegroup/devops-ci-default"},
-		{K: "java", V: "cubegroup/devops-ci-java"},
-	}
-	if err = createCfg("ci", jsonutil.ToString(list)); err != nil {
-		return
-	}
-	return nil
 }

@@ -1009,9 +1009,9 @@
                 avatarURL = user.avatarUrl;
                 aCss = disabledClickMaps[user.ID] ? 'style="pointer-events:none;"' : '';
             }
-            var html = `<a @click="onDisplayDeveloper(${user.id})" href="javascript:" ${aCss}>`;
+            var html = `<a onclick="onDisplayDeveloper(${user.id})" href="javascript:" ${aCss}>`;
             if (avatarURL) {
-                html += `<img width="23" height="23" src="${user.avatarUrl}" class="img-circle" alt="Avatar">&nbsp;`;
+                html += `<img width="23" height="23" src="${user.avatarUrl}" class="img-circle" alt="">&nbsp;`;
             }
             html += name;
             if (user.block) {//block
@@ -1026,6 +1026,17 @@
             var html = `<a href="javascript:" style="pointer-events:none;">`;
             html += `<img width="23" height="23" style="background-color: #cccccc" class="img-circle""> N/A</a>`;
             return html;
+        }
+
+        function onDisplayDeveloper(id) {//展示开发者信息
+            if (!developers[id]) {
+                layui.alert('未找到开发者信息');
+                return;
+            }
+            var user = developers[id];
+            if (user && user.webUrl) {
+                window.open(user.webUrl)
+            }
         }
 
         //截取字符

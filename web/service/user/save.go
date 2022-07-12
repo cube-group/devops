@@ -14,5 +14,6 @@ func Save(c *gin.Context) (err error) {
 	if err = val.Validator(); err != nil {
 		return err
 	}
+	val.From = "sys." + models.SessionUsername(c)
 	return models.DB().Save(&val).Error
 }
