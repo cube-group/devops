@@ -11,6 +11,7 @@ import (
 var SysWebDebug bool
 var SysWebPort string
 var SysWebPortTls string
+var SysWebDomain string
 
 var SqlHost string
 var SqlPort int
@@ -47,6 +48,7 @@ func initEnv() {
 	SqlPoolMaxIdle = env.GetInt(consts.DB_POOL_MAX_IDLE, 50, 50, 100)
 	SqlPoolMaxOpen = env.GetInt(consts.DB_POOL_MAX_OPEN, 200, 200, 500)
 	SqlDebug = env.GetInt(consts.DB_DEBUG, 0)
+	SysWebDomain = env.GetString(consts.WEB_DOMAIN, "127.0.0.1")
 }
 
 func initCmd() {

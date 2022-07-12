@@ -7,6 +7,7 @@ import (
 	"app/library/crypt/md5"
 	"app/library/types/slice"
 	"app/library/uuid"
+	"app/setting"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -142,7 +143,7 @@ func (t *User) LoginCookie(c *gin.Context) error {
 	if err := DB().Save(t).Error; err != nil {
 		return err
 	}
-	c.SetCookie(v1.SessionName, t.Token, 86400, "/", "", false, false)
+	c.SetCookie(v1.SessionName, t.Token, 86400, "/", setting.SysWebDomain, false, false)
 	return nil
 }
 

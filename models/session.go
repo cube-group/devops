@@ -8,6 +8,7 @@ import (
 	"app/library/types/convert"
 	"app/library/types/jsonutil"
 	"app/library/uuid"
+	"app/setting"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -59,7 +60,7 @@ func SessionUserRealName(c *gin.Context) string {
 
 //清空session
 func SessionClear(c *gin.Context) {
-	c.SetCookie(v1.SessionName, "", 0, "/", c.Request.Host, false, false)
+	c.SetCookie(v1.SessionName, "", -1, "/", setting.SysWebDomain, false, false)
 }
 
 // 获取用户session
