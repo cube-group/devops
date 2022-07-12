@@ -48,6 +48,15 @@ func GetProject(values ...interface{}) (res *Project) {
 			}
 		}
 	}
+	//rel tag
+	if res != nil {
+		var rel TagRel
+		if DB().Last(&rel, "pid=?", res.ID).Error == nil {
+			if tag := GetTag(rel.Tid); tag != nil {
+				res.Tag = tag.ID
+			}
+		}
+	}
 	return
 }
 
@@ -78,6 +87,8 @@ type Project struct {
 	CreatedAt time.Time             `json:"createdAt"`
 	UpdatedAt time.Time             `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt        `gorm:"index" json:"-"`
+
+	Tag uint32 `gorm:"-" json:"tag" form:"tag"`
 }
 
 func (t *Project) TableName() string {

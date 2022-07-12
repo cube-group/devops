@@ -103,7 +103,7 @@ func CfgOnlineBlock() string {
 }
 
 func Gitlab() (res *api.Gitlab, err error) {
-	if _cfg.GitlabAddress == "" || _cfg.GitlabAppId == "" || _cfg.GitlabAppSecret == "" {
+	if _cfg.GitlabAddress == "" || _cfg.GitlabAppId == "" || _cfg.GitlabAppSecret == "" || _cfg.GitlabRedirectUri == "" {
 		err = errors.New("gitlab option is not enough")
 		return
 	}

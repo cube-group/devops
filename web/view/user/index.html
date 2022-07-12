@@ -25,12 +25,20 @@
                 <tr v-for="v in list">
                     <td class="col-md-1">${v.id}</td>
                     <td class="col-md-1">
-                        <span v-if="!v.adm">${v.username}</span>
-                        <span v-if="v.adm" style="color: #0B7500">${v.username}</span>
+                        <a @click="showAlert('账号来源: '+v.from)" href="javascript:">
+                            <span v-if="!v.adm">${v.username}</span>
+                            <span class="label label-primary" v-if="v.adm">${v.username}</span>
+                        </a>
                     </td>
                     <td class="col-md-1">
-                        <a :href="v.webUrl" target="_blank"><img width="23" height="23" :src="v.avatarUrl"
-                                                                 class="img-circle" alt="">&nbsp;${v.realName}</a>
+                        <div v-if="v.webUrl">
+                            <a :href="v.webUrl" target="_blank"><img width="23" height="23" :src="v.avatarUrl"
+                                                                     class="img-circle" alt="">&nbsp;${v.realName}</a>
+                        </div>
+                        <div v-if="!v.webUrl">
+                            <img width="23" height="23" :src="v.avatarUrl"
+                                 class="img-circle" alt="">&nbsp;${v.realName}
+                        </div>
                     </td>
                     <td class="col-md-1">
                         ${v.email}

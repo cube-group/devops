@@ -57,7 +57,7 @@
                             <input type="submit" class="btn btn-danger btn-block"
                                    style="overflow: hidden;text-overflow: ellipsis;" value="Sign In">
                         </div>
-                        <div style="text-align: right">
+                        <div style="text-align: right" v-if="gitlabOAuthURL">
                             <a :href="gitlabOAuthURL">Gitlab OAuth</a>
                         </div>
                     </form>

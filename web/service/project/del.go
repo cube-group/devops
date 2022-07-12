@@ -12,6 +12,9 @@ func Del(c *gin.Context) (err error) {
 		if er := tx.Delete(&models.Project{}, "id=?", obj.ID).Error; er != nil {
 			return er
 		}
+		if er := tx.Delete(&models.TagRel{}, "pid=?", obj.ID).Error; er != nil {
+			return er
+		}
 		if h := obj.GetLatestHistory(); h != nil {
 			if er := h.Remove(true, tx); er != nil {
 				return er

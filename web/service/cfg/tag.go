@@ -5,6 +5,7 @@ import (
 	"app/models"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func TagList(c *gin.Context) []models.Tag {
@@ -25,12 +26,14 @@ func TagSave(c *gin.Context) (err error) {
 
 func TagDel(c *gin.Context) (err error) {
 	var tag = models.GetTag(c)
-	var count int64
-	if models.DB().Model(&models.TagRel{}).Where("tid=?", tag.ID).Count(&count).Error != nil {
-		return err
-	}
-	if count > 0 {
-		return fmt.Errorf("该标签有%d个项目在使用，请先解除关联", count)
-	}
-	return models.DB().Unscoped().Delete(&models.Tag{}, "id=?", tag.ID).Error
+	return models.DB().Transaction(func(tx *gorm.DB) error {
+		var count int64
+		if er := tx.Model(&models.TagRel{}).Where("tid=?", tag.ID).Count(&count).Error; er != nil {
+			return er
+		}
+		if count > 0 {
+			return fmt.Errorf("该标签有%d个项目在使用，请先解除关联", count)
+		}
+		return tx.Unscoped().Delete(&models.Tag{}, "id=?", tag.ID).Error
+	})
 }
