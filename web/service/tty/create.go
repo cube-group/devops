@@ -21,9 +21,11 @@ const (
 
 type valCreate struct {
 	Code TTYCode `form:"code" binding:"required"`
-	ID   uint32  `form:"id"`
+	ID   uint32  `form:"id" binding:"omitempty"`
+	Pod  uint32  `form:"pod" binding:"omitempty"` //for pod exec/log
 }
 
+//create gotty process
 func Create(c *gin.Context) (res gin.H, err error) {
 	res = gin.H{}
 	var val valCreate
@@ -59,7 +61,11 @@ func Create(c *gin.Context) (res gin.H, err error) {
 				return
 			}
 			var args []string
-			args, err = h.Node().RunSshArgs(true, "", fmt.Sprintf("docker exec -it %s sh", h.Project.Name))
+			if node, ok := h.Nodes.Get(val.Pod); ok {
+				args, err = node.RunSshArgs(true, "", fmt.Sprintf("docker exec -it %s sh", h.Project.Name))
+			} else {
+				err = errors.New("pod not found")
+			}
 			if err != nil {
 				return
 			}
@@ -74,7 +80,11 @@ func Create(c *gin.Context) (res gin.H, err error) {
 				return
 			}
 			var args []string
-			args, err = h.Node().RunSshArgs(false, "", fmt.Sprintf("docker logs -f -n 1000 %s", h.Project.Name))
+			if node, ok := h.Nodes.Get(val.Pod); ok {
+				args, err = node.RunSshArgs(false, "", fmt.Sprintf("docker logs -f -n 1000 %s", h.Project.Name))
+			} else {
+				err = errors.New("pod not found")
+			}
 			if err != nil {
 				return
 			}

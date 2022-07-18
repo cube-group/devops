@@ -6,23 +6,33 @@
                 <a style="color: #0a6aa1" :href="baseURL('/project?name='+project.id)">< 返回 | </a>项目节点管理
             </div>
             <div class="right">
-                <a class="btn btn-sm btn-danger" @click="onDelPod()">DEL</a>
-                <a class="btn btn-sm btn-primary" @click="onTty()">TTY</a>
             </div>
         </div>
         <div class="panel-body">
             <div>
-                <p>项目：${project.name}</p>
-                <p>Node: ${history.node.ip}</p>
+                <p>Project: ${project.name}</p>
                 <p>Time: ${history.updatedAt}</p>
-                <p>容器: 标准输出流如下</p>
             </div>
             <br>
-            <!-- log Layer -->
-            <div id="log-container" onkeydown="return false;" onmousedown="return false;"
-                 style="width:100%;height:100%;background-color:#0C0C0C;padding: 10px">
-                <iframe id="log" style="width: 100%;height:100%;border: medium none;"></iframe>
-            </div>
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>Node IP</th>
+                    <th>Operation</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="v in history.nodes">
+                    <td>${v.ip}</td>
+                    <td>
+                        <a class="btn btn-default" @click="onLog(v)">Stdout</a>
+                        <a class="btn btn-primary" @click="onTty(v)">TTY</a>
+                        <a class="btn btn-danger" @click="onDel(v)">Del</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <br>
         </div>
     </div>
     <!-- tty layer-->
@@ -35,67 +45,58 @@
             data: {
                 project:{{.project}},
                 history:{{.history}} ,
-                openTtyIndex: 0,
+                openContainerIndex: 0,
             },
             methods: {
-                onLogResize() {
-                    var frame = $('#log');
-                    var height = $(window).height() - frame.offset().top - 50;
-                    console.log(height, $(window).height(), frame.offset().top)
-                    frame.css('height', height + 'px');
+                onLog(node) {
+                    this.displayFrame(
+                        `Node: ${node.ip} Container: ${this.project.name} Exec`,
+                        `/tty/create?code=logs&id=${this.history.id}&pod=${node.id}`
+                    );
                 },
-                onTtyResize() {
-                    if (this.openTtyIndex) {
-                        layui.layer.style(this.openTtyIndex, {
+                onTty(node) {
+                    this.displayFrame(
+                        `Node: ${node.ip} Container: ${this.project.name} Exec`,
+                        `/tty/create?code=exec&id=${this.history.id}&pod=${node.id}`
+                    );
+                },
+                onDel(node) {
+                    displayConfirm(`确认移除${node.ip}上的节点？`, '确认', '取消', () => {
+                        reqDelWithoutData(baseURL('/project/i', this.project.id, 'pod?nid=' + node.id));
+                    });
+                },
+                onFrameResize() {
+                    if (this.openContainerIndex) {
+                        layui.layer.style(this.openContainerIndex, {
                             left: 0, top: 0, width: $(window).width(), height: $(window).height()
                         });
                     }
                 },
-                onDelPod() {
-                    displayConfirm('确认移除该服务', '确认', '取消', () => {
-                        reqDelWithoutData(baseURL('/project/i', this.project.id, 'pod'));
-                    });
-                },
-                onTty() {
-                    reqPost(`/tty/create?code=exec&id=${this.history.id}`, null, (resData) => {
+                displayFrame(title, uri) {
+                    reqPost(uri, null, (resData) => {
                         var frameURL = baseURL('/tty/port', resData.port, '/connect');
-                        this.openTtyIndex = layui.layer.open({
+                        this.openContainerIndex = layui.layer.open({
                             type: 1,
                             area: [$(window).width() + 'px', $(window).height() + 'px'],
-                            title: `Node: ${this.history.node.ip} Container: ${this.project.name} Exec`,
+                            title: title,
                             content: $('#tty-container'),
                             anim: 2,
                             success: (layero, index) => {
-                                //close log
-                                $(window).unbind("resize", this.onLogResize);
-                                $('#log').attr('src', 'about:blank');
                                 //open tty
-                                $(window).bind("resize", this.onTtyResize);
-                                this.onTtyResize();
+                                $(window).bind("resize", this.onFrameResize);
+                                this.onFrameResize();
                                 $('#tty').attr('src', frameURL);
                             },
                             cancel: () => {
-                                this.onLog();
+                                this.openContainerIndex = 0;
+                                $(window).unbind("resize", this.onFrameResize);
+                                $('#tty').attr('src', '');
                             }
                         });
                     });
                 },
-                onLog() {
-                    this.openTtyIndex = 0;
-                    reqPost(`/tty/create?code=logs&id=${this.history.id}`, null, (resData) => {
-                        var frameURL = baseURL('/tty/port', resData.port, '/connect');
-                        //close tty
-                        $(window).unbind("resize", this.onTtyResize);
-                        $('#tty').attr('src', 'about:blank');
-                        //open log
-                        $('#log').attr('src', frameURL);
-                        this.onLogResize();
-                        $(window).bind('resize', this.onLogResize);
-                    });
-                }
             },
             mounted() {
-                this.onLog();
             }
         }
     </script>

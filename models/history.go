@@ -56,6 +56,15 @@ func GetHistory(values ...interface{}) (res *History) {
 			}
 		}
 	}
+	//attach nodes
+	if res != nil {
+		if res.Nodes == nil {
+			res.Nodes = NodeList{}
+		}
+		if res.N.ID > 0 {
+			res.Nodes = res.Nodes.Contact(res.N)
+		}
+	}
 	return
 }
 
@@ -89,6 +98,9 @@ func (t History) MarshalJSON() ([]byte, error) {
 	var useTime = t.UpdatedAt.Unix() - t.CreatedAt.Unix()
 	if useTime < 0 {
 		useTime = 0
+	}
+	if t.Nodes == nil {
+		t.Nodes = NodeList{}
 	}
 	if t.N.ID > 0 {
 		t.Nodes = t.Nodes.Contact(t.N)
@@ -139,13 +151,6 @@ func (t *History) Validator() error {
 		t.Project.Docker.Volume = VolumeList{}
 	}
 	return nil
-}
-
-func (t *History) Node() *Node {
-	if t.Nodes == nil || len(t.Nodes) == 0 {
-		return &Node{}
-	}
-	return &t.Nodes[0]
 }
 
 func (t *History) ImageURL() string {
@@ -251,6 +256,16 @@ func (t *History) Online(async bool) (err error) {
 	if err = os.MkdirAll(t.WorkspacePath(DockerVolumePathName), os.ModePerm); err != nil {
 		return
 	}
+	//需要检测之前的history如果存在project.name不一致需要先移除container
+	if t.IsDockerMode() {
+		if beforeHistory := t.getBeforeHistory(); beforeHistory != nil {
+			if beforeHistory.Project.Name != t.Project.Name {
+				if err = beforeHistory.Remove(false); err != nil {
+					return
+				}
+			}
+		}
+	}
 	//create run.sh content
 	var runContent string
 	if t.IsDockerMode() { //deploy mode docker
@@ -258,10 +273,16 @@ func (t *History) Online(async bool) (err error) {
 	} else { //node shell
 		runContent, err = t.createRunNativeMode()
 	}
-	fmt.Println(runContent)
 	if err != nil {
 		return
 	}
+	runContent = fmt.Sprintf(
+		"#!/bin/sh\ncd %s\n%s\ncd %s\n",
+		t.Workspace(),
+		runContent,
+		t.Workspace(),
+	)
+	fmt.Println(runContent)
 	//create run-dev.sh
 	if err = ioutil.WriteFile(t.WorkspaceRun(), []byte(runContent), os.ModePerm); err != nil {
 		return
@@ -332,15 +353,6 @@ func (t *History) updateStatus(cmd *exec.Cmd) {
 }
 
 func (t *History) createRunDockerMode() (runContent string, err error) {
-	//需要检测之前的history如果存在project.name不一致需要先移除container
-	if beforeHistory := t.getBeforeHistory(); beforeHistory != nil {
-		if beforeHistory.Project.Name != t.Project.Name {
-			if err = beforeHistory.Remove(false); err != nil {
-				return
-			}
-		}
-	}
-
 	var template = t.Project.Docker
 	//create volumeLines
 	var volumeLines = make([]string, 0)
@@ -415,32 +427,27 @@ docker push %s
 			t.Project.Name,
 			t.Project.Name, t.Project.Docker.RunOptions, imageName,
 		)
-		var sshArgs []string
-		sshArgs, err = t.Node().RunSshArgs(false, "", fmt.Sprintf("'%s'", dockerRun))
-		if err != nil {
-			return
+		for _, node := range t.Nodes {
+			var sshArgs []string
+			sshArgs, err = node.RunSshArgs(false, "", fmt.Sprintf("'%s'", dockerRun))
+			if err != nil {
+				return
+			}
+			sshDockerRun = strings.Join(sshArgs, " ") + "\n"
 		}
-		sshDockerRun = strings.Join(sshArgs, " ")
 	}
 
 	//create run.sh content
 	runContent = fmt.Sprintf(
-		"#!/bin/sh\ncd %s\n%s\n%s\n%s\ncd %s\n",
-		t.Workspace(),
+		"%s\n%s\n%s\n",
 		t.Project.Docker.Shell,
 		dockerBuild,
 		sshDockerRun,
-		t.Workspace(),
 	)
 	return
 }
 
 func (t *History) createRunNativeMode() (runContent string, err error) {
-	var node = t.Node()
-	if node == nil {
-		err = errors.New("node is nil")
-		return
-	}
 	var template = t.Project.Native
 	var scpShell string
 	var scpRemoteFilePrefix = fmt.Sprintf("/tmp/devops-%d-%d-", t.ProjectId, t.ID)
@@ -456,36 +463,42 @@ func (t *History) createRunNativeMode() (runContent string, err error) {
 		if err = ioutil.WriteFile(localPath, []byte(volumeContent), os.ModePerm); err != nil {
 			return
 		}
-		var scpArgs []string
-		scpArgs, err = node.RunScpArgs(localPath, remoteNodePath)
-		if err != nil {
-			return
+		for _, node := range t.Nodes {
+			var scpArgs []string
+			scpArgs, err = node.RunScpArgs(localPath, remoteNodePath)
+			if err != nil {
+				return
+			}
+			scpShell += strings.Join(scpArgs, " ") + "\n"
 		}
-		scpShell += strings.Join(scpArgs, " ") + "\n"
 	}
 	//init facade content
+	var sshShell string
 	var localFacadePath = t.WorkspaceVolumePath("run")
 	var remoteFacadePath = fmt.Sprintf("%s%s", scpRemoteFilePrefix, "run")
 	var remoteFacadeContent = fmt.Sprintf("#!/bin/sh\n%s\nrm -rf %s*\n", template.Shell, scpRemoteFilePrefix)
 	if err = ioutil.WriteFile(localFacadePath, []byte(remoteFacadeContent), os.ModePerm); err != nil {
 		return
 	}
-	scpRunArgs, err := node.RunScpArgs(localFacadePath, remoteFacadePath)
-	if err != nil {
-		return
-	}
-	scpShell += strings.Join(scpRunArgs, " ") + "\n"
-	sshArgs, err := node.RunSshArgs(false, "", fmt.Sprintf("'sh -ex %s'", remoteFacadePath))
-	if err != nil {
-		return
+	for _, node := range t.Nodes {
+		var scpArgs []string
+		var sshArgs []string
+		scpArgs, err = node.RunScpArgs(localFacadePath, remoteFacadePath)
+		if err != nil {
+			return
+		}
+		scpShell += strings.Join(scpArgs, " ") + "\n"
+		sshArgs, err = node.RunSshArgs(false, "", fmt.Sprintf("'sh -ex %s'", remoteFacadePath))
+		if err != nil {
+			return
+		}
+		sshShell += strings.Join(sshArgs, " ") + "\n"
 	}
 	//create run.sh content
 	runContent = fmt.Sprintf(
-		"#!/bin/sh\ncd %s\n%s\n%s\ncd %s\n",
-		t.Workspace(),
+		"%s\n%s\n",
 		scpShell,
-		strings.Join(sshArgs, " "),
-		t.Workspace(),
+		sshShell,
 	)
 	return
 }
@@ -498,11 +511,35 @@ func (t *History) Remove(statusUpdateFlag bool, option ...interface{}) error {
 	if t.Project.Mode != ProjectModeDocker {
 		return nil
 	}
-	if _, err := t.Node().Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
+	var node *Node
+	for _, v := range option {
+		switch vv := v.(type) {
+		case Node:
+			node = &vv
+		case *Node:
+			node = vv
+		}
+	}
+	var nodes NodeList
+	if node != nil {
+		if _, err := node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
+			return err
+		}
+		nodes = t.Nodes.Del(node.ID)
+	} else {
+		for _, item := range t.Nodes {
+			if _, err := item.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
+				return err
+			}
+		}
+		nodes = t.Nodes
+	}
+	var db = DB(option...)
+	if err := db.Model(t).Where("id=?", t.ID).Update("nodes", nodes).Error; err != nil {
 		return err
 	}
 	if statusUpdateFlag {
-		return DB(option...).Model(t.Project).Where("id=?", t.ProjectId).Update("deleted", 1).Error
+		return db.Model(t.Project).Where("id=?", t.ProjectId).Update("deleted", 1).Error
 	}
 	return nil
 }

@@ -91,6 +91,27 @@ func (t NodeList) Has(id uint32) bool {
 	return false
 }
 
+func (t NodeList) Get(id uint32) (node Node, ok bool) {
+	if id == 0 {
+		return
+	}
+	for _, v := range t {
+		if v.ID == id {
+			return v, true
+		}
+	}
+	return
+}
+
+func (t NodeList) Del(id uint32) NodeList {
+	for k, v := range t {
+		if v.ID == id {
+			return append(t[:k], t[k+1:]...)
+		}
+	}
+	return t
+}
+
 func (t NodeList) Contact(node Node) NodeList {
 	for _, v := range t {
 		if v.ID == node.ID {
