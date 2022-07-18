@@ -64,8 +64,8 @@ type HistoryMarshalJSON History
 type History struct {
 	ID        uint32         `gorm:"primarykey;column:id" json:"id" form:"-"`
 	Uid       uint32         `gorm:"" json:"uid" form:"-"`
-	NodeId    uint32         `gorm:"" json:"nodeId" form:"nodeId"`
-	Node      *Node          `gorm:"" json:"node" form:"node" binding:"-"`
+	N         Node           `gorm:"column:node" json:"-" form:"-" binding:"-"`
+	Nodes     NodeList       `gorm:"" json:"nodes" form:"nodes"`
 	Version   string         `gorm:"" json:"version" form:"version"`
 	Desc      string         `gorm:"" json:"desc" form:"desc" binding:"required"`
 	Status    HistoryStatus  `gorm:"status" json:"status" form:"-"`
@@ -76,6 +76,7 @@ type History struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
+	NodeIds         []uint32 `gorm:"-" json:"nodeIds" form:"nodeIds"`
 	onlineCtx       context.Context
 	onlineCtxCancel context.CancelFunc
 }
@@ -88,6 +89,9 @@ func (t History) MarshalJSON() ([]byte, error) {
 	var useTime = t.UpdatedAt.Unix() - t.CreatedAt.Unix()
 	if useTime < 0 {
 		useTime = 0
+	}
+	if t.N.ID > 0 {
+		t.Nodes = t.Nodes.Contact(t.N)
 	}
 	return json.Marshal(struct {
 		HistoryMarshalJSON
@@ -111,14 +115,17 @@ func (t *History) Validator() error {
 		return fmt.Errorf("部署失败：project id %d not found", t.ProjectId)
 	}
 	if t.Project.Mode != ProjectModeImage {
-		if t.NodeId == 0 {
-			return errors.New("部署目标机器不能为空")
+		if t.Nodes == nil {
+			t.Nodes = NodeList{}
 		}
 		t.Version = "latest" //强制改为latest
-		if i := GetNode(t.NodeId); i != nil {
-			t.Node = i
+		if nodes, err := GetSomeNodes(t.NodeIds); err == nil {
+			t.Nodes = nodes
+			if len(t.Nodes) == 0 {
+				return errors.New("部署目标机器不能为空")
+			}
 		} else {
-			return fmt.Errorf("部署失败：node id %d not found", t.NodeId)
+			return err
 		}
 	}
 	if t.IsDockerMode() {
@@ -132,6 +139,13 @@ func (t *History) Validator() error {
 		t.Project.Docker.Volume = VolumeList{}
 	}
 	return nil
+}
+
+func (t *History) Node() *Node {
+	if t.Nodes == nil || len(t.Nodes) == 0 {
+		return &Node{}
+	}
+	return &t.Nodes[0]
 }
 
 func (t *History) ImageURL() string {
@@ -402,7 +416,7 @@ docker push %s
 			t.Project.Name, t.Project.Docker.RunOptions, imageName,
 		)
 		var sshArgs []string
-		sshArgs, err = t.Node.RunSshArgs(false, "", fmt.Sprintf("'%s'", dockerRun))
+		sshArgs, err = t.Node().RunSshArgs(false, "", fmt.Sprintf("'%s'", dockerRun))
 		if err != nil {
 			return
 		}
@@ -422,7 +436,7 @@ docker push %s
 }
 
 func (t *History) createRunNativeMode() (runContent string, err error) {
-	var node = t.Node
+	var node = t.Node()
 	if node == nil {
 		err = errors.New("node is nil")
 		return
@@ -484,7 +498,7 @@ func (t *History) Remove(statusUpdateFlag bool, option ...interface{}) error {
 	if t.Project.Mode != ProjectModeDocker {
 		return nil
 	}
-	if _, err := t.Node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
+	if _, err := t.Node().Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
 		return err
 	}
 	if statusUpdateFlag {

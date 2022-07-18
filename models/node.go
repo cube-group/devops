@@ -39,6 +39,20 @@ func GetNode(values ...interface{}) *Node {
 	return nil
 }
 
+func GetSomeNodes(ids []uint32) (res NodeList, err error) {
+	var db = DB()
+	err = db.Find(&res, "id IN (?)", ids).Error
+	if err == nil {
+		for _, id := range ids {
+			if !res.Has(id) {
+				err = fmt.Errorf("node id: %d not found", id)
+				return
+			}
+		}
+	}
+	return
+}
+
 func GetNodes() (res []Node) {
 	DB().Order("id DESC").Find(&res)
 	return res
@@ -49,6 +63,41 @@ func NodeClean() {
 		_, err := item.Exec("docker system prune -a -f")
 		log.StdOut("nodeClean", item.IP, err)
 	}
+}
+
+type NodeList []Node
+
+// 实现 sql.Scanner 接口，Scan 将 value 扫描至 Jsonb
+func (t *NodeList) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New(fmt.Sprint("Failed to unmarshal JSONB value:", value))
+	}
+	json.Unmarshal(bytes, &t) //no error
+	return nil
+}
+
+// 实现 driver.Valuer 接口，Value 返回 json value
+func (t NodeList) Value() (driver.Value, error) {
+	return json.Marshal(t)
+}
+
+func (t NodeList) Has(id uint32) bool {
+	for _, v := range t {
+		if v.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+func (t NodeList) Contact(node Node) NodeList {
+	for _, v := range t {
+		if v.ID == node.ID {
+			return t
+		}
+	}
+	return append(t, node)
 }
 
 type NodeMarshalJSON Node
@@ -106,6 +155,13 @@ func (t *Node) Validator(c *gin.Context) error {
 	return nil
 }
 
+func (t *Node) IsNone() error {
+	if t.ID == 0 {
+		return errors.New("node is nil")
+	}
+	return nil
+}
+
 func (t *Node) WorkspacePath(ele ...string) string {
 	ele = append([]string{"/devops/workspace/.node", convert.MustString(t.ID)}, ele...)
 	return path.Join(ele...)
@@ -144,6 +200,9 @@ func (t *Node) initWorkspace() (err error) {
 
 //node ssh args
 func (t *Node) RunSshArgs(tty bool, idRsaPath, remoteShell string) (args []string, err error) {
+	if err = t.IsNone(); err != nil {
+		return
+	}
 	if idRsaPath == "" {
 		err = t.initWorkspace()
 		if err != nil {
@@ -175,6 +234,9 @@ func (t *Node) RunSshArgs(tty bool, idRsaPath, remoteShell string) (args []strin
 //node scp args
 //container special
 func (t *Node) RunScpArgs(localPath, remotePath string) (args []string, err error) {
+	if err = t.IsNone(); err != nil {
+		return
+	}
 	err = t.initWorkspace()
 	if err != nil {
 		return
@@ -185,7 +247,7 @@ func (t *Node) RunScpArgs(localPath, remotePath string) (args []string, err erro
 		args = []string{"sshpass", "-p", fmt.Sprintf("'%s'", t.SshPassword), "scp"}
 	}
 	args = append(args, []string{
-		"-p",
+		"-P",
 		t.SshPort,
 		"-o",
 		"StrictHostKeyChecking=no",

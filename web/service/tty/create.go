@@ -59,7 +59,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 				return
 			}
 			var args []string
-			args, err = h.Node.RunSshArgs(true, "", fmt.Sprintf("docker exec -it %s sh", h.Project.Name))
+			args, err = h.Node().RunSshArgs(true, "", fmt.Sprintf("docker exec -it %s sh", h.Project.Name))
 			if err != nil {
 				return
 			}
@@ -74,7 +74,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 				return
 			}
 			var args []string
-			args, err = h.Node.RunSshArgs(false, "", fmt.Sprintf("docker logs -f -n 1000 %s", h.Project.Name))
+			args, err = h.Node().RunSshArgs(false, "", fmt.Sprintf("docker logs -f -n 1000 %s", h.Project.Name))
 			if err != nil {
 				return
 			}

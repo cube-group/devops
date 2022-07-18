@@ -1,4 +1,4 @@
-package v1
+package consts
 
 const (
 	//visible cookie key name

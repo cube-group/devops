@@ -2,7 +2,6 @@ package models
 
 import (
 	"app/library/consts"
-	v1 "app/library/consts/v1"
 	"app/library/crypt/md5"
 	"app/library/ginutil"
 	"app/library/types/convert"
@@ -59,8 +58,8 @@ func SessionUserRealName(c *gin.Context) string {
 
 //清空session
 func SessionClear(c *gin.Context) {
-	c.SetCookie(v1.SessionName, "", -1, "/", "."+c.Request.Host, false, false)
-	c.SetCookie(v1.SessionName, "", -1, "/", c.Request.Host, false, false)
+	c.SetCookie(consts.SessionName, "", -1, "/", "."+c.Request.Host, false, false)
+	c.SetCookie(consts.SessionName, "", -1, "/", c.Request.Host, false, false)
 }
 
 // 获取用户session
@@ -69,7 +68,7 @@ func SessionUser(c *gin.Context) *User {
 	if i, ok := c.Get(consts.ContextUser); ok {
 		return i.(*User)
 	}
-	sessionToken, _ := c.Cookie(v1.SessionName)
+	sessionToken, _ := c.Cookie(consts.SessionName)
 	if sessionToken == "" {
 		return nil
 	}

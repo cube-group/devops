@@ -30,8 +30,7 @@ func Online(c *gin.Context) (history models.History, err error) {
 	} else { //cronjob online
 		err = models.CronjobAdd(models.ProjectCronjob{
 			Uid:       val.Uid,
-			NodeId:    val.NodeId,
-			Node:      val.Node,
+			Nodes:     val.Nodes,
 			ProjectId: project.ID,
 		})
 	}

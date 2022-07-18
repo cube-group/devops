@@ -3,7 +3,7 @@ package models
 
 import (
 	"app/library/api"
-	v1 "app/library/consts/v1"
+	"app/library/consts"
 	"app/library/crypt/md5"
 	"app/library/types/slice"
 	"app/library/uuid"
@@ -142,7 +142,7 @@ func (t *User) LoginCookie(c *gin.Context) error {
 	if err := DB().Save(t).Error; err != nil {
 		return err
 	}
-	c.SetCookie(v1.SessionName, t.Token, 86400, "/", c.Request.Host, false, false)
+	c.SetCookie(consts.SessionName, t.Token, 86400, "/", c.Request.Host, false, false)
 	return nil
 }
 

@@ -27,8 +27,7 @@ func GetProjectCronjob(values ...interface{}) (res *ProjectCronjob) {
 type ProjectCronjob struct {
 	ID        uint32         `gorm:"primarykey;column:id" json:"id"`
 	Uid       uint32         `gorm:"" json:"uid"`
-	NodeId    uint32         `gorm:"" json:"nodeId"`
-	Node      *Node          `gorm:"" json:"node"`
+	Nodes     NodeList       `gorm:"" json:"node"`
 	ProjectId uint32         `gorm:"" json:"projectId"`
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
@@ -105,8 +104,7 @@ func CronjobAdd(cronjob ProjectCronjob) (err error) {
 			Uid:       cronjob.Uid,
 			Version:   version,
 			Desc:      version,
-			NodeId:    cronjob.NodeId,
-			Node:      cronjob.Node,
+			Nodes:     cronjob.Nodes,
 			ProjectId: project.ID,
 			Project:   project,
 		}, false)
