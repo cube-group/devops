@@ -13,12 +13,12 @@
         </div>
         <div class="panel-body">
             <div class="form-group" v-if="!project.cronjob">
-                <label>版本标号 (默认: latest)</label>
-                <div class="input-group">
+                <label>版本标号</label>
+                <div class="input-group" v-show="!rollback">
                     <div class="input-group-btn">
                         <a class="btn btn-info">上线版本号</a>
                     </div>
-                    <input type="text" class="form-control" v-model="info.version" placeholder="如: v1.1">
+                    <input type="text" class="form-control" v-model="info.version" placeholder="如: v1.1（默认：latest)">
                 </div>
                 <div class="input-group">
                     <div class="input-group-btn">

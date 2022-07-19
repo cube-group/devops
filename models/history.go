@@ -128,7 +128,7 @@ func (t *History) Validator() error {
 	if t.Version == "" {
 		t.Version = "latest"
 	}
-	if t.ProjectId > 0 {
+	if t.Project == nil && t.ProjectId > 0 {
 		if i := GetProject(t.ProjectId); i != nil {
 			t.Project = i
 		}
@@ -136,15 +136,20 @@ func (t *History) Validator() error {
 	if t.Project == nil {
 		return fmt.Errorf("部署失败：project id %d not found", t.ProjectId)
 	}
-	if t.Project.Mode != ProjectModeImage {
-		if t.Nodes == nil {
-			t.Nodes = NodeList{}
+	if t.Nodes == nil {
+		t.Nodes = NodeList{}
+	}
+	if !t.IsDockerRunMode() {
+		if t.Rollback > 0 {
+			return errors.New("该项目模式不支持回滚操作")
 		}
+	}
+	if !t.IsDockerImageMode() {
 		if nodes, err := GetSomeNodes(t.NodeIds); err == nil {
-			t.Nodes = nodes
 			if len(t.Nodes) == 0 {
 				return errors.New("部署目标机器不能为空")
 			}
+			t.Nodes = nodes
 		} else {
 			return err
 		}
@@ -359,7 +364,7 @@ func (t *History) createRunDockerMode() (runContent string, err error) {
 	var template = t.Project.Docker
 	//create volumeLines
 	var volumeLines = make([]string, 0)
-	if t.Project.Docker.Image == "" {
+	if t.Project.Docker.IsImageBuild() {
 		for k, v := range template.Volume {
 			var volumeContent string
 			volumeContent, err = v.Load()
@@ -376,28 +381,26 @@ func (t *History) createRunDockerMode() (runContent string, err error) {
 
 	var imageName string
 	var dockerBuild string
-	var dockerfile = template.Dockerfile
-	if t.Project.Docker.Image != "" {
+	if !t.Project.Docker.IsImageBuild() {
 		imageName = t.Project.Docker.Image
-	} else if dockerfile != "" { //create newLines
-		var newLines = make([]string, 0)
+	} else if template.Dockerfile != "" { //create newLines
+		var dockerfileLines = make([]string, 0)
 		var fromImage string
-		for _, v := range strings.Split(dockerfile, "\n") {
+		for _, v := range strings.Split(template.Dockerfile, "\n") {
 			v = strings.TrimLeft(v, " ")
 			v = strings.TrimRight(v, " ")
 			if strings.Contains(v, "FROM ") {
 				fromImage = strings.Split(v, "FROM ")[1]
 				v = fmt.Sprintf("%s\n%s", v, strings.Join(volumeLines, "\n"))
 			}
-			newLines = append(newLines, v)
+			dockerfileLines = append(dockerfileLines, v)
 		}
 		if fromImage == "" {
 			err = errors.New("Dockerfile invalid")
 			return
 		}
-		dockerfile = strings.Join(newLines, "\n")
 		//create dockerfile
-		if err = ioutil.WriteFile(t.WorkspaceDockerfile(), []byte(dockerfile), os.ModePerm); err != nil {
+		if err = ioutil.WriteFile(t.WorkspaceDockerfile(), []byte(strings.Join(dockerfileLines, "\n")), os.ModePerm); err != nil {
 			return
 		}
 		imageName = t.ImageURL()

@@ -52,3 +52,7 @@ func (t *ProjectTemplateDocker) Scan(value interface{}) error {
 func (t ProjectTemplateDocker) Value() (driver.Value, error) {
 	return json.Marshal(t)
 }
+
+func (t *ProjectTemplateDocker) IsImageBuild() bool {
+	return t.Dockerfile != "" && t.Image == ""
+}

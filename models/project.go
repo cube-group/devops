@@ -150,6 +150,10 @@ func (t *Project) Validator() error {
 	return nil
 }
 
+func (t *Project) IsCronjob() bool {
+	return t.Cronjob != ""
+}
+
 func (t *Project) Apply(history *History, async bool) (err error) {
 	if err = DB().Transaction(func(tx *gorm.DB) error {
 		//Block online

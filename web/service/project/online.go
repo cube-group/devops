@@ -3,6 +3,7 @@ package project
 import (
 	"app/library/ginutil"
 	"app/models"
+	"errors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,27 +13,41 @@ func Online(c *gin.Context) (history models.History, err error) {
 	if err = ginutil.ShouldBind(c, &val); err != nil {
 		return
 	}
-	project := models.GetProject(c)
-	val.ProjectId = project.ID
-	val.Project = project
+	var project = models.GetProject(c)
 	val.ID = 0
+	val.ProjectId = project.ID
 	val.Uid = models.UID(c)
 	val.Status = models.HistoryStatusDefault
+	//rollback logic
+	if val.Rollback > 0 {
+		rollbackHistory := models.GetHistory(val.Rollback)
+		if rollbackHistory == nil {
+			err = errors.New("回复命中回滚镜像历史")
+			return
+		}
+		val.Project = rollbackHistory.Project
+		val.Project.Docker.Dockerfile = ""
+		val.Project.Docker.Image = rollbackHistory.ImageURL()
+	} else {
+		val.Project = project
+	}
 	if err = val.Validator(); err != nil {
 		return
 	}
-
-	if project.Cronjob == "" { //normal online
-		if err = project.Apply(&val, true); err != nil {
-			return
-		}
-		history = val
-	} else { //cronjob online
+	//apply operation
+	if project.IsCronjob() {
+		//cronjob start
 		err = models.CronjobAdd(models.ProjectCronjob{
 			Uid:       val.Uid,
 			Nodes:     val.Nodes,
 			ProjectId: project.ID,
 		})
+	} else {
+		//online
+		if err = project.Apply(&val, true); err != nil {
+			return
+		}
+		history = val
 	}
 	return
 }
