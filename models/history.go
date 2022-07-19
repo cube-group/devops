@@ -68,6 +68,15 @@ func GetHistory(values ...interface{}) (res *History) {
 	return
 }
 
+type HistoryList []History
+
+func (t HistoryList) IDs() (res []uint32) {
+	for _, v := range t {
+		res = append(res, v.ID)
+	}
+	return
+}
+
 type HistoryMarshalJSON History
 
 type History struct {
@@ -76,6 +85,7 @@ type History struct {
 	N         Node           `gorm:"column:node" json:"-" form:"-" binding:"-"`
 	Nodes     NodeList       `gorm:"" json:"nodes" form:"nodes"`
 	Version   string         `gorm:"" json:"version" form:"version"`
+	Rollback  uint32         `gorm:"" json:"rollback" form:"rollback"`
 	Desc      string         `gorm:"" json:"desc" form:"desc" binding:"required"`
 	Status    HistoryStatus  `gorm:"status" json:"status" form:"-"`
 	ProjectId uint32         `gorm:"" json:"projectId" form:"-"`
@@ -130,7 +140,6 @@ func (t *History) Validator() error {
 		if t.Nodes == nil {
 			t.Nodes = NodeList{}
 		}
-		t.Version = "latest" //强制改为latest
 		if nodes, err := GetSomeNodes(t.NodeIds); err == nil {
 			t.Nodes = nodes
 			if len(t.Nodes) == 0 {
@@ -203,16 +212,20 @@ func (t *History) IsDockerMode() bool {
 	return t.Project.Mode == ProjectModeDocker || t.Project.Mode == ProjectModeImage
 }
 
+func (t *History) IsDockerRunMode() bool {
+	return t.Project.Mode == ProjectModeDocker
+}
+
 func (t *History) IsDockerImageMode() bool {
 	return t.Project.Mode == ProjectModeImage
 }
 
-func (t *History) getBeforeHistory() *History {
-	var res History
-	if DB().Last(&res, "project_id=? AND id<?", t.ProjectId, t.ID).Error != nil {
-		return nil
+//是否可以修改项目名称
+func (t *History) CanChangeName(changedName string) bool {
+	if t.Project.Name != changedName && t.Nodes.IsActive() {
+		return false
 	}
-	return &res
+	return true
 }
 
 func (t *History) Shutdown() error {
@@ -255,16 +268,6 @@ func (t *History) Online(async bool) (err error) {
 	//create workspace
 	if err = os.MkdirAll(t.WorkspacePath(DockerVolumePathName), os.ModePerm); err != nil {
 		return
-	}
-	//需要检测之前的history如果存在project.name不一致需要先移除container
-	if t.IsDockerMode() {
-		if beforeHistory := t.getBeforeHistory(); beforeHistory != nil {
-			if beforeHistory.Project.Name != t.Project.Name {
-				if err = beforeHistory.Remove(false); err != nil {
-					return
-				}
-			}
-		}
 	}
 	//create run.sh content
 	var runContent string
@@ -433,7 +436,7 @@ docker push %s
 			if err != nil {
 				return
 			}
-			sshDockerRun = strings.Join(sshArgs, " ") + "\n"
+			sshDockerRun += strings.Join(sshArgs, " ") + "\n"
 		}
 	}
 
@@ -520,22 +523,21 @@ func (t *History) Remove(statusUpdateFlag bool, option ...interface{}) error {
 			node = vv
 		}
 	}
-	var nodes NodeList
 	if node != nil {
 		if _, err := node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
 			return err
 		}
-		nodes = t.Nodes.Del(node.ID)
+		t.Nodes.DisHosted(node.ID)
 	} else {
-		for _, item := range t.Nodes {
+		for k, item := range t.Nodes {
 			if _, err := item.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
 				return err
 			}
+			t.Nodes[k].Hosted = false
 		}
-		nodes = t.Nodes
 	}
 	var db = DB(option...)
-	if err := db.Model(t).Where("id=?", t.ID).Update("nodes", nodes).Error; err != nil {
+	if err := db.Model(t).Where("id=?", t.ID).Update("nodes", t.Nodes).Error; err != nil {
 		return err
 	}
 	if statusUpdateFlag {

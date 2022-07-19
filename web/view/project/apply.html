@@ -14,14 +14,28 @@
         <div class="panel-body">
             <div class="form-group" v-if="!project.cronjob">
                 <label>版本标号 (默认: latest)</label>
-                <input type="text" class="form-control" v-model="info.version" placeholder="如: v1.1">
+                <div class="input-group">
+                    <div class="input-group-btn">
+                        <a class="btn btn-info">上线版本号</a>
+                    </div>
+                    <input type="text" class="form-control" v-model="info.version" placeholder="如: v1.1">
+                </div>
+                <div class="input-group">
+                    <div class="input-group-btn">
+                        <a class="btn btn-warning">回滚版本号</a>
+                    </div>
+                    <select class="form-control" v-model.number="rollback">
+                        <option value="0">选择回滚版本（可选）</option>
+                        <option :value="v.id" v-for="v in rollbackVersions">${v.version+' ('+v.createdAt+')'}</option>
+                    </select>
+                </div>
             </div>
             <div class="form-group" v-if="project.cronjob">
                 <label>Cronjob</label>
                 <input type="text" class="form-control" :value="project.cronjob" disabled>
             </div>
             <div class="form-group">
-                <label>上线内容<span style="color: #FF1717">*</span></label>
+                <label>上线/回滚内容<span style="color: #FF1717">*</span></label>
                 <textarea class="form-control" rows="4" v-model="info.desc"
                           placeholder="如：1、上线xxxx；2、xxxxx;"></textarea>
             </div>
@@ -43,7 +57,8 @@
     </div>
     <!-- 核心配置End -->
     <div class="form-group">
-        <a class="btn btn-primary" @click="onOnline()">上线</a>
+        <a class="btn btn-danger" @click="onOnline()" v-if="rollback">回滚</a>
+        <a class="btn btn-primary" @click="onOnline()" v-if="!rollback">上线</a>
     </div>
 
     <script>
@@ -66,6 +81,8 @@
                 nodes:{{.nodes}},
                 project: project,
                 info: info,
+                rollback:0,
+                rollbackVersions:{{.rollbackVersions}},
             },
             methods: {
                 onOnline() {
@@ -83,9 +100,10 @@
                         nodeMap[item.id] = 1;
                         nodeIds.push(item.id);
                     }
-                    displayConfirm('确认上线?', '确认', '取消', () => {
+                    displayConfirm(`确认${this.rollback?'回滚至该版本':'上线'}?`, '确认', '取消', () => {
                         var requestURL = baseURL('/project/i/', this.project.id, '/online')
                         var data = {
+                            rollback: this.rollback,
                             version: this.info.version,
                             desc: this.info.desc,
                             nodeIds: nodeIds,

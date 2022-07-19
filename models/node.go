@@ -82,6 +82,15 @@ func (t NodeList) Value() (driver.Value, error) {
 	return json.Marshal(t)
 }
 
+func (t NodeList) IsActive() bool {
+	for _, v := range t {
+		if v.Hosted {
+			return true
+		}
+	}
+	return false
+}
+
 func (t NodeList) Has(id uint32) bool {
 	for _, v := range t {
 		if v.ID == id {
@@ -103,13 +112,18 @@ func (t NodeList) Get(id uint32) (node Node, ok bool) {
 	return
 }
 
-func (t NodeList) Del(id uint32) NodeList {
+func (t NodeList) HostedAll() {
+	for k, _ := range t {
+		t[k].Hosted = true
+	}
+}
+
+func (t NodeList) DisHosted(id uint32) {
 	for k, v := range t {
-		if v.ID == id {
-			return append(t[:k], t[k+1:]...)
+		if v.ID == id{
+			t[k].Hosted = false
 		}
 	}
-	return t
 }
 
 func (t NodeList) Contact(node Node) NodeList {
@@ -138,6 +152,8 @@ type Node struct {
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Hosted bool `gorm:"-" json:"hosted" form:"-" binding:"-"` //是否被寄生
 }
 
 func (t *Node) TableName() string {

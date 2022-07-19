@@ -32,8 +32,11 @@
                         <div :data-developer="v.uid" v-html="developersHtml[v.uid]"></div>
                     </td>
                     <td>
-                        <a v-if="v.node" :href="baseURL('/node?name='+v.node.ip)">${v.node.ip}</a>
-                        <div v-if="!v.node && v.project.mode=='image'">镜像构建类</div>
+                        <div v-for="(node,nodeIndex) in v.nodes" v-if="v.project.mode!='image' && v.nodes">
+                            <a :href="baseURL('/node?name='+node.ip)" v-if="nodeIndex<2">${node.ip}</a>
+                            <span v-if="nodeIndex==2">...</span>
+                        </div>
+                        <div v-if="v.project.mode=='image'">镜像构建类</div>
                     </td>
                     <td>
                         <span>

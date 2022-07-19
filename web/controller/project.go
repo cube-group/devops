@@ -59,9 +59,10 @@ func (t *ProjectController) del(c *gin.Context) {
 func (t *ProjectController) apply(c *gin.Context) {
 	var obj = models.GetProject(c)
 	g.HTML(c, "project/apply.html", gin.H{
-		"project": obj,
-		"history": obj.GetLatestHistory(),
-		"nodes":   models.GetNodes(),
+		"project":          obj,
+		"history":          obj.GetLatestHistory(),
+		"nodes":            models.GetNodes(),
+		"rollbackVersions": obj.RollbackVersions(),
 	})
 }
 

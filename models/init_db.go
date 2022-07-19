@@ -73,12 +73,14 @@ func initDBPreHeating() {
 		sqlItems = append(sqlItems, "ALTER TABLE `d_history` MODIFY COLUMN `node` TEXT;")
 		sqlItems = append(sqlItems, "ALTER TABLE `d_history` ADD COLUMN `ci` VARCHAR(1000) DEFAULT '' COMMENT '构建器json';")
 		sqlItems = append(sqlItems, "ALTER TABLE `d_history` ADD COLUMN `nodes` TEXT COMMENT '多个node';")
+		sqlItems = append(sqlItems, "ALTER TABLE `d_history` ADD COLUMN `rollback` INT(11) COMMENT 'rollback history id';")
 		sqlItems = append(sqlItems, "ALTER TABLE `d_project` ADD COLUMN `deleted` TINYINT(1) DEFAULT '0' COMMENT 'pod是否被删';")
 		sqlItems = append(sqlItems, "ALTER TABLE `d_user` ADD UNIQUE KEY `unq_username` (`username`);")
 		sqlItems = append(sqlItems, "ALTER TABLE `d_user` ADD COLUMN `web_url` VARCHAR(500) DEFAULT '' COMMENT 'user web url';")
 		sqlItems = append(sqlItems, "ALTER TABLE `d_user` ADD COLUMN `avatar_blob` BLOB COMMENT 'user avatar blob';")
 		sqlItems = append(sqlItems, "ALTER TABLE `d_user` ADD COLUMN `from` VARCHAR(20) DEFAULT '' COMMENT 'user register from';")
 		sqlItems = append(sqlItems, "ALTER TABLE `d_project_cronjob` ADD COLUMN `nodes` TEXT COMMENT '多个node';")
+
 		for _, sqlItem := range sqlItems {
 			if err = _db.Exec(sqlItem).Error; err != nil {
 				log.StdWarning("init", "db.table.init.err", err)

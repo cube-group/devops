@@ -24,6 +24,14 @@ func Save(c *gin.Context) (err error) {
 		}
 	}
 	return models.DB().Transaction(func(tx *gorm.DB) error {
+		//需要检测之前的history如果存在project.name不一致需要先移除container
+		if val.Mode == models.ProjectModeDocker {
+			if latestHistory := val.GetLatestHistory(tx); latestHistory != nil {
+				if !latestHistory.CanChangeName(val.Name) {
+					return errors.New("项目更名:之前服务节点尚在，请先清理节点再执行操作")
+				}
+			}
+		}
 		if er := models.DB().Save(&val).Error; er != nil {
 			return er
 		}

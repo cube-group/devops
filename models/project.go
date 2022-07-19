@@ -152,13 +152,17 @@ func (t *Project) Validator() error {
 
 func (t *Project) Apply(history *History, async bool) (err error) {
 	if err = DB().Transaction(func(tx *gorm.DB) error {
-		//在上线阻断
+		//Block online
 		if tx.Last(&History{}, "project_id=? AND status=?", t.ID, HistoryStatusDefault).Error == nil {
 			return errors.New("正在上线中请稍后或中断之前的上线...")
 		}
+		//Update project
 		if er := tx.Model(t).Where("id=?", t.ID).Update("deleted", 0).Error; er != nil {
 			return er
 		}
+		//Tag is hosted
+		history.Nodes.HostedAll()
+		//Save history
 		if er := tx.Save(history).Error; er != nil {
 			return er
 		}
@@ -171,4 +175,14 @@ func (t *Project) Apply(history *History, async bool) (err error) {
 
 func (t *Project) StopCronjob() (err error) {
 	return CronjobStop(t.ID)
+}
+
+//该项目可回滚版本号
+func (t *Project) RollbackVersions() (res []History) {
+	var list HistoryList
+	var db = DB()
+	if db.Select("max(id) AS id").Order("id DESC").Group("version").Where("project_id=? AND status=?", t.ID, HistoryStatusSuccess).Find(&list).Error == nil {
+		db.Order("id DESC").Find(&res, "id IN (?)", list.IDs())
+	}
+	return
 }
