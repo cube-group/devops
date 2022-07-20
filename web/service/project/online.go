@@ -27,7 +27,7 @@ func Online(c *gin.Context) (history models.History, err error) {
 		}
 		val.Project = rollbackHistory.Project
 		val.Project.Docker.Dockerfile = ""
-		val.Project.Docker.Image = rollbackHistory.ImageURL()
+		val.Project.Docker.Image = rollbackHistory.RollbackImageURL()
 	} else {
 		val.Project = project
 	}

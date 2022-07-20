@@ -3,6 +3,7 @@ package controller
 import (
 	"app/library/g"
 	"app/models"
+	"app/setting"
 	"github.com/gin-gonic/gin"
 	"runtime"
 )
@@ -21,6 +22,7 @@ func (t *DashboardController) index(c *gin.Context) {
 			"goVersion":    runtime.Version(),
 			"os":           runtime.GOOS,
 			"numGoroutine": runtime.NumGoroutine(),
+			"upgrade":      setting.UpgradeLog,
 		},
 	})
 }

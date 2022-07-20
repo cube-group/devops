@@ -51,11 +51,11 @@
                             <span class="label label-default">-</span>
                         </div>
                         <div v-if="v.history && !v.deleted">
-                            <span v-if="!v.history.status"><i class="fa fa-spinner fa-spin"></i>部署中</span>
+                            <span v-if="!v.history.status"><i class="fa fa-spinner fa-spin"></i>${v.history.rollback?'回滚中':'部署中'}</span>
                             <a class="label label-success" :href="baseURL('/history?pid='+v.id)"
-                               v-if="v.history.status=='ok'">成功</a>
+                               v-if="v.history.status=='ok'">${v.history.rollback?'回滚成功':'成功'}</a>
                             <a class="label label-danger" :href="baseURL('/history?id='+v.history.id)"
-                               v-if="v.history.status=='error'">失败</a>
+                               v-if="v.history.status=='error'">${v.history.rollback?'回滚失败':'失败'}</a>
                             <span v-if="v.history.status=='ok' || v.history.status=='error'">
                                 耗时：${secondToString(v.history.useTime)}
                             </span>

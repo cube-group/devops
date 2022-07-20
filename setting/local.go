@@ -5,14 +5,19 @@ import (
 )
 
 var Version string
+var UpgradeLog string
 
 func initLocal() {
 	//local/config.yaml
-	result, err := EmbedLocal().ReadFile("local/version")
-	if err == nil {
+	if result, err := EmbedLocal().ReadFile("local/version"); err == nil {
 		Version = string(result)
+	} else {
+		log.StdFatal("init", "initLocal version", err)
 	}
-	if err != nil {
-		log.StdFatal("init", "initLocal", err)
+	//local/upgrade.html
+	if result, err := EmbedLocal().ReadFile("local/upgrade.html"); err == nil {
+		UpgradeLog = string(result)
+	} else {
+		log.StdFatal("init", "initLocal upgrade.html", err)
 	}
 }

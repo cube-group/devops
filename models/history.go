@@ -139,19 +139,19 @@ func (t *History) Validator() error {
 	if t.Nodes == nil {
 		t.Nodes = NodeList{}
 	}
-	if !t.IsDockerRunMode() {
+	if !t.IsDockerRunMode() || t.Project.IsCronjob() {
 		if t.Rollback > 0 {
 			return errors.New("该项目模式不支持回滚操作")
 		}
 	}
 	if !t.IsDockerImageMode() {
 		if nodes, err := GetSomeNodes(t.NodeIds); err == nil {
-			if len(t.Nodes) == 0 {
-				return errors.New("部署目标机器不能为空")
-			}
 			t.Nodes = nodes
 		} else {
 			return err
+		}
+		if len(t.Nodes) == 0 {
+			return errors.New("部署目标机器不能为空")
 		}
 	}
 	if t.IsDockerMode() {
@@ -165,6 +165,13 @@ func (t *History) Validator() error {
 		t.Project.Docker.Volume = VolumeList{}
 	}
 	return nil
+}
+
+func (t *History) RollbackImageURL() string {
+	if t.Project.Docker.Image != "" {
+		return t.Project.Docker.Image
+	}
+	return t.ImageURL()
 }
 
 func (t *History) ImageURL() string {

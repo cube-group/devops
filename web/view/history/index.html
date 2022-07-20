@@ -40,7 +40,7 @@
                     </td>
                     <td>
                         <span>
-                            <a :href="baseURL('/project/i',v.project.id)">${v.project.name}</a> /
+                            <a :href="baseURL('/project?name='+v.project.id)">${v.project.name}</a> /
                         </span>
                         <span class="badge">
                             <a style="color: #FFFFFF;" data-toggle="tooltip" data-placement="bottom"
@@ -50,9 +50,9 @@
                     </td>
                     <td>
                         <div>
-                            <span v-if="v.status==''"><i class="fa fa-spinner fa-spin"></i>部署中</span>
-                            <span v-if="v.status=='ok'"><label class="label label-success">成功</label></span>
-                            <span v-if="v.status=='error'"><label class="label label-danger">失败</label></span>
+                            <span v-if="v.status==''"><i class="fa fa-spinner fa-spin"></i>${v.rollback?'回滚中':'部署中'}</span>
+                            <span v-if="v.status=='ok'"><label class="label label-success">${v.rollback?'回滚成功':'成功'}</label></span>
+                            <span v-if="v.status=='error'"><label class="label label-danger">${v.rollback?'回滚失败':'失败'}</label></span>
                             耗时：${secondToString(v.useTime)}
                         </div>
 
