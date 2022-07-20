@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"strings"
 )
 
 type TTYCode string
@@ -66,6 +67,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			} else {
 				err = errors.New("pod not found")
 			}
+			fmt.Println(strings.Join(args, " "))
 			if err != nil {
 				return
 			}
@@ -85,6 +87,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			} else {
 				err = errors.New("pod not found")
 			}
+			fmt.Println(strings.Join(args, " "))
 			if err != nil {
 				return
 			}

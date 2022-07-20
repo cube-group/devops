@@ -16,7 +16,8 @@ func (t *NodeController) Init(group *gin.RouterGroup) {
 	group.GET(".", t.index)
 	group.GET("/create", t.create)
 	group.POST("/save", t.save)
-	group.POST("/state", t.state)
+	group.POST("/docker/version", t.dockerVersion)
+	group.POST("/docker/stats", t.dockerStats)
 	detailGroup := group.Group("/i/:nid", middleware.Node())
 	detailGroup.GET(".", t.info)
 	detailGroup.DELETE(".", t.del)
@@ -32,9 +33,15 @@ func (t *NodeController) create(c *gin.Context) {
 	})
 }
 
-//node state
-func (t *NodeController) state(c *gin.Context) {
-	res, err := node.GetState(c)
+//node docker version
+func (t *NodeController) dockerVersion(c *gin.Context) {
+	res, err := node.GetDockerVersion(c)
+	ginutil.JsonAuto(c, "Success", err, res)
+}
+
+//node docker stats
+func (t *NodeController) dockerStats(c *gin.Context) {
+	res, err := node.GetDockerStats(c)
 	ginutil.JsonAuto(c, "Success", err, res)
 }
 
