@@ -24,12 +24,12 @@
                 <tbody>
                 <tr v-for="v in history.nodes">
                     <td>${v.ip}</td>
-                    <td v-if="v.hosted">
+                    <td v-if="!v.removed">
                         <a class="btn btn-default" @click="onLog(v)">Stdout</a>
                         <a class="btn btn-primary" @click="onTty(v)">TTY</a>
                         <a class="btn btn-danger" @click="onDel(v)">Del</a>
                     </td>
-                    <td v-if="!v.hosted">
+                    <td v-if="v.removed">
                         该节点服务已被移除
                     </td>
                 </tr>

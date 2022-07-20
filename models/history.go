@@ -537,13 +537,13 @@ func (t *History) Remove(statusUpdateFlag bool, option ...interface{}) error {
 		if _, err := node.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
 			return err
 		}
-		t.Nodes.DisHosted(node.ID)
+		t.Nodes.RemovePod(node.ID)
 	} else {
 		for k, item := range t.Nodes {
 			if _, err := item.Exec(fmt.Sprintf("docker rm -f %s", t.Project.Name)); err != nil {
 				return err
 			}
-			t.Nodes[k].Hosted = false
+			t.Nodes[k].Removed = true
 		}
 	}
 	var db = DB(option...)

@@ -164,8 +164,6 @@ func (t *Project) Apply(history *History, async bool) (err error) {
 		if er := tx.Model(t).Where("id=?", t.ID).Update("deleted", 0).Error; er != nil {
 			return er
 		}
-		//Tag is hosted
-		history.Nodes.HostedAll()
 		//Save history
 		if er := tx.Save(history).Error; er != nil {
 			return er

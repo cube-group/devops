@@ -84,7 +84,7 @@ func (t NodeList) Value() (driver.Value, error) {
 
 func (t NodeList) IsActive() bool {
 	for _, v := range t {
-		if v.Hosted {
+		if !v.Removed {
 			return true
 		}
 	}
@@ -112,16 +112,10 @@ func (t NodeList) Get(id uint32) (node Node, ok bool) {
 	return
 }
 
-func (t NodeList) HostedAll() {
-	for k, _ := range t {
-		t[k].Hosted = true
-	}
-}
-
-func (t NodeList) DisHosted(id uint32) {
+func (t NodeList) RemovePod(id uint32) {
 	for k, v := range t {
-		if v.ID == id{
-			t[k].Hosted = false
+		if v.ID == id {
+			t[k].Removed = true
 		}
 	}
 }
@@ -153,7 +147,7 @@ type Node struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Hosted bool `gorm:"-" json:"hosted" form:"-" binding:"-"` //是否被寄生
+	Removed bool `gorm:"-" json:"removed" form:"-" binding:"-"` //是否被移除
 }
 
 func (t *Node) TableName() string {
