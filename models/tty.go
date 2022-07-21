@@ -6,56 +6,59 @@ import (
 	"app/library/types/jsonutil"
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/imroc/req"
+	"gorm.io/gorm"
 	"net/http"
 	"os/exec"
-	"sync"
+	"strings"
+	"syscall"
 	"time"
 )
 
-var ttyPorts sync.Map
+const (
+	TTY_PORT_START = 40000
+)
 
-func KillPortProcess(port int) error {
-	return nil
-	//i, ok := ttyPorts.Load(port)
-	//if !ok {
-	//	return nil
-	//}
-	//md5ID, ok := i.(string)
-	//if !ok || md5ID == "" {
-	//	return nil
-	//}
-	//cmd := exec.Command("sh", "-c", fmt.Sprintf(`ps aux | grep -e "MD5=%s" | grep -v grep | awk '{print $1}' | sort -rn | sed -n '1p' | xargs kill`, md5ID))
-	//bytes, err := cmd.CombinedOutput()
-	//fmt.Println(cmd.Args, string(bytes))
-	//return err
+type TtyPort struct {
+	ID        uint32         `gorm:"primarykey;column:id" json:"id" form:"id"`
+	Uid       uint32         `gorm:"" json:"-" form:"-"`
+	Port      uint32         `gorm:"" json:"-" form:"-"`
+	Cmd       string         `gorm:"" json:"-" form:"-"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
-func CreateGoTTY(writeFlag bool, md5ID string, arg ...string) (port int, err error) {
-	port = 40000
-	for {
-		if _, ok := ttyPorts.Load(port); ok {
-			port++
+func (t *TtyPort) TableName() string {
+	return "d_tty_port"
+}
+
+func CreateGoTTY(c *gin.Context, writeFlag bool, arg ...string) (port uint32, err error) {
+	//gotty port save
+	err = DB().Transaction(func(tx *gorm.DB) error {
+		var find TtyPort
+		if tx.Order("port DESC").First(&find).Error == nil {
+			port = find.Port + 1
 		} else {
-			break
+			port = TTY_PORT_START
 		}
-	}
-	if port > 50000 {
-		err = errors.New("TTY No Port Can Used")
+		//create tty args
+		var appendArg = []string{}
+		if writeFlag {
+			appendArg = append(appendArg, "-w")
+		}
+		appendArg = append(appendArg, "-p", convert.MustString(port), "--once", "--timeout", "15")
+		arg = append(appendArg, arg...)
+		//save tty port
+		return tx.Save(&TtyPort{Uid: UID(c), Port: port, Cmd: strings.Join(append([]string{"gotty"}, arg...), " ")}).Error
+	})
+	if err != nil {
 		return
 	}
-	ttyPorts.Store(port, md5ID)
-	var appendArg = []string{}
-	if writeFlag {
-		appendArg = append(appendArg, "-w")
-	}
-	appendArg = append(appendArg, "-p", convert.MustString(port), "--once", "--timeout", "10")
-	arg = append(appendArg, arg...)
-
+	//create gotty process
 	var waitChan = make(chan int, 1)
 	defer close(waitChan)
-
-	//create gotty process
 	var cmd *exec.Cmd
 	go func() {
 		defer func() {
@@ -65,7 +68,8 @@ func CreateGoTTY(writeFlag bool, md5ID string, arg ...string) (port int, err err
 		}()
 		cmd = exec.Command("gotty", arg...)
 		log.StdOut("gotty", port, "end", cmd.Run())
-		ttyPorts.Delete(port) //delete port maps
+		time.Sleep(time.Second)                            //wait for gotty process finish
+		DB().Unscoped().Delete(&TtyPort{}, "port=?", port) //delete port maps
 	}()
 	//test connect
 	var testing = true
@@ -80,10 +84,10 @@ func CreateGoTTY(writeFlag bool, md5ID string, arg ...string) (port int, err err
 				waitChan <- 1
 				return
 			}
-			if time.Now().After(startTime.Add(time.Second * 3)) { //timeout
-				err = errors.New("timeout")
+			if time.Now().After(startTime.Add(time.Second * 10)) { //timeout
+				err = errors.New("wait gotty timeout")
 				if cmd != nil && cmd.Process != nil {
-					log.StdWarning("gotty", "timeout killed", cmd.Process.Kill())
+					log.StdWarning("gotty", "timeout killed", cmd.Process.Signal(syscall.SIGINT), cmd.Process.Kill())
 				}
 				waitChan <- 1
 				return

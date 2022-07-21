@@ -3,6 +3,7 @@ package core
 import (
 	"app/library/types/convert"
 	"errors"
+	"fmt"
 	"os/exec"
 	"regexp"
 	"sort"
@@ -37,6 +38,7 @@ func KillProcessGroup(options ...interface{}) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println(string(bytes))
 	re := regexp.MustCompile("[0-9]+")
 	pidList := re.FindAllString(string(bytes), -1)
 	if pidList != nil && len(pidList) > 0 {

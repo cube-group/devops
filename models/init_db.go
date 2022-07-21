@@ -98,6 +98,8 @@ func initDBPreHeating() {
 	} else {
 		log.StdOut("init", "db.user.test.password:", userTest.Password)
 	}
+	//clear db
+	_db.Unscoped().Delete(&TtyPort{}, "1=1")
 }
 
 //如果传了db连接，使用传入的db连接（用于事务开启场景）

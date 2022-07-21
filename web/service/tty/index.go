@@ -2,8 +2,6 @@ package tty
 
 import (
 	"app/library/log"
-	"app/library/types/convert"
-	"app/models"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/url"
@@ -97,7 +95,7 @@ func Proxy(c *gin.Context, port, assist string) {
 	}
 	defer func() {
 		ws.Close()
-		log.StdOut("gotty", "conn.closed", c.Request.RequestURI, models.KillPortProcess(convert.MustInt(port)))
+		log.StdOut("gotty", "conn.closed", c.Request.RequestURI)
 	}()
 
 	wsUrl := url.URL{Scheme: "ws", Host: "127.0.0.1:" + port, Path: "/ws"}

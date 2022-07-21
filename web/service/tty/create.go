@@ -2,12 +2,10 @@ package tty
 
 import (
 	"app/library/ginutil"
-	"app/library/uuid"
 	"app/models"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"strings"
 )
 
 type TTYCode string
@@ -33,11 +31,10 @@ func Create(c *gin.Context) (res gin.H, err error) {
 	if err = ginutil.ShouldBind(c, &val); err != nil {
 		return
 	}
-	var port int
-	var md5ID = uuid.GetUUID(val.Code)
+	var port uint32
 	switch val.Code {
 	case TTYCodeBash:
-		port, err = models.CreateGoTTY(true, "", "bash")
+		port, err = models.CreateGoTTY(c, true, "bash")
 		//default: "--close-signal", "1", // SIGHUP
 	case TTYCodeNode: //node
 		//permission check
@@ -51,7 +48,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			if err != nil {
 				return
 			}
-			port, err = models.CreateGoTTY(true, md5ID, append([]string{"--close-cmd", "exit"}, args...)...)
+			port, err = models.CreateGoTTY(c, true, append([]string{"--close-cmd", "exit"}, args...)...)
 			//"--close-signal", "9", // SIGKILL, kill -9
 		}
 	case TTYCodeExec: //docker exec
@@ -67,11 +64,10 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			} else {
 				err = errors.New("pod not found")
 			}
-			fmt.Println(strings.Join(args, " "))
 			if err != nil {
 				return
 			}
-			port, err = models.CreateGoTTY(true, md5ID, append([]string{"--close-cmd", "exit"}, args...)...)
+			port, err = models.CreateGoTTY(c, true, append([]string{"--close-cmd", "exit"}, args...)...)
 			//"--close-signal", "9", // SIGKILL, kill -9
 		}
 	case TTYCodeLogs: //docker logs
@@ -87,11 +83,10 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			} else {
 				err = errors.New("pod not found")
 			}
-			fmt.Println(strings.Join(args, " "))
 			if err != nil {
 				return
 			}
-			port, err = models.CreateGoTTY(true, md5ID, append([]string{"--close-cmd", "exit"}, args...)...)
+			port, err = models.CreateGoTTY(c, true, append([]string{"--close-cmd", "exit"}, args...)...)
 			//"--close-signal", "9", // SIGKILL, kill -9
 		}
 	case TTYCodeTail: //history apply tail
@@ -103,6 +98,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 				}
 			}
 			port, err = models.CreateGoTTY(
+				c,
 				false, "",
 				"--close-signal", "2", // SIGINT, ctrl-c
 				"tail", "-f", "-n", "5000", logFilePath,

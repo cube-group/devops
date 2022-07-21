@@ -1,4 +1,4 @@
--- 2022-07-12 11:17:46
+-- 2022-07-21 10:14:10
 
 
 
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS `d_cfg` (
   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=121 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=139 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `d_history` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -28,10 +28,12 @@ CREATE TABLE IF NOT EXISTS `d_history` (
   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` datetime DEFAULT NULL,
   `ci` varchar(1000) DEFAULT '',
+  `nodes` text COMMENT '多个node',
+  `rollback` int(11) DEFAULT NULL COMMENT 'rollback history id',
   PRIMARY KEY (`id`),
   KEY `idx_deleted_at` (`deleted_at`),
   KEY `idx_project_id` (`project_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=264 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=296 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `d_node` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -78,9 +80,10 @@ CREATE TABLE IF NOT EXISTS `d_project_cronjob` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` datetime DEFAULT NULL,
+  `nodes` text COMMENT '多个node',
   PRIMARY KEY (`id`),
   UNIQUE KEY `unq_project_id` (`project_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `d_project_user` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -113,7 +116,19 @@ CREATE TABLE IF NOT EXISTS `d_tag_rel` (
   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `d_tty_port` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `uid` int(11) NOT NULL DEFAULT '0',
+  `port` int(11) NOT NULL DEFAULT '0',
+  `cmd` varchar(10000) DEFAULT '',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_port` (`port`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COMMENT='Tty port use list';
 
 CREATE TABLE IF NOT EXISTS `d_user` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -134,4 +149,4 @@ CREATE TABLE IF NOT EXISTS `d_user` (
   `from` varchar(20) DEFAULT '' COMMENT 'user register from',
   PRIMARY KEY (`id`),
   UNIQUE KEY `unq_username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
