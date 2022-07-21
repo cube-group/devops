@@ -81,7 +81,7 @@
                 nodes:{{.nodes}},
                 project: project,
                 info: info,
-                rollback:0,
+                rollback: 0,
                 rollbackVersions:{{.rollbackVersions}},
             },
             methods: {
@@ -90,8 +90,7 @@
                     var nodeMap = {};
                     for (var item of this.info.nodes) {
                         if (!item.id) {
-                            showAlert('目标节点不能为空');
-                            return;
+                            continue;
                         }
                         if (nodeMap.hasOwnProperty(item.id)) {
                             showAlert('目标节点不能重复');
@@ -100,7 +99,7 @@
                         nodeMap[item.id] = 1;
                         nodeIds.push(item.id);
                     }
-                    displayConfirm(`确认${this.rollback?'回滚至该版本':'上线'}?`, '确认', '取消', () => {
+                    displayConfirm(`确认${this.rollback ? '回滚至该版本' : '上线'}?`, '确认', '取消', () => {
                         var requestURL = baseURL('/project/i/', this.project.id, '/online')
                         var data = {
                             rollback: this.rollback,
