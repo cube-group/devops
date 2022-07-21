@@ -20,7 +20,7 @@
                     </div>
                     <input type="text" class="form-control" v-model="info.version" placeholder="如: v1.1（默认：latest)">
                 </div>
-                <div class="input-group">
+                <div class="input-group" v-if="project.mode=='docker'">
                     <div class="input-group-btn">
                         <a class="btn btn-warning">回滚版本号</a>
                     </div>
