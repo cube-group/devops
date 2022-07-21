@@ -1,9 +1,9 @@
 package models
 
 import (
+	"app/library/e"
 	"app/library/log"
 	"app/library/types/convert"
-	"app/library/types/jsonutil"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -60,17 +60,12 @@ func CreateGoTTY(c *gin.Context, writeFlag bool, arg ...string) (port uint32, er
 	var waitChan = make(chan int, 1)
 	defer close(waitChan)
 	var cmd *exec.Cmd
-	go func() {
-		defer func() {
-			if er := recover(); er != nil {
-				log.StdWarning("gotty", jsonutil.ToString(arg), er)
-			}
-		}()
+	go e.TryCatch(func() {
 		cmd = exec.Command("gotty", arg...)
-		log.StdOut("gotty", port, "end", cmd.Run())
+		log.StdOut("gotty", strings.Join(arg, " "), "end", cmd.Run())
 		time.Sleep(time.Second)                            //wait for gotty process finish
 		DB().Unscoped().Delete(&TtyPort{}, "port=?", port) //delete port maps
-	}()
+	})
 	//test connect
 	var testing = true
 	go func() {

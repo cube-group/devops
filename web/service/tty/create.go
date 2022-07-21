@@ -99,7 +99,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			}
 			port, err = models.CreateGoTTY(
 				c,
-				false, "",
+				false,
 				"--close-signal", "2", // SIGINT, ctrl-c
 				"tail", "-f", "-n", "5000", logFilePath,
 			)
