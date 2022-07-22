@@ -54,7 +54,8 @@
                         ${v.createdAt}
                     </td>
                     <td>
-                        <a class="btn btn-xs btn-default" @click="onDisplayContainer(v)" v-if="v.stats">
+                        <a class="btn btn-xs btn-default" :href="baseURL('/node/i',v.id,'/docker')"
+                           v-if="v.stateContent && !v.stateError">
                             容器
                         </a>
                         <a class="btn btn-xs btn-primary" @click="onNodeTty(v)">
@@ -78,80 +79,14 @@
          style="width:100%;height:100%;background-color:#0C0C0C;padding: 10px;display: none;" hidden>
         <iframe id="tty" style="width: 100%;height:100%;border: medium none;"></iframe>
     </div>
-    <!-- container display Layer -->
-    <div id="display" style="padding: 20px;" hidden>
-        <table class="table">
-            <thead>
-            <tr>
-                <th>ID/Name</th>
-                <th>BlockIO/NetIO</th>
-                <th>CPU</th>
-                <th>Memory</th>
-                <th>Other</th>
-            </tr>
-            </thead>
-            <tbody v-if="editor.stats && editor.stats">
-            <tr v-for="v in editor.stats">
-                <td>
-                    <div>
-                        ${v.ID}
-                    </div>
-                    <div>
-                        <label class="label label-primary">${v.Name}</label>
-                    </div>
-                </td>
-                <td>
-                    <div>
-                        ${v.BlockIO}
-                    </div>
-                    <div>
-                        ${v.NetIO}
-                    </div>
-                </td>
-                <td>${v.CPUPerc}</td>
-                <td>
-                    <div>${v.MemPerc}</div>
-                    <div>${v.MemUsage}</div>
-                </td>
-                <td>
-                    <div class="btn-group">
-                        <a class="btn btn-default dropdown-toggle" data-toggle="dropdown"
-                           aria-haspopup="true" aria-expanded="false">
-                            Action <span class="caret"></span>
-                        </a>
-                        <ul class="dropdown-menu">
-{{/*                            <li>*/}}
-{{/*                                <a @click="onContainerStdout(v)" href="javascript:">Stdout</a>*/}}
-{{/*                            </li>*/}}
-{{/*                            <li>*/}}
-{{/*                                <a @click="onContainerTty(v)" href="javascript:">TTY</a>*/}}
-{{/*                            </li>*/}}
-{{/*                            <li role="separator" class="divider" href="javascript:"></li>*/}}
-{{/*                            <li>*/}}
-{{/*                                <a @click="onContainerRestart(v)" href="javascript:">Restart</a>*/}}
-{{/*                            </li>*/}}
-{{/*                            <li role="separator" class="divider" href="javascript:"></li>*/}}
-{{/*                            <li>*/}}
-{{/*                                <a @click="onContainerDel(v)" href="javascript:">Delete</a>*/}}
-{{/*                            </li>*/}}
-                        </ul>
-                    </div>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
 
     <script>
         vueMixin = {
             data: {
                 list:{{.list}},
                 search:{{.search}},
-                envList:{{.envList}},
                 location: '/node',
                 openTtyIndex: 0,
-                editor: [],
-                loadingDockerStats: false,
             },
             methods: {
                 onSearch() {
@@ -188,10 +123,6 @@
                         });
                     }
                 },
-                onDisplayContainer(node) {
-                    this.editor = node;
-                    showDiv('#display', `宿主机${node.ip}容器列表`, ['900px', '600px']);
-                },
                 onReloadDockerVersion() {//refresh node state
                     var ids = [];
                     for (var i of this.list) {
@@ -209,33 +140,12 @@
                         }
                     }, {loading: false});
                 },
-                onReloadDockerStats() {//refresh node state
-                    if (this.loadingDockerStats) {
-                        return;
-                    }
-                    var ids = [];
-                    for (var i of this.list) {
-                        ids.push(i.id);
-                    }
-                    reqPostJson('/node/docker/stats', {ids: ids}, (resData) => {
-                        for (var node of this.list) {
-                            for (var keyID in resData) {
-                                if (keyID == node.id) {
-                                    this.$set(node, 'stats', resData[keyID]);
-                                }
-                            }
-                        }
-                        this.loadingDockerStats = false;
-                    }, {loading: false, noCatch: true});
-                }
             },
             created() {
             },
             mounted() {
                 $(window).resize(this.onResize);
                 this.onReloadDockerVersion();
-                this.onReloadDockerStats();
-                setInterval(this.onReloadDockerStats, 20000);
             }
         };
     </script>

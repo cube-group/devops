@@ -7,13 +7,13 @@ import (
 	"time"
 )
 
-func SSHConnect(username, password, rsaPrivate, host, port string) (session *ssh.Session, err error) {
+func SSHConnect(username, password, rsaPrivate, host, port string) (client *ssh.Client, session *ssh.Session, err error) {
 	auth := []ssh.AuthMethod{}
 	if rsaPrivate != "" {
 		var signer ssh.Signer
 		signer, err = ssh.ParsePrivateKey([]byte(rsaPrivate))
 		if err != nil {
-			return nil, err
+			return
 		}
 		auth = append(auth, ssh.PublicKeys(signer))
 	}
@@ -21,7 +21,8 @@ func SSHConnect(username, password, rsaPrivate, host, port string) (session *ssh
 		auth = append(auth, ssh.Password(password))
 	}
 	if len(auth) == 0 {
-		return nil, errors.New("password & rsa is nil")
+		err = errors.New("password & rsa is nil")
+		return
 	}
 
 	clientConfig := &ssh.ClientConfig{
@@ -31,7 +32,7 @@ func SSHConnect(username, password, rsaPrivate, host, port string) (session *ssh
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 	addr := fmt.Sprintf("%s:%s", host, port)
-	client, err := ssh.Dial("tcp", addr, clientConfig)
+	client, err = ssh.Dial("tcp", addr, clientConfig)
 	if err != nil {
 		return
 	}

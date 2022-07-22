@@ -49,7 +49,7 @@ func InitCronjob() {
 func initSystemCronjob() {
 	var systemCron = cron.New()
 	systemCron.AddFunc("0 4 */1 * *", func() {
-		NodeClean()
+		 NodeDockerPrune()
 	})
 	systemCron.Run()
 }

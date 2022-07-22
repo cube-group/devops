@@ -58,7 +58,7 @@ func GetNodes() (res []Node) {
 	return res
 }
 
-func NodeClean() {
+func NodeDockerPrune() {
 	for _, item := range GetNodes() {
 		_, err := item.Exec("docker system prune -a -f")
 		log.StdOut("nodeClean", item.IP, err)
@@ -208,12 +208,15 @@ func (t *Node) WorkspaceSshIdRsaPath() string {
 
 //sync exec remote shell
 func (t *Node) Exec(cmd string) (res []byte, err error) {
-	s, err := sshtool.SSHConnect(t.SshUsername, t.SshPassword, t.SshKey, t.IP, t.SshPort)
+	client,session, err := sshtool.SSHConnect(t.SshUsername, t.SshPassword, t.SshKey, t.IP, t.SshPort)
 	if err != nil {
 		return
 	}
-	defer s.Close()
-	res, err = s.CombinedOutput(cmd)
+	defer func() {
+		session.Close()
+		client.Close()
+	}()
+	res, err = session.CombinedOutput(cmd)
 	return
 }
 

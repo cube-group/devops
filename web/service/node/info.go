@@ -4,6 +4,7 @@ import (
 	"app/library/ginutil"
 	"app/library/types/convert"
 	"app/models"
+	"errors"
 	"github.com/gin-gonic/gin"
 	jsoniter "github.com/json-iterator/go"
 	"strings"
@@ -14,7 +15,7 @@ type valInfos struct {
 	Ids []uint32 `json:"ids" form:"ids" binding:"required"`
 }
 
-func getNodeRemoteShellResult(c *gin.Context, shell string) (res gin.H, err error) {
+func DockerVersion(c *gin.Context) (res gin.H, err error) {
 	res = gin.H{}
 	var val valInfos
 	if err = ginutil.ShouldBind(c, &val); err != nil {
@@ -24,14 +25,13 @@ func getNodeRemoteShellResult(c *gin.Context, shell string) (res gin.H, err erro
 	if err = models.DB().Find(&list, "id IN (?)", val.Ids).Error; err != nil {
 		return
 	}
-	//并发
 	var maps sync.Map
 	var wg sync.WaitGroup
 	for _, v := range list {
 		wg.Add(1)
 		go func(i models.Node) {
 			defer wg.Done()
-			bytes, er := i.Exec(shell)
+			bytes, er := i.Exec("docker version --format='{{json .}}'")
 			var item = gin.H{"id": i.ID, "content": string(bytes), "error": ""}
 			if er != nil {
 				item["error"] = er.Error()
@@ -48,26 +48,54 @@ func getNodeRemoteShellResult(c *gin.Context, shell string) (res gin.H, err erro
 	return
 }
 
-func GetDockerVersion(c *gin.Context) (res gin.H, err error) {
-	return getNodeRemoteShellResult(c, "docker version --format='{{json .}}'")
-}
-
-func GetDockerStats(c *gin.Context) (res gin.H, err error) {
-	res, err = getNodeRemoteShellResult(c, "docker stats --no-stream --format='{{json .}}'")
+func DockerPs(c *gin.Context) (res []interface{}, err error) {
+	var node = models.GetNode(c)
+	bytes, err := node.Exec("docker ps --format='{{json .}}'")
 	if err != nil {
 		return
 	}
-	for k, v := range res {
-		var item = v.(gin.H)
-		var content = convert.MustString(item["content"])
-		var jsonItemList = []gin.H{}
-		for _, i := range strings.Split(content, "\n") {
-			var jsonItem gin.H
-			if er := jsoniter.Unmarshal([]byte(i), &jsonItem); er == nil {
-				jsonItemList = append(jsonItemList, jsonItem)
-			}
+	res = make([]interface{}, 0)
+	for _, strItem := range strings.Split(string(bytes), "\n") {
+		var resItem gin.H
+		if jsoniter.Unmarshal([]byte(strItem), &resItem) == nil {
+			res = append(res, resItem)
 		}
-		res[k] = jsonItemList
+	}
+	return
+}
+
+func DockerRestart(c *gin.Context) (err error) {
+	var name = ginutil.Input(c, "name")
+	if name == "" {
+		return errors.New("name is nil")
+	}
+	var node = models.GetNode(c)
+	_, err = node.Exec("docker restart " + name)
+	return
+}
+
+func DockerRm(c *gin.Context) (err error) {
+	var name = ginutil.Input(c, "name")
+	if name == "" {
+		return errors.New("name is nil")
+	}
+	var node = models.GetNode(c)
+	_, err = node.Exec("docker rm -f " + name)
+	return
+}
+
+func DockerStats(c *gin.Context) (res []interface{}, err error) {
+	var node = models.GetNode(c)
+	bytes, err := node.Exec("docker stats --no-stream --format='{{json .}}'")
+	if err != nil {
+		return
+	}
+	res = make([]interface{}, 0)
+	for _, strItem := range strings.Split(string(bytes), "\n") {
+		var resItem gin.H
+		if jsoniter.Unmarshal([]byte(strItem), &resItem) == nil {
+			res = append(res, resItem)
+		}
 	}
 	return
 }
