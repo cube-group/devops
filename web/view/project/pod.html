@@ -54,13 +54,13 @@
                 onLog(node) {
                     this.displayFrame(
                         `Node: ${node.ip} Container: ${this.project.name} Exec`,
-                        `/tty/create?code=logs&id=${this.history.id}&pod=${node.id}`
+                        `/tty/create?code=containerLogs&id=${this.history.id}&pod=${node.id}`
                     );
                 },
                 onTty(node) {
                     this.displayFrame(
                         `Node: ${node.ip} Container: ${this.project.name} Exec`,
-                        `/tty/create?code=exec&id=${this.history.id}&pod=${node.id}`
+                        `/tty/create?code=containerExec&id=${this.history.id}&pod=${node.id}`
                     );
                 },
                 onDel(node) {

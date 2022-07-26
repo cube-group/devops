@@ -63,7 +63,7 @@
             mounted() {
                 this.onResize();
                 $(window).bind('resize', this.onResize);
-                reqPost(`/tty/create?code=tail&id=${this.info.id}`, null, (resData) => {
+                reqPost(`/tty/create?code=historyTail&id=${this.info.id}`, null, (resData) => {
                     var frameURL = baseURL('/tty/port', resData.port, '/connect');
                     $('#log').attr('src', frameURL);
                 });

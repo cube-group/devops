@@ -59,10 +59,10 @@
                             </a>
                             <ul class="dropdown-menu">
                                 <li>
-                                    <a @click="onContainerStdout(v)" href="javascript:">Stdout</a>
+                                    <a @click="onContainerTty(v)" href="javascript:">TTY</a>
                                 </li>
                                 <li>
-                                    <a @click="onContainerTty(v)" href="javascript:">TTY</a>
+                                    <a @click="onContainerLogs(v)" href="javascript:">Logs</a>
                                 </li>
                                 <li role="separator" class="divider" href="javascript:"></li>
                                 <li>
@@ -90,7 +90,7 @@
         vueMixin = {
             data: {
                 node:{{.node}},
-                openTtyIndex: 0,
+                openContainerIndex: 0,
                 containerList: [],
             },
             methods: {
@@ -110,17 +110,46 @@
                     });
                 },
                 onContainerTty(container) {
-                    showAlert('Coming soon...')
+                    this.displayFrame(
+                        `Node: ${this.node.ip} Container: ${container.Names} Exec`,
+                        `/tty/create?code=nodeContainerExec&id=${this.node.id}&pod=${container.Names}`
+                    );
                 },
-                onContainerStd(container) {
-                    showAlert('Coming soon...')
+                onContainerLogs(container) {
+                    this.displayFrame(
+                        `Node: ${this.node.ip} Container: ${container.Names} Std`,
+                        `/tty/create?code=nodeContainerLogs&id=${this.node.id}&pod=${container.Names}`
+                    );
                 },
-                onResize() {//window resize
-                    if (this.openTtyIndex) {
-                        layui.layer.style(this.openTtyIndex, {
+                onFrameResize() {
+                    if (this.openContainerIndex) {
+                        layui.layer.style(this.openContainerIndex, {
                             left: 0, top: 0, width: $(window).width(), height: $(window).height()
                         });
                     }
+                },
+                displayFrame(title, uri) {
+                    reqPost(uri, null, (resData) => {
+                        var frameURL = baseURL('/tty/port', resData.port, '/connect');
+                        this.openContainerIndex = layui.layer.open({
+                            type: 1,
+                            area: [$(window).width() + 'px', $(window).height() + 'px'],
+                            title: title,
+                            content: $('#tty-container'),
+                            anim: 2,
+                            success: (layero, index) => {
+                                //open tty
+                                $(window).bind("resize", this.onFrameResize);
+                                this.onFrameResize();
+                                $('#tty').attr('src', frameURL);
+                            },
+                            cancel: () => {
+                                this.openContainerIndex = 0;
+                                $(window).unbind("resize", this.onFrameResize);
+                                $('#tty').attr('src', '');
+                            }
+                        });
+                    });
                 },
                 onDisplayContainer() {
                     this.containerList = [];
