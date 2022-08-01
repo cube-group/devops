@@ -1,4 +1,4 @@
-FROM alpine:3.15
+FROM --platform=linux/amd64 alpine:3.15
 #devops程序运行所需外壳环境
 USER root
 

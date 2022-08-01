@@ -26,7 +26,7 @@ services:
     depends_on:
       - mysql
     privileged: true
-    image: cubegroup/devops-shell:v1.1
+    image: cubegroup/devops-shell
     container_name: devops
     restart: always
     ports:
