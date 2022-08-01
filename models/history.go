@@ -396,20 +396,20 @@ func (t *History) createRunDockerMode() (runContent string, err error) {
 		imageName = t.Project.Docker.Image
 	} else if template.Dockerfile != "" { //create newLines
 		var dockerfileLines = make([]string, 0)
-		var fromImage string
+		//var fromImage string
 		for _, v := range strings.Split(template.Dockerfile, "\n") {
 			v = strings.TrimLeft(v, " ")
 			v = strings.TrimRight(v, " ")
 			if strings.Contains(v, "FROM ") {
-				fromImage = strings.Split(v, "FROM ")[1]
+				//fromImage = strings.Split(v, "FROM ")[1]
 				v = fmt.Sprintf("%s\n%s", v, strings.Join(volumeLines, "\n"))
 			}
 			dockerfileLines = append(dockerfileLines, v)
 		}
-		if fromImage == "" {
-			err = errors.New("Dockerfile invalid")
-			return
-		}
+		//if fromImage == "" {
+		//	err = errors.New("Dockerfile invalid")
+		//	return
+		//}
 		//create dockerfile
 		if err = ioutil.WriteFile(t.WorkspaceDockerfile(), []byte(strings.Join(dockerfileLines, "\n")), os.ModePerm); err != nil {
 			return
@@ -417,12 +417,10 @@ func (t *History) createRunDockerMode() (runContent string, err error) {
 		imageName = t.ImageURL()
 		dockerBuild = fmt.Sprintf(`
 docker login %s --username=%s --password=%s
-docker pull %s
-docker build --platform=linux/amd64 -t %s %s
+docker build --pull --platform=linux/amd64 -t %s %s
 docker push %s
 `,
 			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
-			fromImage,
 			imageName, t.Workspace(),
 			imageName,
 		)

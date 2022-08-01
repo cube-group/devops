@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 maven:3.8.6-eclipse-temurin-8-alpine
+FROM maven:3.8.6-eclipse-temurin-8-alpine
 #devops程序运行所需外壳环境
 USER root
 
