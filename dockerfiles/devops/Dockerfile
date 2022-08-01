@@ -1,4 +1,4 @@
-FROM cubegroup/devops-shell:v1.1
+FROM cubegroup/devops-shell
 USER root
 ENV APP_PATH /go
 ENV WEB_PORT "80"
