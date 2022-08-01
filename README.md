@@ -25,12 +25,11 @@ cubegroup/devops
 sh build.sh
 ```
 
-### 依赖环境镜像(shell外壳)
-[devops-shell](dockerfiles/devops-shell)
-[devops-shell-java](dockerfiles/devops-shell-java)
-[devops-shell-java-node](dockerfiles/devops-shell-java-node)
+### 应用镜像
+* [devops](dockerfiles/devops)  对应[docker hub](https://hub.docker.com/r/cubegroup/devops)
+* [devops-java](dockerfiles/devops-java) 对应[docker hub](https://hub.docker.com/r/cubegroup/devops-java)
 
-### 最终应用镜像
-[devops](Dockerfile)
-[devops-java](dockerfiles/devops-java)
-[devops-java-node](dockerfiles/devops-java-node)
+### 其它
+依赖环境镜像(shell外壳)
+* [devops-shell](dockerfiles/shell)
+* [devops-shell-java](dockerfiles/shell-java)

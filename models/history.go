@@ -5,6 +5,7 @@ import (
 	"app/library/core"
 	"app/library/crypt/md5"
 	"app/library/log"
+	"app/library/types/times"
 	"app/library/uuid"
 	"context"
 	"encoding/json"
@@ -115,12 +116,15 @@ func (t History) MarshalJSON() ([]byte, error) {
 	if t.N.ID > 0 {
 		t.Nodes = t.Nodes.Contact(t.N)
 	}
+	t.Nodes.Security() //for security
 	return json.Marshal(struct {
 		HistoryMarshalJSON
-		UseTime int64 `json:"useTime"`
+		UseTime     int64  `json:"useTime"`
+		UpdatedTime string `json:"updatedTime"`
 	}{
 		HistoryMarshalJSON(t),
 		useTime,
+		times.FormatDatetime(t.UpdatedAt),
 	})
 }
 
@@ -430,6 +434,12 @@ docker push %s
 	//docker run
 	var sshDockerRun string
 	if t.Project.Mode == ProjectModeDocker {
+		runOptions := t.Project.Docker.RunOptions
+		if strings.Contains(runOptions, ":/data/log") {
+			err = errors.New("run options不能包含挂载:/data/log")
+			return
+		}
+		runOptions = fmt.Sprintf("%s -v /data/log/devops/%d/%d:/data/log", runOptions, t.Project.ID, t.ID)
 		dockerRun := fmt.Sprintf(
 			"docker login %s --username=%s --password=%s;"+
 				"docker pull %s;"+
@@ -438,7 +448,7 @@ docker push %s
 			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
 			imageName,
 			t.Project.Name,
-			t.Project.Name, t.Project.Docker.RunOptions, imageName,
+			t.Project.Name, runOptions, imageName,
 		)
 		for _, node := range t.Nodes {
 			var sshArgs []string

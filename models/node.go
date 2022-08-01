@@ -129,6 +129,13 @@ func (t NodeList) Contact(node Node) NodeList {
 	return append(t, node)
 }
 
+func (t NodeList) Security() {
+	for k, _ := range t {
+		t[k].SshKey = ""
+		t[k].SshPassword = ""
+	}
+}
+
 type NodeMarshalJSON Node
 
 //virtual Node
@@ -208,7 +215,7 @@ func (t *Node) WorkspaceSshIdRsaPath() string {
 
 //sync exec remote shell
 func (t *Node) Exec(cmd string) (res []byte, err error) {
-	client,session, err := sshtool.SSHConnect(t.SshUsername, t.SshPassword, t.SshKey, t.IP, t.SshPort)
+	client, session, err := sshtool.SSHConnect(t.SshUsername, t.SshPassword, t.SshKey, t.IP, t.SshPort)
 	if err != nil {
 		return
 	}

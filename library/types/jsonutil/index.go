@@ -13,21 +13,30 @@ func ToBytes(i interface{}) []byte {
 	return bytes
 }
 func ToString(i interface{}) string {
-	bytes, err := json.Marshal(i)
-	if err != nil {
-		return ""
+	switch vv := i.(type) {
+	case []byte:
+		return string(vv)
+	default:
+		bytes, err := json.Marshal(i)
+		if err != nil {
+			return ""
+		}
+		return string(bytes)
 	}
-	return string(bytes)
 }
 
-func ToJson(i string) gin.H {
-	if i == "" {
-		return gin.H{}
+func ToJson(i interface{}) (res gin.H) {
+	switch vv := i.(type) {
+	case string:
+		err := json.Unmarshal([]byte(vv), &res)
+		if err != nil {
+			return gin.H{}
+		}
+	case []byte:
+		err := json.Unmarshal(vv, &res)
+		if err != nil {
+			return gin.H{}
+		}
 	}
-	var res gin.H
-	err := json.Unmarshal([]byte(i), &res)
-	if err != nil {
-		return gin.H{}
-	}
-	return res
+	return
 }

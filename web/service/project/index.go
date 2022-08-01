@@ -60,7 +60,7 @@ func List(c *gin.Context) (res gin.H) {
 }
 
 func queryList(val valList) *gorm.DB {
-	var query = models.DB().Order("id DESC")
+	var query = models.DB().Order("updated_at DESC")
 	if val.Tag != "" {
 		if tag := models.GetTag(convert.MustUint32(val.Tag)); tag != nil {
 			query = query.Where("id IN (?)", tag.ProjectIds())

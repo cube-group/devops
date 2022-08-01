@@ -1,4 +1,4 @@
-package open
+package user
 
 import (
 	"app/models"
@@ -6,7 +6,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-func UserList(c *gin.Context) (res map[uint32]interface{}) {
+func GetList(c *gin.Context) (res map[uint32]interface{}) {
 	res = make(map[uint32]interface{})
 	var ids []uint
 	bytes, _ := c.GetRawData()
@@ -26,3 +26,4 @@ func UserList(c *gin.Context) (res map[uint32]interface{}) {
 	return
 
 }
+

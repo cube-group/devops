@@ -11,23 +11,36 @@
         <div class="panel-body">
             <div>
                 <p>Project: ${project.name}</p>
-                <p>Time: ${history.updatedAt}</p>
+                <p>Time: ${history.updatedTime}</p>
             </div>
             <br>
             <table class="table table-bordered">
                 <thead>
                 <tr>
                     <th>Node IP</th>
+                    <th>State</th>
                     <th>Operation</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr v-for="v in history.nodes">
-                    <td>${v.ip}</td>
+                    <td>
+                        <a :href="baseURL('/node?name='+v.ip)" style="color: #0a6aa1">${v.ip}</a>
+                    </td>
+                    <td>
+                        <div v-if="!v.removed">
+                            <pre>${v.inspect ? v.inspect.State : '...'}</pre>
+                            <pre>${v.inspect ? v.inspect.NetworkSettings.Ports : '...'}</pre>
+                        </div>
+                    </td>
                     <td v-if="!v.removed">
-                        <a class="btn btn-default" @click="onLog(v)">Stdout</a>
-                        <a class="btn btn-primary" @click="onTty(v)">TTY</a>
-                        <a class="btn btn-danger" @click="onDel(v)">Del</a>
+                        <div>
+                            <a class="btn btn-sm btn-default" @click="onLog(v)">Log</a>
+                            <a class="btn btn-sm btn-primary" @click="onTty(v)">TTY</a>
+                            <a class="btn btn-sm btn-danger" @click="onDel(v)">Del</a>
+                            <a class="btn btn-sm btn-info"
+                               @click="onDisplay(v.inspect)">...</a>
+                        </div>
                     </td>
                     <td v-if="v.removed">
                         该节点服务已被移除
@@ -37,6 +50,9 @@
             </table>
             <br>
         </div>
+    </div>
+    <div id="display-container" style="padding: 20px;" hidden>
+        <pre>${display}</pre>
     </div>
     <!-- tty layer-->
     <div id="tty-container"
@@ -49,8 +65,13 @@
                 project:{{.project}},
                 history:{{.history}} ,
                 openContainerIndex: 0,
+                display: '',
             },
             methods: {
+                onDisplay(content) {
+                    this.display = content;
+                    showDiv('display-container', '详细信息', ['800px', '600px'])
+                },
                 onLog(node) {
                     this.displayFrame(
                         `Node: ${node.ip} Container: ${this.project.name} Exec`,
@@ -67,6 +88,28 @@
                     displayConfirm(`确认移除${node.ip}上的节点？`, '确认', '取消', () => {
                         reqDelWithoutData(baseURL('/project/i', this.project.id, 'pod?nid=' + node.id));
                     });
+                },
+                onLoadDockerInspect() {
+                    var list = [];
+                    for (var item of this.history.nodes) {
+                        if (item.removed) {
+                            continue;
+                        }
+                        list.push({nodeId: item.id, containerName: this.project.name});
+                    }
+                    if (!list.length) {
+                        return;
+                    }
+                    reqPostJson('/api/docker/inspect', {list: list}, (resData) => {
+                        for (var node of this.history.nodes) {
+                            var nodeKey = node.id + '.' + this.project.name;
+                            for (var key in resData) {
+                                if (nodeKey === key) {
+                                    this.$set(node, 'inspect', resData[key]);
+                                }
+                            }
+                        }
+                    }, {loading: false});
                 },
                 onFrameResize() {
                     if (this.openContainerIndex) {
@@ -100,6 +143,7 @@
                 },
             },
             mounted() {
+                this.onLoadDockerInspect();
             }
         }
     </script>

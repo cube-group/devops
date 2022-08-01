@@ -49,7 +49,15 @@ func InitCronjob() {
 func initSystemCronjob() {
 	var systemCron = cron.New()
 	systemCron.AddFunc("0 4 */1 * *", func() {
-		 NodeDockerPrune()
+		NodeDockerPrune()
+	})
+	systemCron.AddFunc("0 3 */1 * *", func() {
+		for _, item := range GetNodes() {
+			bytes, err := item.Exec("find /data/log/* -type d -ctime +3 | xargs rm -rf")
+			if err != nil {
+				log.StdWarning("cronjob", "system", "node:", item.IP, "clear expired directories", err, string(bytes))
+			}
+		}
 	})
 	systemCron.Run()
 }

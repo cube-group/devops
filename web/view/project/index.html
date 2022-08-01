@@ -60,7 +60,7 @@
                                 耗时：${secondToString(v.history.useTime)}
                             </span>
                             <div>
-                                ${v.history.updatedAt}
+                                ${v.history.updatedTime}
                             </div>
                         </div>
                         <div v-if="v.deleted">
@@ -77,7 +77,8 @@
                             <a class="btn btn-xs btn-warning" v-if="v.cronjobInstance" @click="onCronjobStop(v)">停止</a>
                         </span>
                         <span v-if="v.mode=='docker'">
-                            <a class="btn btn-xs btn-primary" v-if="!v.deleted && v.history && v.history.status=='ok'"
+                            <!--  && v.history && v.history.status=='ok' -->
+                            <a class="btn btn-xs btn-primary" v-if="!v.deleted"
                                :href="baseURL('/project/i',v.id,'/pod')">节点</a>
                         </span>
                         <span>
