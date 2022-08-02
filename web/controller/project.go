@@ -38,7 +38,9 @@ func (t *ProjectController) index(c *gin.Context) {
 }
 
 func (t *ProjectController) create(c *gin.Context) {
-	g.HTML(c, "project/info.html", gin.H{})
+	g.HTML(c, "project/info.html", gin.H{
+		"tags":    models.TagList(),
+	})
 }
 
 func (t *ProjectController) info(c *gin.Context) {
