@@ -57,7 +57,7 @@
                     </td>
                     <td>
                         <a class="btn btn-xs btn-default" :href="baseURL('/node/i',v.id,'/docker')"
-                           v-if="v.stateContent && !v.stateError">
+                           v-if="v.docker && !v.dockerError">
                             容器
                         </a>
                         <a class="btn btn-xs btn-primary" @click="onNodeTty(v)">
