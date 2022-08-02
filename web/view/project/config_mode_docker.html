@@ -29,8 +29,8 @@ docker build之前的准备脚本，如：git、maven、java、npm等处理"
                             class="lnr lnr-question-circle"></span></a>
             </label>
             <div class="input-group">
-                <div class="input-group-addon">直接镜像</div>
-                <input class="form-control" v-model="project.docker.image" placeholder="直接运行镜像（会覆盖上方Dockerfile）"/>
+                <div class="input-group-addon">直接镜像(含entrypoint & cmd)</div>
+                <input class="form-control" v-model="project.docker.image" placeholder="覆盖上方Dockerfile，如: nginx:alpine或nginx:alpine ls /"/>
             </div>
             <textarea rows="10" class="form-control"
                       placeholder="--privileged -v xx:/xx -p 8080:80 -e ABC=true ... -d --restart=always"

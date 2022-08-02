@@ -53,6 +53,11 @@ func (t ProjectTemplateDocker) Value() (driver.Value, error) {
 	return json.Marshal(t)
 }
 
-func (t *ProjectTemplateDocker) IsImageBuild() bool {
+func (t *ProjectTemplateDocker) IsNil() bool {
+	return t.Dockerfile == "" && t.Image == ""
+}
+
+
+func (t *ProjectTemplateDocker) IsBuildAndRun() bool {
 	return t.Dockerfile != "" && t.Image == ""
 }

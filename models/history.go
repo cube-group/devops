@@ -373,9 +373,16 @@ func (t *History) updateStatus(cmd *exec.Cmd) {
 
 func (t *History) createRunDockerMode() (runContent string, err error) {
 	var template = t.Project.Docker
-	//create volumeLines
-	var volumeLines = make([]string, 0)
-	if t.Project.Docker.IsImageBuild() {
+	var imageName string
+	var dockerBuild string
+	if template.IsNil() {
+		err = errors.New("Dockerfile & Image is nil")
+		return
+	}
+	//docker build & push & remote run
+	if template.IsBuildAndRun() {
+		//dockerfile COPY
+		var volumeLines = make([]string, 0)
 		for k, v := range template.Volume {
 			var volumeContent string
 			volumeContent, err = v.Load()
@@ -388,51 +395,37 @@ func (t *History) createRunDockerMode() (runContent string, err error) {
 			}
 			volumeLines = append(volumeLines, fmt.Sprintf("COPY %s %s", volumeCopyFileName, v.Path))
 		}
-	}
-
-	var imageName string
-	var dockerBuild string
-	if !t.Project.Docker.IsImageBuild() {
-		imageName = t.Project.Docker.Image
-	} else if template.Dockerfile != "" { //create newLines
-		var dockerfileLines = make([]string, 0)
-		//var fromImage string
-		for _, v := range strings.Split(template.Dockerfile, "\n") {
-			v = strings.TrimLeft(v, " ")
-			v = strings.TrimRight(v, " ")
-			if strings.Contains(v, "FROM ") {
-				//fromImage = strings.Split(v, "FROM ")[1]
-				v = fmt.Sprintf("%s\n%s", v, strings.Join(volumeLines, "\n"))
+		//docker build shell
+		if template.Dockerfile != "" {
+			var dockerfileLines = make([]string, 0)
+			for _, v := range strings.Split(template.Dockerfile, "\n") {
+				v = strings.TrimLeft(v, " ")
+				v = strings.TrimRight(v, " ")
+				if strings.Contains(v, "FROM ") {
+					//fromImage = strings.Split(v, "FROM ")[1]
+					v = fmt.Sprintf("%s\n%s", v, strings.Join(volumeLines, "\n"))
+				}
+				dockerfileLines = append(dockerfileLines, v)
 			}
-			dockerfileLines = append(dockerfileLines, v)
+			//create dockerfile
+			if err = ioutil.WriteFile(t.WorkspaceDockerfile(), []byte(strings.Join(dockerfileLines, "\n")), os.ModePerm); err != nil {
+				return
+			}
+			imageName = t.ImageURL()
+			dockerBuild = fmt.Sprintf("docker login %s --username=%s --password=%s\ndocker build --pull --platform=linux/amd64 -t %s %s\ndocker push %s\n",
+				_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
+				imageName, t.Workspace(),
+				imageName,
+			)
 		}
-		//if fromImage == "" {
-		//	err = errors.New("Dockerfile invalid")
-		//	return
-		//}
-		//create dockerfile
-		if err = ioutil.WriteFile(t.WorkspaceDockerfile(), []byte(strings.Join(dockerfileLines, "\n")), os.ModePerm); err != nil {
-			return
-		}
-		imageName = t.ImageURL()
-		dockerBuild = fmt.Sprintf(`
-docker login %s --username=%s --password=%s
-docker build --pull --platform=linux/amd64 -t %s %s
-docker push %s
-`,
-			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
-			imageName, t.Workspace(),
-			imageName,
-		)
 	} else {
-		err = errors.New("dockerfile or image is nil")
-		return
+		imageName = template.Image
 	}
 
-	//docker run
+	//docker run shell
 	var sshDockerRun string
 	if t.Project.Mode == ProjectModeDocker {
-		runOptions := t.Project.Docker.RunOptions
+		runOptions := template.RunOptions
 		if strings.Contains(runOptions, ":/data/log") {
 			err = errors.New("run options不能包含挂载:/data/log")
 			return
@@ -440,11 +433,9 @@ docker push %s
 		runOptions = fmt.Sprintf("%s -v /data/log/devops/%d/%d:/data/log", runOptions, t.Project.ID, t.ID)
 		dockerRun := fmt.Sprintf(
 			"docker login %s --username=%s --password=%s;"+
-				"docker pull %s;"+
 				"docker rm -f %s >/dev/null 2>&1;"+
-				"docker run -i --name %s %s %s",
+				"docker run -i --pull always --name %s %s %s",
 			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
-			imageName,
 			t.Project.Name,
 			t.Project.Name, runOptions, imageName,
 		)
@@ -459,12 +450,7 @@ docker push %s
 	}
 
 	//create run.sh content
-	runContent = fmt.Sprintf(
-		"%s\n%s\n%s\n",
-		t.Project.Docker.Shell,
-		dockerBuild,
-		sshDockerRun,
-	)
+	runContent = fmt.Sprintf("%s\n%s\n%s\n", template.Shell, dockerBuild, sshDockerRun)
 	return
 }
 
