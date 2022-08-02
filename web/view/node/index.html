@@ -43,10 +43,11 @@
                         <span>${v.ip}</span>
                         <a href="javascript:" class="label label-success" @click="showAlert(v.docker)"> <span
                                     v-if="v.docker && !v.dockerErr && !v.dockerWarn">docker.${v.dockerObject.Server.Version}</span></a>
-                        <a href="javascript:" class="label label-default" @click="showAlert(v.docker,{title:v.dockerWarn,area:['600px','500px']})"> <span
+                        <a href="javascript:" class="label label-default"
+                           @click="showAlert(v.docker,{title:v.dockerWarn,area:['600px','500px']})"> <span
                                     v-if="v.docker && !v.dockerErr && v.dockerWarn">docker.${v.dockerObject.Server.Version}</span></a>
-                        <a href="javascript:" class="label label-danger" @click="showAlert(v.docker)"> <span
-                                    v-if="v.docker && v.dockerErr">no docker</span></a>
+                        <a href="javascript:" class="label label-danger" @click="showAlert(v.dockerErr)"> <span
+                                    v-if="v.docker && v.dockerErr">docker</span></a>
                     </td>
                     <td>
                         <div v-if="v.sshKey">auth</div>
@@ -136,10 +137,13 @@
                                 var item = resData[key];
                                 if (item.id === node.id) {
                                     try {
-                                        var dockerObject = JSON.parse(item.content);
-                                        this.$set(node, 'docker', item.content);
-                                        this.$set(node, 'dockerObject', dockerObject);
+                                        if (item.error) {
+                                            item.error = '请升级：<b>curl -fsSL https://get.docker.com/ | sh</b><br>' + item.error + '<br>' + item.content;
+                                        }
                                         this.$set(node, 'dockerErr', item.error);
+                                        this.$set(node, 'docker', item.content);
+                                        var dockerObject = JSON.parse(item.content);
+                                        this.$set(node, 'dockerObject', dockerObject);
                                         if (dockerObject.Server.Version < '20.0.0') {
                                             this.$set(node, 'dockerWarn', '【Warning】: docker版本过低，尽快升级版本>=20.0.0');
                                         }
