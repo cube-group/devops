@@ -5,6 +5,7 @@ import (
 	"app/library/log"
 	"app/library/sshtool"
 	"app/library/types/convert"
+	"app/library/types/times"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -180,8 +181,10 @@ func (t Node) Value() (driver.Value, error) {
 func (t Node) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		NodeMarshalJSON
+		CreatedTime string `json:"createdTime"`
 	}{
-		NodeMarshalJSON(t),
+		NodeMarshalJSON: NodeMarshalJSON(t),
+		CreatedTime:     times.FormatDatetime(t.CreatedAt),
 	})
 }
 
