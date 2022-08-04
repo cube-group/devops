@@ -1,23 +1,23 @@
 package jsonutil
 
 import (
-	"encoding/json"
-	"github.com/gin-gonic/gin"
+	jsoniter "github.com/json-iterator/go"
 )
 
 func ToBytes(i interface{}) []byte {
-	bytes, err := json.Marshal(i)
+	bytes, err := jsoniter.Marshal(i)
 	if err != nil {
 		return nil
 	}
 	return bytes
 }
+
 func ToString(i interface{}) string {
 	switch vv := i.(type) {
 	case []byte:
 		return string(vv)
 	default:
-		bytes, err := json.Marshal(i)
+		bytes, err := jsoniter.Marshal(i)
 		if err != nil {
 			return ""
 		}
@@ -25,17 +25,19 @@ func ToString(i interface{}) string {
 	}
 }
 
-func ToJson(i interface{}) (res gin.H) {
+func ToJson(i, v interface{}) (err error) {
 	switch vv := i.(type) {
 	case string:
-		err := json.Unmarshal([]byte(vv), &res)
-		if err != nil {
-			return gin.H{}
+		if err = jsoniter.Unmarshal([]byte(vv), v); err != nil {
+			return
 		}
 	case []byte:
-		err := json.Unmarshal(vv, &res)
-		if err != nil {
-			return gin.H{}
+		if err = jsoniter.Unmarshal(vv, v); err != nil {
+			return
+		}
+	default:
+		if err = jsoniter.Unmarshal(ToBytes(i), v); err != nil {
+			return
 		}
 	}
 	return

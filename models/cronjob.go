@@ -42,33 +42,36 @@ var c *cron.Cron
 var cMap sync.Map
 
 func InitCronjob() {
-	go initSystemCronjob()
 	initProjectCronjob()
 }
 
-func initSystemCronjob() {
-	var systemCron = cron.New()
-	systemCron.AddFunc("0 4 */1 * *", func() {
-		NodeDockerPrune()
-	})
-	systemCron.AddFunc("0 3 */1 * *", func() {
-		for _, item := range GetNodes() {
-			bytes, err := item.Exec("find /data/log/* -type d -ctime +3 | xargs rm -rf")
-			if err != nil {
-				log.StdWarning("cronjob", "system", "node:", item.IP, "clear expired directories", err, string(bytes))
-			}
-		}
-	})
-	systemCron.Run()
-}
-
 func initProjectCronjob() {
-	time.Sleep(10 * time.Second)
+	time.Sleep(time.Second)
 	var list []ProjectCronjob
 	if err := DB().Find(&list).Error; err != nil {
 		log.StdWarning("cronjob", "init", err)
 	}
+	for _, item := range GetNodes() {
+		item.Proc()
+	}
 	c = cron.New()
+	entryID, err := c.AddFunc("*/1 * * * *", func() {
+		//node proc
+		for _, item := range GetNodes() {
+			item.Proc()
+		}
+	})
+	log.StdOut("cronjob", "node.proc", entryID, err)
+	entryID, err = c.AddFunc("0 3 */1 * *", func() {
+		//node docker & log clean
+		for _, item := range GetNodes() {
+			_, err := item.Exec("docker system prune -a -f")
+			log.StdOut("cronjob", "node.clean.docker", item.IP, err)
+			_, err = item.Exec("find /data/log/* -type d -ctime +3 | xargs rm -rf")
+			log.StdOut("cronjob", "node.clean.log", item.IP, err)
+		}
+	})
+	log.StdOut("cronjob", "node.clean", entryID, err)
 	for _, item := range list {
 		CronjobAdd(item)
 	}
@@ -116,9 +119,7 @@ func CronjobAdd(cronjob ProjectCronjob) (err error) {
 			ProjectId: project.ID,
 			Project:   project,
 		}, false)
-		if er != nil {
-			log.StdWarning("cronjob", "projectID", project.ID, project.Cronjob, er)
-		}
+		log.StdOut("cronjob", "project.add", project.ID, project.Cronjob, er)
 	})
 	if err != nil {
 		return
@@ -138,6 +139,7 @@ func CronjobStop(projectID uint32, option ...interface{}) error {
 	if value, ok := cMap.Load(projectID); ok {
 		if entryID, ok := value.(cron.EntryID); ok {
 			c.Remove(entryID)
+			log.StdOut("cronjob", "project.remove", projectID, entryID)
 		}
 	}
 	return nil

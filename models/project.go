@@ -2,6 +2,7 @@ package models
 
 import (
 	"app/library/consts"
+	"app/library/validator"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -132,6 +133,11 @@ func (t *Project) Validator() error {
 	if matched, err := regexp.MatchString("^[a-z0-9-]{4,40}$", t.Name); err != nil || !matched {
 		return errors.New("项目名称不合法，须符合^[a-z0-9-]{4,40}$")
 	}
+	if t.IsCronjob() {
+		if !validator.IsCron(t.Cronjob) {
+			return errors.New("cron规则不规范，请按份 时 日 月 周标准输入")
+		}
+	}
 	if err := t.Native.Validator(); err != nil {
 		return err
 	}
@@ -139,7 +145,7 @@ func (t *Project) Validator() error {
 		return err
 	}
 	if t.Mode == ProjectModeDocker {
-		if t.Docker.Dockerfile == "" && t.Docker.Image == "" {
+		if t.Docker.IsNil() {
 			return errors.New("docker部署模式Dockerfile或Image不能同时为空")
 		}
 	} else if t.Mode == ProjectModeNative {

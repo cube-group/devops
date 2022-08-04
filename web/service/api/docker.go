@@ -36,8 +36,8 @@ func DockerInspect(c *gin.Context) (res gin.H, err error) {
 				return
 			}
 			if bytes, er := node.Exec(fmt.Sprintf("docker inspect %s --format='{{json .}}'", i.ContainerName)); er == nil {
-				var instance = jsonutil.ToJson(bytes)
-				if instance == nil {
+				var instance gin.H
+				if jsonutil.ToJson(bytes, &instance) != nil {
 					return
 				}
 				instance["nodeId"] = i.NodeID

@@ -1,4 +1,4 @@
-{{define "node/index.html"}}
+{{define "gateway/index.html"}}
     {{template "layout/top.html" .}}
     {{/*    <script>*/}}
     {{/*        redirectTLS();*/}}
@@ -6,7 +6,7 @@
 
     <div class="panel">
         <div class="panel-heading">
-            <div class="panel-title">宿主机列表</div>
+            <div class="panel-title">网关列表</div>
             <div class="right">
                 <a href="/node/create" class="btn btn-sm btn-success">
                     <span class="lnr lnr-plus-circle"></span>
@@ -20,9 +20,11 @@
                 <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Information</th>
-                    <th>Monitor</th>
-                    <th>Operate</th>
+                    <th>名称</th>
+                    <th>IP</th>
+                    <th>连接方式</th>
+                    <th>时间</th>
+                    <th>操作</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -32,47 +34,29 @@
                     </td>
                     <td>
                         <div>
-                            <a data-toggle="tooltip" data-placement="bottom"
-                               :title="(v.sshKey?'[auth] ':'[password] ')+v.desc"
+                            <a data-toggle="tooltip" data-placement="bottom" :title="v.desc"
                                :href="baseURL('/node/i',v.id)">${v.name}</a>
                         </div>
-                        <div>
-                            <span>
-                                ${v.ip}
-                            </span>
-                            <span>
-                                <a href="javascript:" class="label label-success" @click="showAlert(v.docker)"> <span
-                                            v-if="v.docker && !v.dockerErr && !v.dockerWarn">docker.${v.dockerObject.Server.Version}</span></a>
-                                <a href="javascript:" class="label label-default"
-                                   @click="showAlert(v.docker,{title:v.dockerWarn,area:['600px','500px']})"> <span
-                                            v-if="v.docker && !v.dockerErr && v.dockerWarn">docker.${v.dockerObject.Server.Version}</span></a>
-                                <a href="javascript:" class="label label-danger" @click="showAlert(v.dockerErr)"> <span
-                                            v-if="v.docker && v.dockerErr">docker</span></a>
-                            </span>
-                        </div>
                     </td>
                     <td>
-                        <div v-if="v.proc && v.proc.cpuNum">
-                            <div>
-                                CPU核数: ${v.proc.cpuNum}
-                            </div>
-                            <div>
-                                CPU使用率：${v.proc.cpuPercent?(100*v.proc.cpuPercent).toFixed(2)+'%':'n/a'}
-                            </div>
-                            <div>
-                                内存使用: ${getK8sBytesString(v.proc.memTotal-v.proc.memFree)} /
-                                ${getK8sBytesString(v.proc.memTotal)}
-                            </div>
-                        </div>
-                        <div v-if="!v.proc || !v.proc.cpuNum">
-                            ...
-                        </div>
+                        <a class="lnr lnr-layers" v-if="v.stats"></a>
+                        <span>${v.ip}</span>
+                        <a href="javascript:" class="label label-success" @click="showAlert(v.docker)"> <span
+                                    v-if="v.docker && !v.dockerErr && !v.dockerWarn">docker.${v.dockerObject.Server.Version}</span></a>
+                        <a href="javascript:" class="label label-default"
+                           @click="showAlert(v.docker,{title:v.dockerWarn,area:['600px','500px']})"> <span
+                                    v-if="v.docker && !v.dockerErr && v.dockerWarn">docker.${v.dockerObject.Server.Version}</span></a>
+                        <a href="javascript:" class="label label-danger" @click="showAlert(v.dockerErr)"> <span
+                                    v-if="v.docker && v.dockerErr">docker</span></a>
                     </td>
                     <td>
-                        <div>
-                            ${v.createdTime}
-                        </div>
-                        <br>
+                        <div v-if="v.sshKey">auth</div>
+                        <div v-if="!v.sshKey">password</div>
+                    </td>
+                    <td>
+                        ${v.createdTime}
+                    </td>
+                    <td>
                         <a class="btn btn-xs btn-default" :href="baseURL('/node/i',v.id,'/docker')"
                            v-if="v.docker && !v.dockerError">
                             容器

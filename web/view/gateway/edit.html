@@ -1,0 +1,110 @@
+{{define "node/info.html"}}
+    {{template "layout/top.html" .}}
+    <div>
+        <div class="panel">
+            <div class="panel-heading">
+                <div class="panel-title">
+                    <div v-if="!node.id">Node Create</div>
+                    <div v-if="node.id">Node Edit</div>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="form-group">
+                    <label>名称<span style="color: #FF1717">*</span></label>
+                    <input type="text" class="form-control" v-model="node.name" placeholder="宿主机名称">
+                </div>
+                <div class="form-group">
+                    <label>描述</label>
+                    <input type="text" class="form-control" v-model="node.desc" placeholder="宿主机描述">
+                </div>
+                <div class="form-group">
+                    <label>IP<span style="color: #FF1717">*</span></label>
+                    <input type="text" class="form-control" v-model="node.ip" placeholder="宿主机可连通IP">
+                </div>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <div class="panel-title">
+                            SSH端口
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label>Port<span style="color: #FF1717">*</span></label>
+                            <input type="text" class="form-control" v-model="node.sshPort" placeholder="ssh端口号">
+                        </div>
+                    </div>
+                </div>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <div class="panel-title">
+                            SSH认证
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <ul class="nav nav-pills">
+                            <li role="presentation" v-for="v in tabs" @click="tab=v"
+                                :class="tab.name==v.name ? 'active':''"><a href="#">${v.desc}</a></li>
+                        </ul>
+                        <div style="padding: 10px">
+                            <div v-show="tab.name=='Password'">
+                                <div class="form-group">
+                                    <label>username</label>
+                                    <input type="text" class="form-control" v-model="node.sshUsername" placeholder="ssh username">
+                                </div>
+                                <div class="form-group">
+                                    <label>password</label>
+                                    <input type="password" class="form-control" v-model="node.sshPassword" placeholder="ssh password">
+                                </div>
+                            </div>
+                            <div v-show="tab.name=='Auth'">
+                                <div class="form-group">
+                                    <label>SSH PRIVATE KEY</label>
+                                    <textarea rows="5" class="form-control" v-model="node.sshKey" placeholder="RSA KEY"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <a @click="onSave()" class="btn btn-primary">保存</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var node = {{.node}};
+        if (!node) {
+            node = {};
+        }
+    </script>
+    <!-- vue -->
+    <script>
+        vueMixin = {
+            data: {
+                tab: null,
+                tabs: [
+                    {desc: 'Password', name: 'Password'},
+                    {desc: 'ID_RSA', name: 'Auth'},
+                ],
+                node: node,
+            },
+            methods: {
+                onSave() {
+                    displayConfirm('确认提交?', '确认', '取消', () => {
+                        var requestURL = baseURL('/node/save');
+                        var data = deepCloneObject(this.node);
+                        reqPostJson(requestURL, data, baseURL('/node'));
+                    });
+                },
+            },
+            created() {//初始化数据合法化
+                this.tab = this.tabs[0];
+            },
+            mounted() {
+            }
+        };
+    </script>
+
+    {{template "layout/footer.html" . }}
+{{end}}
