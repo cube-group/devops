@@ -7,6 +7,7 @@ import (
 	"app/library/log"
 	"app/library/types/times"
 	"app/library/uuid"
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -398,14 +399,19 @@ func (t *History) createRunDockerMode() (runContent string, err error) {
 		//docker build shell
 		if template.Dockerfile != "" {
 			var dockerfileLines = make([]string, 0)
-			for _, v := range strings.Split(template.Dockerfile, "\n") {
-				v = strings.TrimLeft(v, " ")
-				v = strings.TrimRight(v, " ")
-				if strings.Contains(v, "FROM ") {
-					//fromImage = strings.Split(v, "FROM ")[1]
-					v = fmt.Sprintf("%s\n%s", v, strings.Join(volumeLines, "\n"))
+			var scanner = bufio.NewScanner(strings.NewReader(template.Dockerfile))
+			scanner.Split(bufio.ScanLines)
+			for scanner.Scan() {
+				var line = scanner.Text()
+				var lineScanner = bufio.NewScanner(strings.NewReader(line))
+				lineScanner.Split(bufio.ScanWords)
+				if lineScanner.Scan() {
+					var lineWord = lineScanner.Text()
+					if lineWord == "FROM" {
+						line = fmt.Sprintf("%s\n%s", line, strings.Join(volumeLines, "\n"))
+					}
 				}
-				dockerfileLines = append(dockerfileLines, v)
+				dockerfileLines = append(dockerfileLines, line)
 			}
 			//create dockerfile
 			if err = ioutil.WriteFile(t.WorkspaceDockerfile(), []byte(strings.Join(dockerfileLines, "\n")), os.ModePerm); err != nil {

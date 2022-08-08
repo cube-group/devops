@@ -262,25 +262,25 @@ func (t *Node) Proc() {
 		`head -n 1 /proc/stat`,
 		`cat /proc/meminfo`,
 	}
-	execList := t.ExecMulti(cmdList)
-	if execCpuInfo := execList[0]; execCpuInfo.Error == nil {
-		info["cpuNum"] = convert.MustInt32(strings.Trim(string(execCpuInfo.Result), "\n "))
+	if e.TryCatch(func() {
+		execList := t.ExecMulti(cmdList)
+		if execCpuInfo := execList[0]; execCpuInfo.Error == nil {
+			info["cpuNum"] = convert.MustInt32(strings.Trim(string(execCpuInfo.Result), "\n "))
+		}
+		if execCpuStat := execList[1]; execCpuStat.Error == nil {
+			cpuStat, cpuPercent := t.procStat(string(execCpuStat.Result), info["cpuStat"])
+			info["cpuStat"] = cpuStat
+			info["cpuPercent"] = cpuPercent
+		}
+		if execMemInfo := execList[2]; execMemInfo.Error == nil {
+			total, free := t.procMemInfo(string(execMemInfo.Result))
+			info["memTotal"] = total
+			info["memFree"] = free
+		}
+		nodeProcMap.Store(t.ID, info)
+	}) != nil {
+		return
 	}
-	if execCpuStat := execList[1]; execCpuStat.Error == nil {
-		cpuStat, cpuPercent := t.procStat(string(execCpuStat.Result), info["cpuStat"])
-		info["cpuStat"] = cpuStat
-		info["cpuPercent"] = cpuPercent
-	}
-	if execMemInfo := execList[2]; execMemInfo.Error == nil {
-		total, free := t.procMemInfo(string(execMemInfo.Result))
-		info["memTotal"] = total
-		info["memFree"] = free
-	} else {
-		goto End
-	}
-
-End:
-	nodeProcMap.Store(t.ID, info)
 }
 
 //analyse node /proc/meminfo
