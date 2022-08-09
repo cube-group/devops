@@ -15,6 +15,7 @@ type ProjectTemplateDocker struct {
 	Image      string     `json:"image"`
 	Dockerfile string     `json:"dockerfile"`
 	RunOptions string     `json:"runOptions"`
+	HealthURL  string     `json:"healthUrl"`
 	Volume     VolumeList `gorm:"" json:"volume" form:"volume"`
 }
 
@@ -56,7 +57,6 @@ func (t ProjectTemplateDocker) Value() (driver.Value, error) {
 func (t *ProjectTemplateDocker) IsNil() bool {
 	return t.Dockerfile == "" && t.Image == ""
 }
-
 
 func (t *ProjectTemplateDocker) IsBuildAndRun() bool {
 	return t.Dockerfile != "" && t.Image == ""

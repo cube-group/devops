@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	jsoniter "github.com/json-iterator/go"
 	"gorm.io/gorm"
 	"io/ioutil"
 	"os"
@@ -22,6 +23,13 @@ import (
 	"strings"
 	"sync"
 	"time"
+)
+
+const (
+	//NodeContainerRandomPortStart Host container startup random start port
+	//scope: [NodeContainerRandomPortStart, NodeContainerRandomPortStop)
+	NodeContainerRandomPortStart = 51000
+	NodeContainerRandomPortStop  = 60000
 )
 
 func GetNode(values ...interface{}) *Node {
@@ -138,25 +146,48 @@ func (t NodeList) Security() {
 //global node list proc info map
 var nodeProcMap sync.Map
 
+type NodeContainerPsItem map[string]interface{}
+
+//0.0.0.0:8082->80/tcp, :::8082->80/tcp
+func (t NodeContainerPsItem) Ports() (res map[int]bool) {
+	res = make(map[int]bool)
+	ports, ok := t["Ports"]
+	if !ok {
+		return
+	}
+	scanner := bufio.NewScanner(strings.NewReader(convert.MustString(ports)))
+	scanner.Split(bufio.ScanWords)
+	for scanner.Scan() {
+		var text = scanner.Text()
+		var publishArr = strings.Split(text, "->")
+		if publishArr == nil || len(publishArr) < 2 {
+			continue
+		}
+		var publishHostPortArr = strings.Split(publishArr[0], ":")
+		if publishHostPort := convert.MustInt(publishHostPortArr[len(publishHostPortArr)-1]); publishHostPort > 0 {
+			res[publishHostPort] = true
+		}
+	}
+	return
+}
+
 type NodeMarshalJSON Node
 
 //virtual Node
 type Node struct {
-	ID          uint32 `gorm:"primarykey;column:id" json:"id" form:"id"`
-	Name        string `gorm:"" json:"name" form:"name" binding:"required"`
-	Desc        string `gorm:"column:desc" json:"desc" form:"desc" binding:"required"`
-	IP          string `gorm:"" json:"ip" form:"ip" binding:"required"` //内网IP
-	Uid         uint32 `gorm:"" json:"uid" form:"-"`
-	SshPort     string `gorm:"" json:"sshPort" form:"required"`
-	SshKey      string `gorm:"" json:"sshKey" form:"required"` //private key
-	SshUsername string `gorm:"" json:"sshUsername" form:"required"`
-	SshPassword string `gorm:"" json:"sshPassword" form:"required"`
-
-	CreatedAt time.Time      `json:"createdAt"`
-	UpdatedAt time.Time      `json:"updatedAt"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-
-	Removed bool `gorm:"-" json:"removed" form:"-" binding:"-"` //是否被移除
+	ID          uint32         `gorm:"primarykey;column:id" json:"id" form:"id"`
+	Name        string         `gorm:"" json:"name" form:"name" binding:"required"`
+	Desc        string         `gorm:"column:desc" json:"desc" form:"desc" binding:"required"`
+	IP          string         `gorm:"" json:"ip" form:"ip" binding:"required"` //内网IP
+	Uid         uint32         `gorm:"" json:"uid" form:"-"`
+	SshPort     string         `gorm:"" json:"sshPort" form:"required"`
+	SshKey      string         `gorm:"" json:"sshKey" form:"required"` //private key
+	SshUsername string         `gorm:"" json:"sshUsername" form:"required"`
+	SshPassword string         `gorm:"" json:"sshPassword" form:"required"`
+	CreatedAt   time.Time      `json:"createdAt"`
+	UpdatedAt   time.Time      `json:"updatedAt"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	Removed     bool           `gorm:"-" json:"removed" form:"-" binding:"-"` //是否被移除
 }
 
 func (t *Node) TableName() string {
@@ -335,6 +366,51 @@ func (t *Node) procStat(content string, latestStatInter interface{}) (stat []flo
 		})
 		if err != nil {
 			log.StdWarning("node", "proc.stat", err)
+		}
+	}
+	return
+}
+
+func (t *Node) GetDockerVersion() (bytes []byte, err error) {
+	return t.Exec("docker version --format='{{json .}}'")
+}
+
+func (t *Node) GetDockerContainerList() (res []NodeContainerPsItem, err error) {
+	bytes, err := t.Exec("docker ps --format='{{json .}}'")
+	if err != nil {
+		return
+	}
+	res = make([]NodeContainerPsItem, 0)
+	for _, strItem := range strings.Split(string(bytes), "\n") {
+		var resItem NodeContainerPsItem
+		if jsoniter.Unmarshal([]byte(strItem), &resItem) == nil {
+			res = append(res, resItem)
+		}
+	}
+	return
+}
+
+//GetContainerRandomPort
+//Get the random start port of the host container
+func (t *Node) GetContainerRandomPort(length int) (ports []int, err error) {
+	containerList, err := t.GetDockerContainerList()
+	if err != nil {
+		return
+	}
+	var hasPublishedPorts = make(map[int]bool)
+	for _, item := range containerList {
+		for port, _ := range item.Ports() {
+			hasPublishedPorts[port] = true
+		}
+	}
+	//循环分配新端口
+	var newPublishPorts = make([]int, 0)
+	for newPort := NodeContainerRandomPortStart; newPort < NodeContainerRandomPortStop; newPort++ {
+		if _, ok := hasPublishedPorts[newPort]; !ok {
+			newPublishPorts = append(newPublishPorts, newPort)
+			if len(newPublishPorts) >= length {
+				break
+			}
 		}
 	}
 	return

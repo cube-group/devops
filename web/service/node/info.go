@@ -31,7 +31,7 @@ func DockerVersion(c *gin.Context) (res gin.H, err error) {
 		wg.Add(1)
 		go func(i models.Node) {
 			defer wg.Done()
-			bytes, er := i.Exec("docker version --format='{{json .}}'")
+			bytes, er := i.GetDockerVersion()
 			var item = gin.H{"id": i.ID, "content": string(bytes), "error": ""}
 			if er != nil {
 				item["error"] = er.Error()
@@ -48,20 +48,9 @@ func DockerVersion(c *gin.Context) (res gin.H, err error) {
 	return
 }
 
-func DockerPs(c *gin.Context) (res []interface{}, err error) {
-	var node = models.GetNode(c)
-	bytes, err := node.Exec("docker ps --format='{{json .}}'")
-	if err != nil {
-		return
-	}
-	res = make([]interface{}, 0)
-	for _, strItem := range strings.Split(string(bytes), "\n") {
-		var resItem gin.H
-		if jsoniter.Unmarshal([]byte(strItem), &resItem) == nil {
-			res = append(res, resItem)
-		}
-	}
-	return
+func DockerPs(c *gin.Context) (res []models.NodeContainerPsItem, err error) {
+	models.GetNode(c).GetContainerRandomPort()
+	return models.GetNode(c).GetDockerContainerList()
 }
 
 func DockerRestart(c *gin.Context) (err error) {
