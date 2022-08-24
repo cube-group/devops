@@ -251,6 +251,10 @@ func (t *Node) Exec(cmd string) (res []byte, err error) {
 	return result.Result, result.Error
 }
 
+func (t *Node) NewSshClient() (exec *sshtool.SSHClient, err error) {
+	return sshtool.NewSSHClient(t.IP, t.SshPort, t.SshUsername, t.SshPassword, t.SshKey)
+}
+
 func (t *Node) IsNone() error {
 	if t.ID == 0 {
 		return errors.New("node is nil")
@@ -404,11 +408,11 @@ func (t *Node) GetContainerRandomPort(length int) (ports []int, err error) {
 		}
 	}
 	//循环分配新端口
-	var newPublishPorts = make([]int, 0)
+	ports = make([]int, 0)
 	for newPort := NodeContainerRandomPortStart; newPort < NodeContainerRandomPortStop; newPort++ {
 		if _, ok := hasPublishedPorts[newPort]; !ok {
-			newPublishPorts = append(newPublishPorts, newPort)
-			if len(newPublishPorts) >= length {
+			ports = append(ports, newPort)
+			if len(ports) >= length {
 				break
 			}
 		}

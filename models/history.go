@@ -2,21 +2,17 @@ package models
 
 import (
 	"app/library/consts"
-	"app/library/core"
-	"app/library/crypt/md5"
 	"app/library/log"
 	"app/library/types/times"
 	"app/library/uuid"
-	"bufio"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"sync"
@@ -96,10 +92,8 @@ type History struct {
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-
-	NodeIds         []uint32 `gorm:"-" json:"nodeIds" form:"nodeIds"`
-	onlineCtx       context.Context
-	onlineCtxCancel context.CancelFunc
+	NodeIds   []uint32       `gorm:"-" json:"nodeIds" form:"nodeIds"`
+	pipeline  *Pipeline      `gorm:"-" form:"-"`
 }
 
 func (t *History) TableName() string {
@@ -249,107 +243,51 @@ func (t *History) Shutdown() error {
 	if t.Status != HistoryStatusDefault {
 		return errors.New("shutdown failed online is finished")
 	}
-	i, ok := onlineMaps.Load(t.ID)
-	if ok {
+	if i, ok := onlineMaps.Load(t.ID); ok {
 		var target = i.(*History)
-		if target.onlineCtxCancel != nil {
-			target.onlineCtxCancel()
-		} else {
-			return errors.New("online no cancel")
-		}
-		//duration wait check
-		var startTime = time.Now()
-		for {
-			if time.Now().After(startTime.Add(5 * time.Second)) {
-				break
-			}
-			if t.Status == HistoryStatusDefault {
-				time.Sleep(time.Millisecond * 100)
-			} else {
-				break
-			}
+		if target.pipeline != nil {
+			return target.pipeline.Stop()
 		}
 	} else {
-		t.updateStatus(nil)
+		t.updateStatus(errors.New("shutdown"))
 	}
+	onlineMaps.Delete(t.ID)
 	return nil
 }
 
 //project online
 func (t *History) Online(async bool) (err error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	t.onlineCtx = ctx
-	t.onlineCtxCancel = cancel
-	onlineMaps.Store(t.ID, t)
-
 	//create workspace
 	if err = os.MkdirAll(t.WorkspacePath(DockerVolumePathName), os.ModePerm); err != nil {
 		return
 	}
-	//create run.sh content
-	var runContent string
-	if t.IsDockerMode() { //deploy mode docker
-		runContent, err = t.createRunDockerMode()
-	} else { //node shell
-		runContent, err = t.createRunNativeMode()
-	}
-	if err != nil {
-		return
-	}
-	runContent = fmt.Sprintf(
-		"#!/bin/sh\ncd %s\n%s\ncd %s\n",
-		t.Workspace(),
-		runContent,
-		t.Workspace(),
-	)
-	fmt.Println(runContent)
-	//create run-dev.sh
-	if err = ioutil.WriteFile(t.WorkspaceRun(), []byte(runContent), os.ModePerm); err != nil {
-		return
-	}
 	//create .follow.log
 	fileStream, err := os.Create(t.WorkspaceFollowLog())
+	var pipeline *Pipeline
+	if t.IsDockerMode() { //deploy mode docker
+		pipeline, err = t.createDockerModePipeline(fileStream)
+	} else { //node shell
+		pipeline, err = t.createNativeModePipeline(fileStream)
+	}
 	if err != nil {
 		return
 	}
-	cmd := exec.Command("sh", "-e", t.WorkspaceRun())
-	cmd.Stdout = fileStream
-	cmd.Stderr = fileStream
-	if async { //async for online apply
-		go func() {
-			defer fileStream.Close()
-			t.updateStatus(cmd)
-			cancel()
-		}()
-	} else { //sync for cronjob online
-		defer fileStream.Close()
-		t.updateStatus(cmd)
-		cancel()
+	t.pipeline = pipeline
+	//create record
+	onlineMaps.Store(t.ID, t)
+	if async {
+		go pipeline.Run(func(err error) {
+			t.updateStatus(err)
+		})
+	} else {
+		pipeline.Run(func(err error) {
+			t.updateStatus(err)
+		})
 	}
-
 	return nil
 }
 
-func (t *History) updateStatus(cmd *exec.Cmd) {
-	var err error
-	var shutdownLogs string
-	if cmd != nil {
-		err = cmd.Start()
-		if err == nil {
-			go func() {
-				select {
-				case <-t.onlineCtx.Done():
-					shutdownLogs = "shutdown 1"
-					log.StdOut("history", "shutdown", t.WorkspaceRun(), core.KillProcessGroup(cmd))
-				}
-			}()
-			err = cmd.Wait()
-		}
-	} else { //shutdown
-		shutdownLogs = "shutdown 2"
-		err = errors.New("shutdown online")
-	}
-
+func (t *History) updateStatus(err error) {
 	var status = HistoryStatusSuccess
 	if err != nil {
 		status = HistoryStatusFailed
@@ -361,9 +299,11 @@ func (t *History) updateStatus(cmd *exec.Cmd) {
 			log.StdWarning("history", "online", "clear workspace", t.Workspace(), er)
 		}
 	}()
-	maps := map[string]interface{}{
-		"status": status,
-		"log":    string(logBytes) + "\r\n" + shutdownLogs,
+	maps := map[string]interface{}{"status": status}
+	if err != nil {
+		maps["log"] = string(logBytes) + "\r\n" + err.Error()
+	} else {
+		maps["log"] = string(logBytes)
 	}
 	if er := DB().Model(t).Where("id=?", t.ID).Updates(maps).Error; er != nil {
 		log.StdWarning("history", "updateStatus", er)
@@ -372,7 +312,7 @@ func (t *History) updateStatus(cmd *exec.Cmd) {
 	onlineMaps.Delete(t.ID)
 }
 
-func (t *History) createRunDockerMode() (runContent string, err error) {
+func (t *History) createDockerModePipeline(logWriter io.Writer) (pipeline *Pipeline, err error) {
 	var template = t.Project.Docker
 	var imageName string
 	var dockerBuild string
@@ -380,89 +320,50 @@ func (t *History) createRunDockerMode() (runContent string, err error) {
 		err = errors.New("Dockerfile & Image is nil")
 		return
 	}
-	//docker build & push & remote run
+	var steps = make([]PipelineStep, 0)
+	//docker build
 	if template.IsBuildAndRun() {
-		//dockerfile COPY
-		var volumeLines = make([]string, 0)
-		for k, v := range template.Volume {
-			var volumeContent string
-			volumeContent, err = v.Load()
-			if err != nil {
-				return
-			}
-			var volumeCopyFileName = md5.MD5(fmt.Sprintf("%d@%s", k, v.Path))
-			if err = ioutil.WriteFile(t.WorkspacePath(volumeCopyFileName), []byte(volumeContent), os.ModePerm); err != nil {
-				return
-			}
-			volumeLines = append(volumeLines, fmt.Sprintf("COPY %s %s", volumeCopyFileName, v.Path))
+		var dockerfile string
+		dockerfile, err = template.GetComplexDockerfile(t.Workspace())
+		if err != nil {
+			return
 		}
-		//docker build shell
-		if template.Dockerfile != "" {
-			var dockerfileLines = make([]string, 0)
-			var scanner = bufio.NewScanner(strings.NewReader(template.Dockerfile))
-			scanner.Split(bufio.ScanLines)
-			for scanner.Scan() {
-				var line = scanner.Text()
-				var lineScanner = bufio.NewScanner(strings.NewReader(line))
-				lineScanner.Split(bufio.ScanWords)
-				if lineScanner.Scan() {
-					var lineWord = lineScanner.Text()
-					if lineWord == "FROM" {
-						line = fmt.Sprintf("%s\n%s", line, strings.Join(volumeLines, "\n"))
-					}
-				}
-				dockerfileLines = append(dockerfileLines, line)
-			}
-			//create dockerfile
-			if err = ioutil.WriteFile(t.WorkspaceDockerfile(), []byte(strings.Join(dockerfileLines, "\n")), os.ModePerm); err != nil {
-				return
-			}
-			imageName = t.ImageURL()
-			dockerBuild = fmt.Sprintf("docker login %s --username=%s --password=%s\ndocker build --pull --platform=linux/amd64 -t %s %s\ndocker push %s\n",
-				_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
-				imageName, t.Workspace(),
-				imageName,
-			)
+		if err = ioutil.WriteFile(t.WorkspaceDockerfile(), []byte(dockerfile), os.ModePerm); err != nil {
+			return
 		}
+		imageName = t.ImageURL()
+		dockerBuild = fmt.Sprintf("docker login %s --username=%s --password=%s\n docker build --pull --platform=linux/amd64 -t %s %s\n docker push %s",
+			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
+			imageName, t.Workspace(), imageName,
+		)
+		steps = append(steps, PipelineStep{Cmd: dockerBuild})
 	} else {
 		imageName = template.Image
 	}
-
-	//docker run shell
-	var sshDockerRun string
+	//remote docker run
 	if t.Project.Mode == ProjectModeDocker {
-		runOptions := template.RunOptions
-		if strings.Contains(runOptions, ":/data/log") {
-			err = errors.New("run options不能包含挂载:/data/log")
-			return
-		}
-		runOptions = fmt.Sprintf("%s -v /data/log/devops/%d/%d:/data/log", runOptions, t.Project.ID, t.ID)
+		runOptions := fmt.Sprintf("%s -v /data/log/devops/%d/%d:/data/log", template.RunOptions, t.Project.ID, t.ID)
 		dockerRun := fmt.Sprintf(
-			"docker login %s --username=%s --password=%s;"+
-				"docker rm -f %s >/dev/null 2>&1;"+
+			"docker login %s --username=%s --password=%s\n"+
+				"docker rm -f %s >/dev/null 2>&1\n"+
 				"docker run -i --pull always --name %s %s %s",
 			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
 			t.Project.Name,
 			t.Project.Name, runOptions, imageName,
 		)
 		for _, node := range t.Nodes {
-			var sshArgs []string
-			sshArgs, err = node.RunSshArgs(false, "", fmt.Sprintf("'%s'", dockerRun))
-			if err != nil {
-				return
-			}
-			sshDockerRun += strings.Join(sshArgs, " ") + "\n"
+			steps = append(steps, PipelineStep{Node: &node, Cmd: dockerRun})
+			//TODO add port check
+			//steps = append(steps, PipelineStep{Node: &node, ServicePort: 8888, ServicePath: "/"})
 		}
 	}
-
-	//create run.sh content
-	runContent = fmt.Sprintf("%s\n%s\n%s\n", template.Shell, dockerBuild, sshDockerRun)
-	return
+	//pipeline
+	return NewPipeline(logWriter, steps), nil
 }
 
-func (t *History) createRunNativeMode() (runContent string, err error) {
+func (t *History) createNativeModePipeline(logWriter io.Writer) (pipeline *Pipeline, err error) {
 	var template = t.Project.Native
-	var scpShell string
+	var steps = make([]PipelineStep, 0)
 	var scpRemoteFilePrefix = fmt.Sprintf("/tmp/devops-%d-%d-", t.ProjectId, t.ID)
 	for _, v := range template.Volume {
 		var volumeContent string
@@ -482,11 +383,10 @@ func (t *History) createRunNativeMode() (runContent string, err error) {
 			if err != nil {
 				return
 			}
-			scpShell += strings.Join(scpArgs, " ") + "\n"
+			steps = append(steps, PipelineStep{Node: &node, Cmd: strings.Join(scpArgs, " ")})
 		}
 	}
 	//init facade content
-	var sshShell string
 	var localFacadePath = t.WorkspaceVolumePath("run")
 	var remoteFacadePath = fmt.Sprintf("%s%s", scpRemoteFilePrefix, "run")
 	var remoteFacadeContent = fmt.Sprintf("#!/bin/sh\n%s\nrm -rf %s*\n", template.Shell, scpRemoteFilePrefix)
@@ -500,20 +400,15 @@ func (t *History) createRunNativeMode() (runContent string, err error) {
 		if err != nil {
 			return
 		}
-		scpShell += strings.Join(scpArgs, " ") + "\n"
+		steps = append(steps, PipelineStep{Node: &node, Cmd: strings.Join(scpArgs, " ")})
 		sshArgs, err = node.RunSshArgs(false, "", fmt.Sprintf("'sh -ex %s'", remoteFacadePath))
 		if err != nil {
 			return
 		}
-		sshShell += strings.Join(sshArgs, " ") + "\n"
+		steps = append(steps, PipelineStep{Node: &node, Cmd: strings.Join(sshArgs, " ")})
 	}
-	//create run.sh content
-	runContent = fmt.Sprintf(
-		"%s\n%s\n",
-		scpShell,
-		sshShell,
-	)
-	return
+	//pipeline
+	return NewPipeline(logWriter, steps), nil
 }
 
 //移除上线

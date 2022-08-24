@@ -46,12 +46,5 @@ func KillProcessGroup(options ...interface{}) error {
 		syscall.Kill(convert.MustInt(pidList[len(pidList)-1]), syscall.SIGTERM)
 	}
 
-	//kill group pid
-	//pgid, err := syscall.Getpgid(pid)
-	//if err != nil {
-	//	return err
-	//}
-	//note the minus sign
-	//return syscall.Kill(-pgid, syscall.SIGTERM)
 	return nil
 }

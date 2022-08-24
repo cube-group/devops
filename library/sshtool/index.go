@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/ssh"
+	"io"
 	"time"
 )
 
@@ -19,7 +20,8 @@ type SSHClient struct {
 	host       string
 	port       string
 
-	_client *ssh.Client
+	_client  *ssh.Client
+	_session *ssh.Session
 }
 
 func NewSSHClient(host, port, username, password, rsaPrivate string) (res *SSHClient, err error) {
@@ -62,6 +64,9 @@ func NewSSHClient(host, port, username, password, rsaPrivate string) (res *SSHCl
 }
 
 func (t *SSHClient) Close() error {
+	if t._session != nil {
+		t._session.Close()
+	}
 	if t._client != nil {
 		return t._client.Close()
 	}
@@ -88,9 +93,28 @@ func (t *SSHClient) Exec(cmd string) (res SSHClientSessionResult) {
 		return
 	}
 	defer session.Close()
+	t._session = session
 	resultBytes, err := session.CombinedOutput(cmd)
 	return SSHClientSessionResult{
 		Result: resultBytes,
 		Error:  err,
 	}
+}
+
+func (t *SSHClient) StartAndWait(writer io.Writer, cmd string) (err error) {
+	if t._client == nil {
+		return errors.New("ssh client is nil")
+	}
+	session, err := t._client.NewSession()
+	if err != nil {
+		return
+	}
+	defer session.Close()
+	session.Stdout = writer
+	session.Stderr = writer
+	t._session = session
+	if err = session.Start(cmd); err != nil {
+		return
+	}
+	return session.Wait()
 }
