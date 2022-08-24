@@ -320,7 +320,10 @@ func (t *History) createDockerModePipeline(logWriter io.Writer) (pipeline *Pipel
 		err = errors.New("Dockerfile & Image is nil")
 		return
 	}
-	var steps = make([]PipelineStep, 0)
+	var steps = make([]*PipelineStep, 0)
+	if template.Shell != "" {
+		steps = append(steps, &PipelineStep{Cmd: template.Shell})
+	}
 	//docker build
 	if template.IsBuildAndRun() {
 		var dockerfile string
@@ -336,7 +339,7 @@ func (t *History) createDockerModePipeline(logWriter io.Writer) (pipeline *Pipel
 			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
 			imageName, t.Workspace(), imageName,
 		)
-		steps = append(steps, PipelineStep{Cmd: dockerBuild})
+		steps = append(steps, &PipelineStep{Cmd: dockerBuild})
 	} else {
 		imageName = template.Image
 	}
@@ -352,7 +355,7 @@ func (t *History) createDockerModePipeline(logWriter io.Writer) (pipeline *Pipel
 			t.Project.Name, runOptions, imageName,
 		)
 		for _, node := range t.Nodes {
-			steps = append(steps, PipelineStep{Node: &node, Cmd: dockerRun})
+			steps = append(steps, &PipelineStep{Node: &node, Cmd: dockerRun})
 			//TODO add port check
 			//steps = append(steps, PipelineStep{Node: &node, ServicePort: 8888, ServicePath: "/"})
 		}
@@ -363,7 +366,7 @@ func (t *History) createDockerModePipeline(logWriter io.Writer) (pipeline *Pipel
 
 func (t *History) createNativeModePipeline(logWriter io.Writer) (pipeline *Pipeline, err error) {
 	var template = t.Project.Native
-	var steps = make([]PipelineStep, 0)
+	var steps = make([]*PipelineStep, 0)
 	var scpRemoteFilePrefix = fmt.Sprintf("/tmp/devops-%d-%d-", t.ProjectId, t.ID)
 	for _, v := range template.Volume {
 		var volumeContent string
@@ -383,7 +386,7 @@ func (t *History) createNativeModePipeline(logWriter io.Writer) (pipeline *Pipel
 			if err != nil {
 				return
 			}
-			steps = append(steps, PipelineStep{Node: &node, Cmd: strings.Join(scpArgs, " ")})
+			steps = append(steps, &PipelineStep{Node: &node, Cmd: strings.Join(scpArgs, " ")})
 		}
 	}
 	//init facade content
@@ -400,12 +403,12 @@ func (t *History) createNativeModePipeline(logWriter io.Writer) (pipeline *Pipel
 		if err != nil {
 			return
 		}
-		steps = append(steps, PipelineStep{Node: &node, Cmd: strings.Join(scpArgs, " ")})
+		steps = append(steps, &PipelineStep{Node: &node, Cmd: strings.Join(scpArgs, " ")})
 		sshArgs, err = node.RunSshArgs(false, "", fmt.Sprintf("'sh -ex %s'", remoteFacadePath))
 		if err != nil {
 			return
 		}
-		steps = append(steps, PipelineStep{Node: &node, Cmd: strings.Join(sshArgs, " ")})
+		steps = append(steps, &PipelineStep{Node: &node, Cmd: strings.Join(sshArgs, " ")})
 	}
 	//pipeline
 	return NewPipeline(logWriter, steps), nil

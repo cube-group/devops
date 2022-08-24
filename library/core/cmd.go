@@ -19,6 +19,7 @@ func KillProcessGroup(options ...interface{}) error {
 		case int:
 			pid = vv
 		case *exec.Cmd:
+			vv.Process.Kill()
 			if vv.Process != nil {
 				pid = vv.Process.Pid
 			}
@@ -30,6 +31,7 @@ func KillProcessGroup(options ...interface{}) error {
 	//pid kill ctrl+c
 	for i := 0; i < 2; i++ {
 		syscall.Kill(pid, syscall.SIGINT)
+		syscall.Kill(pid, syscall.SIGKILL)
 		time.Sleep(100 * time.Millisecond)
 	}
 

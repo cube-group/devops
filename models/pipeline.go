@@ -16,7 +16,7 @@ type PipelineCallback func(err error)
 
 type Pipeline struct {
 	logWriter io.Writer
-	steps     []PipelineStep
+	steps     []*PipelineStep
 	canceled  bool
 }
 
@@ -31,7 +31,7 @@ type PipelineStep struct {
 	_cmdClient  *exec.Cmd
 }
 
-func NewPipeline(logWriter io.Writer, steps []PipelineStep) *Pipeline {
+func NewPipeline(logWriter io.Writer, steps []*PipelineStep) *Pipeline {
 	return &Pipeline{
 		logWriter: logWriter,
 		steps:     steps,
