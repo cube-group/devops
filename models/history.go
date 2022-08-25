@@ -14,7 +14,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"strings"
 	"sync"
 	"time"
 )
@@ -368,47 +367,27 @@ func (t *History) createNativeModePipeline(logWriter io.Writer) (pipeline *Pipel
 	var template = t.Project.Native
 	var steps = make([]*PipelineStep, 0)
 	var scpRemoteFilePrefix = fmt.Sprintf("/tmp/devops-%d-%d-", t.ProjectId, t.ID)
+	var localPaths = make([]string, 0)
+	var remotePaths = make([]string, 0)
 	for _, v := range template.Volume {
 		var volumeContent string
 		volumeContent, err = v.Load()
 		if err != nil {
 			return
 		}
-		var fileName = uuid.GetUUID(t.ID, "@", v.Path)
-		var localPath = t.WorkspaceVolumePath(fileName)
-		var remoteNodePath = v.Path
+		localPath := t.WorkspaceVolumePath(uuid.GetUUID(t.ID, "@", v.Path))
+		localPaths = append(localPaths, localPath)
+		remotePaths = append(remotePaths, v.Path)
 		if err = ioutil.WriteFile(localPath, []byte(volumeContent), os.ModePerm); err != nil {
 			return
 		}
-		for _, node := range t.Nodes {
-			var scpArgs []string
-			scpArgs, err = node.RunScpArgs(localPath, remoteNodePath)
-			if err != nil {
-				return
-			}
-			steps = append(steps, &PipelineStep{Node: &node, Cmd: strings.Join(scpArgs, " ")})
-		}
 	}
-	//init facade content
-	var localFacadePath = t.WorkspaceVolumePath("run")
-	var remoteFacadePath = fmt.Sprintf("%s%s", scpRemoteFilePrefix, "run")
-	var remoteFacadeContent = fmt.Sprintf("#!/bin/sh\n%s\nrm -rf %s*\n", template.Shell, scpRemoteFilePrefix)
-	if err = ioutil.WriteFile(localFacadePath, []byte(remoteFacadeContent), os.ModePerm); err != nil {
-		return
-	}
+	//init steps
 	for _, node := range t.Nodes {
-		var scpArgs []string
-		var sshArgs []string
-		scpArgs, err = node.RunScpArgs(localFacadePath, remoteFacadePath)
-		if err != nil {
-			return
+		for k, _ := range localPaths {
+			steps = append(steps, &PipelineStep{Node: &node, Type: PipeTypeScp, Scp: PipelineScp{Source: localPaths[k], Target: remotePaths[k]}})
 		}
-		steps = append(steps, &PipelineStep{Node: &node, Cmd: strings.Join(scpArgs, " ")})
-		sshArgs, err = node.RunSshArgs(false, "", fmt.Sprintf("'sh -ex %s'", remoteFacadePath))
-		if err != nil {
-			return
-		}
-		steps = append(steps, &PipelineStep{Node: &node, Cmd: strings.Join(sshArgs, " ")})
+		steps = append(steps, &PipelineStep{Node: &node, Type: PipeTypeCmd, Cmd: fmt.Sprintf("%s\nrm -rf %s*\n", template.Shell, scpRemoteFilePrefix)})
 	}
 	//pipeline
 	return NewPipeline(logWriter, steps), nil

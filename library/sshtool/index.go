@@ -3,8 +3,11 @@ package sshtool
 import (
 	"errors"
 	"fmt"
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"io"
+	"io/ioutil"
+	"os"
 	"time"
 )
 
@@ -20,12 +23,13 @@ type SSHClient struct {
 	host       string
 	port       string
 
-	_client  *ssh.Client
-	_session *ssh.Session
+	_sshClient  *ssh.Client
+	_sftpClient *sftp.Client
+	_sshSession *ssh.Session
 }
 
 func NewSSHClient(host, port, username, password, rsaPrivate string) (res *SSHClient, err error) {
-	sshClient := &SSHClient{
+	client := &SSHClient{
 		host:       host,
 		port:       port,
 		username:   username,
@@ -55,45 +59,40 @@ func NewSSHClient(host, port, username, password, rsaPrivate string) (res *SSHCl
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 	addr := fmt.Sprintf("%s:%s", host, port)
-	client, err := ssh.Dial("tcp", addr, clientConfig)
+	c, err := ssh.Dial("tcp", addr, clientConfig)
 	if err != nil {
 		return
 	}
-	sshClient._client = client
-	return sshClient, nil
+	client._sshClient = c
+	return client, nil
 }
 
 func (t *SSHClient) Close() error {
-	if t._session != nil {
-		t._session.Close()
+	if t._sshSession != nil {
+		t._sshSession.Close()
 	}
-	if t._client != nil {
-		return t._client.Close()
+	if t._sshClient != nil {
+		return t._sshClient.Close()
 	}
 	return nil
 }
 
+//ssh multi session exec
 func (t *SSHClient) ExecMulti(cmdList []string) (res []SSHClientSessionResult) {
-	if t._client == nil {
-		return
-	}
 	for _, cmd := range cmdList {
 		res = append(res, t.Exec(cmd))
 	}
 	return
 }
 
+//ssh session exec
 func (t *SSHClient) Exec(cmd string) (res SSHClientSessionResult) {
-	if t._client == nil {
-		res.Error = errors.New("ssh client is nil")
-		return
-	}
-	session, err := t._client.NewSession()
+	session, err := t._sshClient.NewSession()
 	if err != nil {
 		return
 	}
 	defer session.Close()
-	t._session = session
+	t._sshSession = session
 	resultBytes, err := session.CombinedOutput(cmd)
 	return SSHClientSessionResult{
 		Result: resultBytes,
@@ -101,20 +100,73 @@ func (t *SSHClient) Exec(cmd string) (res SSHClientSessionResult) {
 	}
 }
 
-func (t *SSHClient) StartAndWait(writer io.Writer, cmd string) (err error) {
-	if t._client == nil {
-		return errors.New("ssh client is nil")
-	}
-	session, err := t._client.NewSession()
+//ssh session exec with stdout & stderr
+func (t *SSHClient) ExecWithStd(writer io.Writer, cmd string) (err error) {
+	session, err := t._sshClient.NewSession()
 	if err != nil {
 		return
 	}
 	defer session.Close()
 	session.Stdout = writer
 	session.Stderr = writer
-	t._session = session
+	t._sshSession = session
 	if err = session.Start(cmd); err != nil {
 		return
 	}
 	return session.Wait()
+}
+
+func (t *SSHClient) ScpUpload(localPath, remotePath string, autoClose bool) (err error) {
+	if t._sftpClient == nil {
+		sftpClient, err := sftp.NewClient(t._sshClient)
+		if err != nil {
+			return err
+		}
+		t._sftpClient = sftpClient
+	}
+	if autoClose {
+		defer t._sftpClient.Close()
+	}
+
+	target, err := t._sftpClient.Create(remotePath)
+	if err != nil {
+		return
+	}
+	defer target.Close()
+
+	fileBytes, err := ioutil.ReadFile(localPath)
+	if err != nil {
+		return
+	}
+
+	_, err = target.Write(fileBytes)
+	return
+}
+
+func (t *SSHClient) ScpDownload(localPath, remotePath string, autoClose bool) (err error) {
+	if t._sftpClient == nil {
+		sftpClient, err := sftp.NewClient(t._sshClient)
+		if err != nil {
+			return err
+		}
+		t._sftpClient = sftpClient
+	}
+	if autoClose {
+		defer t._sftpClient.Close()
+	}
+
+	source, err := t._sftpClient.Open(remotePath)
+	if err != nil {
+		return
+	}
+	defer source.Close()
+
+	target, err := os.OpenFile(localPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return
+	}
+	defer target.Close()
+
+	_, err = io.Copy(target, source)
+	return
 }
