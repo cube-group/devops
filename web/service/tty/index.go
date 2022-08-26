@@ -2,6 +2,8 @@ package tty
 
 import (
 	"app/library/log"
+	"app/library/types/convert"
+	"app/models"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/url"
@@ -87,16 +89,19 @@ var upgrader = websocket.Upgrader{}
 
 //gotty proxy
 func Proxy(c *gin.Context, port, assist string) {
+	defer func() {
+		//close tty client & stream
+		models.TTYCacheClear(convert.MustUint32(port))
+	}()
+
+	//create websocket
 	upgrader.Subprotocols = append(upgrader.Subprotocols, "webtty")
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.StdWarning("gotty", "ws.upgrader", err)
 		return
 	}
-	defer func() {
-		ws.Close()
-		log.StdOut("gotty", "conn.closed", c.Request.RequestURI)
-	}()
+	defer ws.Close()
 
 	wsUrl := url.URL{Scheme: "ws", Host: "127.0.0.1:" + port, Path: "/ws"}
 	websocket.DefaultDialer.Subprotocols = append(websocket.DefaultDialer.Subprotocols, "webtty")

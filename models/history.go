@@ -2,7 +2,9 @@ package models
 
 import (
 	"app/library/consts"
+	"app/library/crypt/md5"
 	"app/library/log"
+	"app/library/types/jsonutil"
 	"app/library/types/times"
 	"app/library/uuid"
 	"encoding/json"
@@ -10,7 +12,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -93,6 +94,7 @@ type History struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	NodeIds   []uint32       `gorm:"-" json:"nodeIds" form:"nodeIds"`
 	pipeline  *Pipeline      `gorm:"-" form:"-"`
+	stream    *os.File       `gorm:"-" form:"-"`
 }
 
 func (t *History) TableName() string {
@@ -206,6 +208,15 @@ func (t *History) WorkspaceEndLog() (err error) {
 	return
 }
 
+func (t *History) WorkspaceContainerLog(elem ...interface{}) (logPath string, stream *os.File, err error) {
+	logPath = t.WorkspacePath(fmt.Sprintf(".container.log.%s", md5.MD5(jsonutil.ToString(elem))))
+	if err = os.MkdirAll(t.Workspace(), os.ModePerm); err != nil {
+		return
+	}
+	stream, err = os.Create(logPath)
+	return
+}
+
 func (t *History) WorkspaceRun() string {
 	return path.Join(t.Workspace(), "run.sh")
 }
@@ -261,12 +272,12 @@ func (t *History) Online(async bool) (err error) {
 		return
 	}
 	//create .follow.log
-	fileStream, err := os.Create(t.WorkspaceFollowLog())
+	t.stream, err = os.Create(t.WorkspaceFollowLog())
 	var pipeline *Pipeline
 	if t.IsDockerMode() { //deploy mode docker
-		pipeline, err = t.createDockerModePipeline(fileStream)
+		pipeline, err = t.createDockerModePipeline()
 	} else { //node shell
-		pipeline, err = t.createNativeModePipeline(fileStream)
+		pipeline, err = t.createNativeModePipeline()
 	}
 	if err != nil {
 		return
@@ -275,11 +286,11 @@ func (t *History) Online(async bool) (err error) {
 	//create record
 	onlineMaps.Store(t.ID, t)
 	if async {
-		go pipeline.Run(func(err error) {
+		go pipeline.Run(t.stream, func(err error) {
 			t.updateStatus(err)
 		})
 	} else {
-		pipeline.Run(func(err error) {
+		pipeline.Run(t.stream, func(err error) {
 			t.updateStatus(err)
 		})
 	}
@@ -287,6 +298,11 @@ func (t *History) Online(async bool) (err error) {
 }
 
 func (t *History) updateStatus(err error) {
+	if t.stream != nil {
+		if er := t.stream.Close(); er != nil {
+			log.StdWarning("history", "online", "close stream", er)
+		}
+	}
 	var status = HistoryStatusSuccess
 	if err != nil {
 		status = HistoryStatusFailed
@@ -311,7 +327,7 @@ func (t *History) updateStatus(err error) {
 	onlineMaps.Delete(t.ID)
 }
 
-func (t *History) createDockerModePipeline(logWriter io.Writer) (pipeline *Pipeline, err error) {
+func (t *History) createDockerModePipeline() (pipeline *Pipeline, err error) {
 	var template = t.Project.Docker
 	var imageName string
 	var dockerBuild string
@@ -319,9 +335,9 @@ func (t *History) createDockerModePipeline(logWriter io.Writer) (pipeline *Pipel
 		err = errors.New("Dockerfile & Image is nil")
 		return
 	}
-	var steps = make([]*PipelineStep, 0)
+	pipeline = NewPipeline()
 	if template.Shell != "" {
-		steps = append(steps, &PipelineStep{Cmd: template.Shell})
+		pipeline.Push(PipelineStep{Cmd: template.Shell})
 	}
 	//docker build
 	if template.IsBuildAndRun() {
@@ -338,34 +354,40 @@ func (t *History) createDockerModePipeline(logWriter io.Writer) (pipeline *Pipel
 			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
 			imageName, t.Workspace(), imageName,
 		)
-		steps = append(steps, &PipelineStep{Cmd: dockerBuild})
+		pipeline.Push(PipelineStep{Cmd: dockerBuild})
 	} else {
 		imageName = template.Image
 	}
 	//remote docker run
 	if t.Project.Mode == ProjectModeDocker {
-		runOptions := fmt.Sprintf("%s -v /data/log/devops/%d/%d:/data/log", template.RunOptions, t.Project.ID, t.ID)
+		var runOptionsStruct DockerOptionsStruct
+		runOptionsStruct, err = template.RunOptions.GetStruct()
+		if err != nil {
+			return
+		}
+		runOptionsStruct.Name = t.Project.Name
+		runOptionsStruct.Pull = "always"
+		runOptionsStruct.Volume = append(runOptionsStruct.Volume, fmt.Sprintf("/data/log/devops/%d/%d:/data/log", t.Project.ID, t.ID))
 		dockerRun := fmt.Sprintf(
 			"docker login %s --username=%s --password=%s\n"+
 				"docker rm -f %s >/dev/null 2>&1\n"+
-				"docker run -i --pull always --name %s %s %s",
+				"docker run -i %s %s",
 			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
-			t.Project.Name,
-			t.Project.Name, runOptions, imageName,
+			t.Project.Name, runOptionsStruct.String(), imageName,
 		)
 		for _, node := range t.Nodes {
-			steps = append(steps, &PipelineStep{Node: &node, Cmd: dockerRun})
-			//TODO add port check
-			//steps = append(steps, PipelineStep{Node: &node, ServicePort: 8888, ServicePath: "/"})
+			pipeline.Push(PipelineStep{Node: &node, Cmd: dockerRun})
+			if port, apiPath, er := template.GetHealth(); er == nil {
+				pipeline.Push(PipelineStep{Node: &node, Type: PipeTypeHealth, Health: PipelineHealth{Port: port, Path: apiPath}})
+			}
 		}
 	}
-	//pipeline
-	return NewPipeline(logWriter, steps), nil
+	return
 }
 
-func (t *History) createNativeModePipeline(logWriter io.Writer) (pipeline *Pipeline, err error) {
+func (t *History) createNativeModePipeline() (pipeline *Pipeline, err error) {
+	pipeline = NewPipeline()
 	var template = t.Project.Native
-	var steps = make([]*PipelineStep, 0)
 	var scpRemoteFilePrefix = fmt.Sprintf("/tmp/devops-%d-%d-", t.ProjectId, t.ID)
 	var localPaths = make([]string, 0)
 	var remotePaths = make([]string, 0)
@@ -385,12 +407,11 @@ func (t *History) createNativeModePipeline(logWriter io.Writer) (pipeline *Pipel
 	//init steps
 	for _, node := range t.Nodes {
 		for k, _ := range localPaths {
-			steps = append(steps, &PipelineStep{Node: &node, Type: PipeTypeScp, Scp: PipelineScp{Source: localPaths[k], Target: remotePaths[k]}})
+			pipeline.Push(PipelineStep{Node: &node, Type: PipeTypeScp, Scp: PipelineScp{Source: localPaths[k], Target: remotePaths[k]}})
 		}
-		steps = append(steps, &PipelineStep{Node: &node, Type: PipeTypeCmd, Cmd: fmt.Sprintf("%s\nrm -rf %s*\n", template.Shell, scpRemoteFilePrefix)})
+		pipeline.Push(PipelineStep{Node: &node, Cmd: fmt.Sprintf("%s\nrm -rf %s*\n", template.Shell, scpRemoteFilePrefix)})
 	}
-	//pipeline
-	return NewPipeline(logWriter, steps), nil
+	return
 }
 
 //移除上线

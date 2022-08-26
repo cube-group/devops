@@ -2,6 +2,7 @@ package tty
 
 import (
 	"app/library/ginutil"
+	"app/library/sshtool"
 	"app/library/types/convert"
 	"app/models"
 	"errors"
@@ -18,7 +19,7 @@ const (
 	TTYCodeContainerExec     = "containerExec" //project node container exec
 	TTYCodeHistoryTail       = "historyTail"   //history apply tail
 	TTYCodeNodeContaienrExec = "nodeContainerExec"
-	TTYCodeNodeContaienrLogs  = "nodeContainerLogs"
+	TTYCodeNodeContaienrLogs = "nodeContainerLogs"
 )
 
 type valCreate struct {
@@ -51,8 +52,8 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			if err != nil {
 				return
 			}
-			port, err = models.CreateGoTTY(c, true, append([]string{"--close-cmd", "exit"}, args...)...)
-			//"--close-signal", "9", // SIGKILL, kill -9
+			args = append([]string{"-w", "--close-cmd", "exit"}, args...)
+			port, err = models.TTYCreate(c, nil, args...)
 		}
 	case TTYCodeContainerLogs: //docker container logs -f
 		if h := models.GetHistory(val.ID); h != nil {
@@ -61,15 +62,28 @@ func Create(c *gin.Context) (res gin.H, err error) {
 				return
 			}
 			if node, ok := h.Nodes.Get(convert.MustUint32(val.Pod)); ok {
-				args, err = node.RunSshArgs(false, "", fmt.Sprintf("docker logs -f -n 1000 %s", h.Project.Name))
+				var sshClient *sshtool.SSHClient
+				sshClient, err = node.NewSshClient()
+				if err != nil {
+					return
+				}
+				streamPath, stream, er := h.WorkspaceContainerLog(h.ProjectId, h.ID, node.ID)
+				if er != nil {
+					err = er
+					return
+				}
+				port, err = models.TTYCreate(
+					c,
+					&models.TTYCache{SshClient: sshClient, Stream: stream, StreamPath: streamPath},
+					"--close-signal", "2", "tail", "-f", "-n", "5000", streamPath,
+				)
+				if err != nil {
+					return
+				}
+				go sshClient.ExecWithStd(stream, fmt.Sprintf("docker logs -f -n 1000 %s", h.Project.Name))
 			} else {
 				err = errors.New("pod not found")
 			}
-			if err != nil {
-				return
-			}
-			port, err = models.CreateGoTTY(c, true, append([]string{"--close-cmd", "exit"}, args...)...)
-			//"--close-signal", "9", // SIGKILL, kill -9
 		}
 	case TTYCodeHistoryTail: //history apply tail
 		if h := models.GetHistory(val.ID); h != nil {
@@ -79,11 +93,9 @@ func Create(c *gin.Context) (res gin.H, err error) {
 					return
 				}
 			}
-			port, err = models.CreateGoTTY(
-				c,
-				false,
-				"--close-signal", "2", // SIGINT, ctrl-c
-				"tail", "-f", "-n", "5000", logFilePath,
+			port, err = models.TTYCreate(
+				c, nil,
+				"-w", "--close-signal", "2", "tail", "-f", "-n", "5000", logFilePath,
 			)
 		}
 	case TTYCodeBash: //system bash
@@ -91,7 +103,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			err = errors.New("只有管理员可操作性")
 			return
 		}
-		port, err = models.CreateGoTTY(c, true, "bash")
+		port, err = models.TTYCreate(c, nil, "-w", "bash")
 		//default: "--close-signal", "1", // SIGHUP
 	case TTYCodeNode: //node ssh
 		if !models.IsAdm(c) {
@@ -103,7 +115,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			if err != nil {
 				return
 			}
-			port, err = models.CreateGoTTY(c, true, append([]string{"--close-cmd", "exit"}, args...)...)
+			port, err = models.TTYCreate(c, nil, append([]string{"-w", "--close-cmd", "exit"}, args...)...)
 			//"--close-signal", "9", // SIGKILL, kill -9
 		}
 	case TTYCodeNodeContaienrExec: //node container exec
@@ -116,7 +128,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			if err != nil {
 				return
 			}
-			port, err = models.CreateGoTTY(c, true, append([]string{"--close-cmd", "exit"}, args...)...)
+			port, err = models.TTYCreate(c, nil, append([]string{"--close-cmd", "exit"}, args...)...)
 		}
 	case TTYCodeNodeContaienrLogs: //node container logs -f
 		if !models.IsAdm(c) {
@@ -128,7 +140,7 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			if err != nil {
 				return
 			}
-			port, err = models.CreateGoTTY(c, true, append([]string{"--close-cmd", "exit"}, args...)...)
+			port, err = models.TTYCreate(c, nil, append([]string{"--close-cmd", "exit"}, args...)...)
 		}
 	default:
 		return nil, errors.New("not port code " + string(val.Code))

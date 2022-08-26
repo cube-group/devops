@@ -15,22 +15,32 @@ import (
 type PipeType string
 
 const (
-	PipeTypeCmd    PipeType = "cmd"
+	//cmd exec local shell command or remote shell command
+	PipeTypeCmd PipeType = "cmd"
+	//remote shell curl health check
 	PipeTypeHealth PipeType = "health"
-	PipeTypeScp    PipeType = "scp"
+	//remote scp upload or download
+	PipeTypeScp PipeType = "scp"
 )
 
 type PipelineCallback func(err error)
 
 type Pipeline struct {
-	logWriter io.Writer
-	steps     []*PipelineStep
-	canceled  bool
+	steps    []*PipelineStep
+	canceled bool
 }
 
 type PipelineHealth struct {
 	Port int
 	Path string
+}
+
+func (t *PipelineHealth) IsOn() bool {
+	return t.Port > 0 && t.Path != ""
+}
+
+func (t *PipelineHealth) URL() string {
+	return fmt.Sprintf("http://127.0.0.1:%d%s", t.Port, t.Path)
 }
 
 type PipelineScp struct {
@@ -45,37 +55,69 @@ type PipelineStep struct {
 	Health     PipelineHealth
 	Cmd        string
 	Scp        PipelineScp
-	parent     *Pipeline
-	index      int
 	_sshClient *sshtool.SSHClient
 	_cmdClient *exec.Cmd
+	_canceled  bool
 }
 
-func NewPipeline(logWriter io.Writer, steps []*PipelineStep) *Pipeline {
-	return &Pipeline{
-		logWriter: logWriter,
-		steps:     steps,
+func NewPipeline() *Pipeline {
+	return &Pipeline{steps: make([]*PipelineStep, 0)}
+}
+
+func (t *Pipeline) log(writer io.Writer, content string) {
+	if writer == nil {
+		return
+	}
+	_, err := writer.Write([]byte(content + "\r\n"))
+	if err != nil {
+		log.StdWarning("pipeline", "log", err)
 	}
 }
 
-func (t *Pipeline) Run(callback PipelineCallback) {
+func (t *Pipeline) Push(step PipelineStep) {
+	t.steps = append(t.steps, &step)
+}
+
+func (t *Pipeline) Run(writer io.Writer, callback PipelineCallback) {
+	var err error
 	if t.steps == nil || len(t.steps) == 0 {
-		callback(errors.New("pipeline no step can used"))
+		err = errors.New("pipeline no step can used")
+		goto Error
 	}
 	defer t.Stop()
+
 	for k, v := range t.steps {
 		if t.canceled {
-			callback(errors.New("canceled"))
-			return
+			err = errors.New("canceled")
+			goto Error
 		}
-		v.index = k
-		v.parent = t
-		if err := v.Run(); err != nil {
-			callback(err)
-			return
+		t.log(writer, fmt.Sprintf("+ Pipeline Step %d %s", k, v.Type))
+		switch v.Type {
+		case PipeTypeScp:
+			err = v.RunScp(writer)
+		case PipeTypeHealth:
+			t.log(writer, fmt.Sprintf("+ HealthCheck %s %s ...", v.Node.IP, v.Health.URL()))
+			err = v.RunHealth(writer)
+			if err == nil {
+				t.log(writer, "+ HealthCheck OK")
+			} else {
+				t.log(writer, fmt.Sprintf("+ HealthCheck Error %v", err))
+			}
+		//case PipeTypeCmd:
+		default:
+			err = v.RunCmd(writer)
+		}
+		if err != nil {
+			goto Error
 		}
 	}
 	callback(nil)
+	t.log(writer, "+ Pipeline Success")
+	return
+
+Error:
+	t.log(writer, fmt.Sprintf("+ Pipeline Error %v", err))
+	callback(err)
 }
 
 func (t *Pipeline) Stop() error {
@@ -92,7 +134,7 @@ func (t *Pipeline) Stop() error {
 }
 
 func (t *PipelineStep) Stop() error {
-	t.parent = nil
+	t._canceled = true
 	if t._sshClient != nil {
 		return t._sshClient.Close()
 	}
@@ -104,76 +146,64 @@ func (t *PipelineStep) Stop() error {
 	return nil
 }
 
-func (t *PipelineStep) Run() error {
-	t.log(fmt.Sprintf("+ Step %d", t.index))
-	switch t.Type {
-	case PipeTypeHealth:
-		if t.Node == nil {
-			return errors.New("Node is nil")
+func (t *PipelineStep) RunHealth(writer io.Writer) error {
+	if t.Node == nil {
+		return errors.New("Node is nil")
+	}
+	if !t.Health.IsOn() {
+		return errors.New("HealthCheck invalid")
+	}
+	var startTime = time.Now()
+	for {
+		if t._canceled {
+			return errors.New("HealthCheck: canceled")
 		}
-		if t.Health.Path == "" || t.Health.Port == 0 {
-			return errors.New("HealthCheck invalid")
-		}
-		requestURL := fmt.Sprintf("http://127.0.0.1:%d%s", t.Health.Port, t.Health.Path)
-		t.log(fmt.Sprintf("HealthCheck => %s %s", t.Node.IP, requestURL))
-		var startTime = time.Now()
-		for {
-			if t.parent.canceled {
-				return errors.New("HealthCheck: canceled")
-			}
-			if result, err := t.Node.Exec(fmt.Sprintf("curl -I -m 2 -o /dev/null -s -w %%{http_code} %s", requestURL)); err == nil {
-				statusCode := convert.MustInt(string(result))
-				if statusCode >= 200 && statusCode < 300 {
-					t.log(fmt.Sprintf("HealthCheck <= %s %s OK", t.Node.IP, requestURL))
-					return nil
-				}
-			}
-			if time.Now().After(startTime.Add(time.Minute * 10)) {
-				t.log(fmt.Sprintf("HealthCheck <= %s %s Timeout", t.Node.IP, requestURL))
-				return errors.New("HealthCheck timeout")
-			} else {
-				time.Sleep(3 * time.Second)
+		if result, err := t.Node.Exec(fmt.Sprintf("curl -I -m 2 -o /dev/null -s -w %%{http_code} %s", t.Health.URL())); err == nil {
+			statusCode := convert.MustInt(string(result))
+			if statusCode >= 200 && statusCode < 300 {
+				return nil
 			}
 		}
-	case PipeTypeCmd:
-		if t.Node != nil {
-			sshClient, err := t.Node.NewSshClient()
-			if err != nil {
-				return err
-			}
-			t._sshClient = sshClient
-			defer sshClient.Close()
-			return sshClient.ExecWithStd(t.parent.logWriter, t.Cmd)
+		if time.Now().After(startTime.Add(time.Minute * 10)) {
+			return errors.New("HealthCheck timeout")
 		} else {
-			cmd := exec.Command("sh", "-c", t.Cmd)
-			cmd.Stderr = t.parent.logWriter
-			cmd.Stdout = t.parent.logWriter
-			t._cmdClient = cmd
-			if err := cmd.Start(); err != nil {
-				return err
-			}
-			return cmd.Wait()
+			time.Sleep(3 * time.Second)
 		}
-	case PipeTypeScp:
-		if t.Node == nil {
-			return errors.New("Node is nil")
-		}
+	}
+}
+
+func (t *PipelineStep) RunCmd(writer io.Writer) error {
+	if t.Node != nil {
 		sshClient, err := t.Node.NewSshClient()
 		if err != nil {
 			return err
 		}
-		if t.Scp.Download {
-			return sshClient.ScpDownload(t.Scp.Source, t.Scp.Target, true)
-		} else {
-			return sshClient.ScpUpload(t.Scp.Source, t.Scp.Target, true)
+		t._sshClient = sshClient
+		defer sshClient.Close()
+		return sshClient.ExecWithStd(writer, t.Cmd)
+	} else {
+		cmd := exec.Command("sh", "-c", t.Cmd)
+		cmd.Stderr = writer
+		cmd.Stdout = writer
+		t._cmdClient = cmd
+		if err := cmd.Start(); err != nil {
+			return err
 		}
+		return cmd.Wait()
 	}
-	return errors.New("Invalid Pipeline Step")
 }
 
-func (t *PipelineStep) log(content string) {
-	_, err := t.parent.logWriter.Write([]byte(content + "\r\n"))
+func (t *PipelineStep) RunScp(writer io.Writer) error {
+	if t.Node == nil {
+		return errors.New("Node is nil")
+	}
+	sshClient, err := t.Node.NewSshClient()
 	if err != nil {
-		log.StdWarning("pipeline", "log", err)
+		return err
+	}
+	if t.Scp.Download {
+		return sshClient.ScpDownload(t.Scp.Source, t.Scp.Target, true)
+	} else {
+		return sshClient.ScpUpload(t.Scp.Source, t.Scp.Target, true)
 	}
 }

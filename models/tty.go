@@ -3,6 +3,7 @@ package models
 import (
 	"app/library/e"
 	"app/library/log"
+	"app/library/sshtool"
 	"app/library/types/convert"
 	"errors"
 	"fmt"
@@ -10,17 +11,19 @@ import (
 	"github.com/imroc/req"
 	"gorm.io/gorm"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
 
 const (
-	TTY_PORT_START = 40000
+	TTY_PORT_START = 51111
 )
 
-type TtyPort struct {
+type TTY struct {
 	ID        uint32         `gorm:"primarykey;column:id" json:"id" form:"id"`
 	Uid       uint32         `gorm:"" json:"-" form:"-"`
 	Port      uint32         `gorm:"" json:"-" form:"-"`
@@ -30,29 +33,56 @@ type TtyPort struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
-func (t *TtyPort) TableName() string {
+func (t *TTY) TableName() string {
 	return "d_tty_port"
 }
 
-func CreateGoTTY(c *gin.Context, writeFlag bool, arg ...string) (port uint32, err error) {
+type TTYCache struct {
+	SshClient  *sshtool.SSHClient
+	Stream     *os.File
+	StreamPath string
+}
+
+var ttyMaps sync.Map
+
+func TTYCacheClear(port uint32) {
+	i, ok := ttyMaps.Load(port)
+	if !ok {
+		return
+	}
+	var cache = i.(*TTYCache)
+	if cache.SshClient != nil {
+		if err := cache.SshClient.Close(); err != nil {
+			log.StdWarning("tty", "cache.close.sshClient", err)
+		}
+	}
+	if cache.Stream != nil {
+		if err := cache.Stream.Close(); err != nil {
+			log.StdWarning("tty", "cache.close.stream", cache.StreamPath, err)
+		}
+	}
+	if err := os.Remove(cache.StreamPath); err != nil {
+		log.StdWarning("tty", "cache.close.streamPath", cache.StreamPath, err)
+	}
+}
+
+func TTYCreate(c *gin.Context, cache *TTYCache, args ...string) (port uint32, err error) {
 	//gotty port save
 	err = DB().Transaction(func(tx *gorm.DB) error {
-		var find TtyPort
+		var find TTY
 		if tx.Order("port DESC").First(&find).Error == nil {
 			port = find.Port + 1
 		} else {
 			port = TTY_PORT_START
 		}
 		//create tty args
-		var appendArg = []string{}
-		if writeFlag {
-			appendArg = append(appendArg, "-w")
-		}
-		appendArg = append(appendArg, "-p", convert.MustString(port), "--once", "--timeout", "15")
-		arg = append(appendArg, arg...)
+		var appendArg = []string{"-p", convert.MustString(port), "--once", "--timeout", "15"}
+		args = append(appendArg, args...)
 		//save tty port
-		return tx.Save(&TtyPort{Uid: UID(c), Port: port, Cmd: strings.Join(append([]string{"gotty"}, arg...), " ")}).Error
+		return tx.Save(&TTY{Uid: UID(c), Port: port, Cmd: strings.Join(append([]string{"gotty"}, args...), " ")}).Error
 	})
+	//cache
+	ttyMaps.Store(port, cache)
 	if err != nil {
 		return
 	}
@@ -61,10 +91,10 @@ func CreateGoTTY(c *gin.Context, writeFlag bool, arg ...string) (port uint32, er
 	defer close(waitChan)
 	var cmd *exec.Cmd
 	go e.TryCatch(func() {
-		cmd = exec.Command("gotty", arg...)
-		log.StdOut("gotty", strings.Join(arg, " "), "end", cmd.Run())
-		time.Sleep(time.Second)                            //wait for gotty process finish
-		DB().Unscoped().Delete(&TtyPort{}, "port=?", port) //delete port maps
+		cmd = exec.Command("gotty", args...)
+		log.StdOut("gotty", strings.Join(args, " "), "end", cmd.Run())
+		time.Sleep(time.Second)                        //wait for gotty process finish
+		DB().Unscoped().Delete(&TTY{}, "port=?", port) //delete port maps
 	})
 	//test connect
 	var testing = true

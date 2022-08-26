@@ -30,11 +30,30 @@ docker build之前的准备脚本，如：git、maven、java、npm等处理"
             </label>
             <div class="input-group">
                 <div class="input-group-addon">直接镜像(含entrypoint & cmd)</div>
-                <input class="form-control" v-model="project.docker.image" placeholder="覆盖上方Dockerfile，如: nginx:alpine或nginx:alpine ls /"/>
+                <input class="form-control" v-model="project.docker.image"
+                       placeholder="覆盖上方Dockerfile，如: nginx:alpine或nginx:alpine ls /"/>
             </div>
             <textarea rows="10" class="form-control"
                       placeholder="--privileged -v xx:/xx -p 8080:80 -e ABC=true ... -d --restart=always"
                       v-model="project.docker.runOptions"></textarea>
+        </div>
+        <!-- run healthCheck -->
+        <div class="form-group" v-if="project.mode=='docker'">
+            <label>
+                Service HealthCheck & RandomPort
+            </label>
+            <div class="input-group">
+                <div class="input-group-addon">容器端口</div>
+                <input class="form-control" v-model.number="project.docker.health.port" placeholder="如：80 8080"/>
+                <div class="input-group-addon">检测HTTP路径</div>
+                <input class="form-control" v-model="project.docker.health.path"
+                       placeholder="如：/api (返回http状态码需>=200且<300)"/>
+                <div class="input-group-addon">随机端口映射</div>
+                <select class="form-control" v-model.number="project.docker.randomPort" @change="onRandomPortChange()">
+                    <option value="0">否</option>
+                    <option value="1">是</option>
+                </select>
+            </div>
         </div>
         <!-- fast copy -->
         <div class="form-group">
@@ -206,6 +225,13 @@ docker build之前的准备脚本，如：git、maven、java、npm等处理"
                     showDiv('#dockerRunOptionsHelp', 'docker run options help (-i --name会被自动注入切勿追加)', ['800px', '500px'], {
                         shadeClose: true, shade: 0.8, resize: false, btnAlign: 'c', moveType: 1, closeBtn: false,
                     });
+                },
+                onRandomPortChange() {
+                    if (this.project.docker.randomPort) {
+                        showAlert("已选择随机端口映射！docker run options中的<br>-p $hostPort:$containerPort，$hostPort会被随机分配代替原有宿主机端口")
+                    } else {
+                        showAlert("已禁用随机端口映射！docker run options中的<br>-p $hostPort:$containerPort开始生效")
+                    }
                 }
             }
         })
