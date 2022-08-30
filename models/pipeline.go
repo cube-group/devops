@@ -30,19 +30,6 @@ type Pipeline struct {
 	canceled bool
 }
 
-type PipelineHealth struct {
-	Port int
-	Path string
-}
-
-func (t *PipelineHealth) IsOn() bool {
-	return t.Port > 0 && t.Path != ""
-}
-
-func (t *PipelineHealth) URL() string {
-	return fmt.Sprintf("http://127.0.0.1:%d%s", t.Port, t.Path)
-}
-
 type PipelineScp struct {
 	Source   string
 	Target   string
@@ -52,7 +39,7 @@ type PipelineScp struct {
 type PipelineStep struct {
 	Type       PipeType
 	Node       *Node
-	Health     PipelineHealth
+	HealthURL  string
 	Cmd        string
 	Scp        PipelineScp
 	_sshClient *sshtool.SSHClient
@@ -96,7 +83,7 @@ func (t *Pipeline) Run(writer io.Writer, callback PipelineCallback) {
 		case PipeTypeScp:
 			err = v.RunScp(writer)
 		case PipeTypeHealth:
-			t.log(writer, fmt.Sprintf("+ HealthCheck %s %s ...", v.Node.IP, v.Health.URL()))
+			t.log(writer, fmt.Sprintf("+ HealthCheck %s %s ...", v.Node.IP, v.HealthURL))
 			err = v.RunHealth(writer)
 			if err == nil {
 				t.log(writer, "+ HealthCheck OK")
@@ -111,8 +98,8 @@ func (t *Pipeline) Run(writer io.Writer, callback PipelineCallback) {
 			goto Error
 		}
 	}
-	callback(nil)
 	t.log(writer, "+ Pipeline Success")
+	callback(nil)
 	return
 
 Error:
@@ -150,15 +137,12 @@ func (t *PipelineStep) RunHealth(writer io.Writer) error {
 	if t.Node == nil {
 		return errors.New("Node is nil")
 	}
-	if !t.Health.IsOn() {
-		return errors.New("HealthCheck invalid")
-	}
 	var startTime = time.Now()
 	for {
 		if t._canceled {
 			return errors.New("HealthCheck: canceled")
 		}
-		if result, err := t.Node.Exec(fmt.Sprintf("curl -I -m 2 -o /dev/null -s -w %%{http_code} %s", t.Health.URL())); err == nil {
+		if result, err := t.Node.Exec(fmt.Sprintf("curl -I -m 2 -o /dev/null -s -w %%{http_code} %s", t.HealthURL)); err == nil {
 			statusCode := convert.MustInt(string(result))
 			if statusCode >= 200 && statusCode < 300 {
 				return nil

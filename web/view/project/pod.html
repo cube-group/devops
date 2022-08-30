@@ -74,7 +74,7 @@
                 },
                 onLog(node) {
                     this.displayFrame(
-                        `Node: ${node.ip} Container: ${this.project.name} Exec`,
+                        `Node: ${node.ip} Container: ${this.project.name} Std`,
                         `/tty/create?code=containerLogs&id=${this.history.id}&pod=${node.id}`
                     );
                 },

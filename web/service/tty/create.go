@@ -2,7 +2,6 @@ package tty
 
 import (
 	"app/library/ginutil"
-	"app/library/sshtool"
 	"app/library/types/convert"
 	"app/models"
 	"errors"
@@ -62,25 +61,14 @@ func Create(c *gin.Context) (res gin.H, err error) {
 				return
 			}
 			if node, ok := h.Nodes.Get(convert.MustUint32(val.Pod)); ok {
-				var sshClient *sshtool.SSHClient
-				sshClient, err = node.NewSshClient()
-				if err != nil {
-					return
-				}
-				streamPath, stream, er := h.WorkspaceContainerLog(h.ProjectId, h.ID, node.ID)
+				sshClient, stream, streamPath, er := node.GetContainerFollowLog(h.Project.Name, h.ProjectId, h.ID)
 				if er != nil {
-					err = er
-					return
+					return res, er
 				}
 				port, err = models.TTYCreate(
-					c,
-					&models.TTYCache{SshClient: sshClient, Stream: stream, StreamPath: streamPath},
-					"--close-signal", "2", "tail", "-f", "-n", "5000", streamPath,
+					c, &models.TTYCache{SshClient: sshClient, Stream: stream, StreamPath: streamPath},
+					"--close-signal", "2", "tail", "-f", "-n", "2000", streamPath,
 				)
-				if err != nil {
-					return
-				}
-				go sshClient.ExecWithStd(stream, fmt.Sprintf("docker logs -f -n 1000 %s", h.Project.Name))
 			} else {
 				err = errors.New("pod not found")
 			}
@@ -116,7 +104,6 @@ func Create(c *gin.Context) (res gin.H, err error) {
 				return
 			}
 			port, err = models.TTYCreate(c, nil, append([]string{"-w", "--close-cmd", "exit"}, args...)...)
-			//"--close-signal", "9", // SIGKILL, kill -9
 		}
 	case TTYCodeNodeContaienrExec: //node container exec
 		if !models.IsAdm(c) {
@@ -136,11 +123,14 @@ func Create(c *gin.Context) (res gin.H, err error) {
 			return
 		}
 		if n := models.GetNode(val.ID); n != nil {
-			args, err = n.RunSshArgs(false, "", fmt.Sprintf("docker logs -f -n 1000 %s", val.Pod))
-			if err != nil {
-				return
+			sshClient, stream, streamPath, er := n.GetContainerFollowLog(val.Pod, models.UID(c))
+			if er != nil {
+				return res, er
 			}
-			port, err = models.TTYCreate(c, nil, append([]string{"--close-cmd", "exit"}, args...)...)
+			port, err = models.TTYCreate(
+				c, &models.TTYCache{SshClient: sshClient, Stream: stream, StreamPath: streamPath},
+				"--close-signal", "2", "tail", "-f", "-n", "2000", streamPath,
+			)
 		}
 	default:
 		return nil, errors.New("not port code " + string(val.Code))

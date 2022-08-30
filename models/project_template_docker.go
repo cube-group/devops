@@ -19,21 +19,22 @@ type ProjectTemplateDockerMarshalJSON ProjectTemplateDocker
 
 //k8s project cfg about spec template
 type ProjectTemplateDocker struct {
-	Shell               string              `json:"shell"`
-	Image               string              `json:"image"`
-	Dockerfile          string              `json:"dockerfile"`
-	Health              DockerHealth        `json:"health"`
-	Volume              VolumeList          `json:"volume"`
-	RandomPort          uint32              `json:"randomPort"`
-	RunOptions          DockerOptions       `json:"runOptions"`
-	RunOptionsStructure DockerOptionsStruct `json:"-"`
+	Shell      string        `json:"shell"`
+	Image      string        `json:"image"`
+	Dockerfile string        `json:"dockerfile"`
+	Health     DockerHealth  `json:"health"`
+	Volume     VolumeList    `json:"volume"`
+	RandomPort uint32        `json:"randomPort"`
+	RunOptions DockerOptions `json:"runOptions"`
 }
 
 func (t *ProjectTemplateDocker) Validator() error {
 	if s, err := t.RunOptions.Validator(); err != nil {
 		return err
 	} else {
-		//todo override docker run options
+		if t.IsRandomPort() { //override random ports
+			s.Port, _ = s.getRandomPorts()
+		}
 		t.RunOptions = DockerOptions(s.String())
 	}
 	for i := 0; i < len(t.Volume); {
@@ -86,29 +87,40 @@ func (t *ProjectTemplateDocker) IsRandomPort() bool {
 	return t.RandomPort > 0
 }
 
-func (t *ProjectTemplateDocker) GetHealth() (port int, path string, err error) {
-	if !t.IsHealthCheck() {
-		err = errors.New("no health")
-		return
-	}
-	s, err := t.RunOptions.GetStruct()
+//获取端口和健康监测信息
+func (t *ProjectTemplateDocker) GetPortAndHealth(node Node) (healthURL string, portMapping map[int]int, s DockerOptionsStruct, err error) {
+	s, err = t.RunOptions.GetStruct()
 	if err != nil {
 		return
 	}
-	for _, v := range s.Port {
-		ports := strings.Split(strings.Trim(v, " "), ":")
-		if len(ports) != 2 {
-			continue
+	var randomNodePorts = make([]int, 0)
+	if t.IsRandomPort() {
+		if s.Port == nil || len(s.Port) == 0 {
+			err = errors.New("随机端口模式下，无法找到容器映射端口配置！")
+			return
 		}
-		if convert.MustInt(ports[1]) == t.Health.Port {
-			port = convert.MustInt(ports[0])
-			break
+		randomNodePorts, err = node.GetContainerRandomPort(len(s.Port))
+		if err != nil {
+			return
 		}
 	}
-	if port == 0 {
-		err = errors.New("port not found")
-	} else {
-		path = t.Health.Path
+	portList, portMapping := s.getRandomPorts(randomNodePorts...)
+	//非随机端口，不合法端口检测
+	if !t.IsRandomPort() {
+		for containerPort, nodePort := range portMapping {
+			if containerPort == 0 || nodePort == 0 {
+				err = errors.New("非随机端口模式下，宿主机或容器端口需合法")
+				return
+			}
+		}
+	}
+	s.Port = portList
+	if t.IsHealthCheck() {
+		if nodePort, ok := portMapping[t.Health.Port]; ok {
+			healthURL = fmt.Sprintf("http:127.0.0.1:%d%s", nodePort, t.Health.Path)
+		} else {
+			err = errors.New("无法匹配健康监测端口，请查看项目端口映射配置")
+		}
 	}
 	return
 }
@@ -293,12 +305,43 @@ func (t *DockerOptionsStruct) String() (res string) {
 	return strings.Join(resSlice, " \\\n")
 }
 
+//获取随机端口的替代字符串标识
+func (t *DockerOptionsStruct) getRandomPorts(assignPorts ...int) (portList []string, portMapping map[int]int) {
+	portList = make([]string, 0)
+	portMapping = make(map[int]int)
+	if t.Port == nil {
+		return
+	}
+	for k, v := range t.Port {
+		portArr := strings.Split(strings.Trim(v, " "), ":")
+		if len(portArr) != 2 {
+			continue
+		}
+		containerPort := convert.MustInt(portArr[1])
+		if containerPort == 0 {
+			continue
+		}
+		if len(assignPorts) > k {
+			portMapping[containerPort] = assignPorts[k]
+			portList = append(portList, fmt.Sprintf("%d:%d", assignPorts[k], containerPort))
+		} else {
+			portMapping[containerPort] = 0
+			portList = append(portList, fmt.Sprintf("${randomNodePort}:%d", containerPort))
+		}
+	}
+	return
+}
+
 type DockerOptions string
 
-func (t DockerOptions) GetStruct() (structure DockerOptionsStruct, err error) {
+func (t DockerOptions) GetStruct() (s DockerOptionsStruct, err error) {
 	var str = strings.Join(strings.Fields((string(t))), " ")
 	str = strings.ReplaceAll(str, "\\", "")
-	_, err = flags.ParseArgs(&structure, strings.Split(str, " "))
+	if _, err = flags.ParseArgs(&s, strings.Split(str, " ")); err == nil {
+		if s.Port == nil {
+			s.Port = make([]string, 0)
+		}
+	}
 	return
 }
 

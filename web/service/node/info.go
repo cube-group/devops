@@ -5,7 +5,6 @@ import (
 	"app/library/types/convert"
 	"app/models"
 	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	jsoniter "github.com/json-iterator/go"
 	"strings"
@@ -50,8 +49,6 @@ func DockerVersion(c *gin.Context) (res gin.H, err error) {
 }
 
 func DockerPs(c *gin.Context) (res []models.NodeContainerPsItem, err error) {
-	ports, err := models.GetNode(c).GetContainerRandomPort(5)
-	fmt.Println("==> random ports", ports, err)
 	return models.GetNode(c).GetDockerContainerList()
 }
 

@@ -161,7 +161,7 @@ func (t *Project) IsCronjob() bool {
 }
 
 func (t *Project) Apply(history *History, async bool) (err error) {
-	if err = DB().Transaction(func(tx *gorm.DB) error {
+	return DB().Transaction(func(tx *gorm.DB) error {
 		//Block online
 		if tx.Last(&History{}, "project_id=? AND status=?", t.ID, HistoryStatusDefault).Error == nil {
 			return errors.New("正在上线中请稍后或中断之前的上线...")
@@ -174,11 +174,8 @@ func (t *Project) Apply(history *History, async bool) (err error) {
 		if er := tx.Save(history).Error; er != nil {
 			return er
 		}
-		return nil
-	}); err != nil {
-		return
-	}
-	return history.Online(async)
+		return history.Online(async)
+	})
 }
 
 func (t *Project) StopCronjob() (err error) {

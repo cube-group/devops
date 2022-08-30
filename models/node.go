@@ -2,6 +2,7 @@ package models
 
 import (
 	"app/library/consts"
+	"app/library/crypt/md5"
 	"app/library/e"
 	"app/library/log"
 	"app/library/sshtool"
@@ -267,12 +268,18 @@ func (t *Node) WorkspacePath(ele ...string) string {
 	return path.Join(ele...)
 }
 
-func (t *Node) WorkspaceSshPath() string {
-	return t.WorkspacePath(".ssh")
+func (t *Node) WorkspaceSshPath(ele ...string) string {
+	ele = append([]string{".ssh"}, ele...)
+	return t.WorkspacePath(ele...)
+}
+
+func (t *Node) WorkspaceContainerPath(ele ...string) string {
+	ele = append([]string{".container"}, ele...)
+	return t.WorkspacePath(ele...)
 }
 
 func (t *Node) WorkspaceSshIdRsaPath() string {
-	return t.WorkspacePath(".ssh", "id_rsa")
+	return t.WorkspaceSshPath("id_rsa")
 }
 
 //get node cache proc info
@@ -420,7 +427,28 @@ func (t *Node) GetContainerRandomPort(length int) (ports []int, err error) {
 	return
 }
 
+func (t *Node) GetContainerFollowLog(containerName string, unq ...interface{}) (sshClient *sshtool.SSHClient, stream *os.File, streamPath string, err error) {
+	if err = t.initWorkspace(); err != nil {
+		return
+	}
+	sshClient, err = t.NewSshClient()
+	if err != nil {
+		return
+	}
+	unq = append([]interface{}{t.ID}, unq...)
+	streamPath = t.WorkspaceContainerPath(fmt.Sprintf(".log.%s", md5.MD5(jsonutil.ToString(unq))))
+	stream, err = os.Create(streamPath)
+	if err != nil {
+		return
+	}
+	go sshClient.ExecWithStd(stream, fmt.Sprintf("docker logs -f -n 2000 %s", containerName))
+	return
+}
+
 func (t *Node) initWorkspace() (err error) {
+	if err = os.MkdirAll(t.WorkspaceContainerPath(), os.ModePerm); err != nil {
+		return
+	}
 	if t.SshKey != "" {
 		if err = os.MkdirAll(t.WorkspaceSshPath(), 0700); err != nil {
 			return
@@ -438,8 +466,7 @@ func (t *Node) RunSshArgs(tty bool, idRsaPath, remoteShell string) (args []strin
 		return
 	}
 	if idRsaPath == "" {
-		err = t.initWorkspace()
-		if err != nil {
+		if err = t.initWorkspace(); err != nil {
 			return
 		}
 		idRsaPath = t.WorkspaceSshIdRsaPath()

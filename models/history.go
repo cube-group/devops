@@ -2,9 +2,7 @@ package models
 
 import (
 	"app/library/consts"
-	"app/library/crypt/md5"
 	"app/library/log"
-	"app/library/types/jsonutil"
 	"app/library/types/times"
 	"app/library/uuid"
 	"encoding/json"
@@ -208,15 +206,6 @@ func (t *History) WorkspaceEndLog() (err error) {
 	return
 }
 
-func (t *History) WorkspaceContainerLog(elem ...interface{}) (logPath string, stream *os.File, err error) {
-	logPath = t.WorkspacePath(fmt.Sprintf(".container.log.%s", md5.MD5(jsonutil.ToString(elem))))
-	if err = os.MkdirAll(t.Workspace(), os.ModePerm); err != nil {
-		return
-	}
-	stream, err = os.Create(logPath)
-	return
-}
-
 func (t *History) WorkspaceRun() string {
 	return path.Join(t.Workspace(), "run.sh")
 }
@@ -267,11 +256,10 @@ func (t *History) Shutdown() error {
 
 //project online
 func (t *History) Online(async bool) (err error) {
-	//create workspace
+	//create workspace .follow.log
 	if err = os.MkdirAll(t.WorkspacePath(DockerVolumePathName), os.ModePerm); err != nil {
 		return
 	}
-	//create .follow.log
 	t.stream, err = os.Create(t.WorkspaceFollowLog())
 	var pipeline *Pipeline
 	if t.IsDockerMode() { //deploy mode docker
@@ -360,25 +348,24 @@ func (t *History) createDockerModePipeline() (pipeline *Pipeline, err error) {
 	}
 	//remote docker run
 	if t.Project.Mode == ProjectModeDocker {
-		var runOptionsStruct DockerOptionsStruct
-		runOptionsStruct, err = template.RunOptions.GetStruct()
-		if err != nil {
-			return
-		}
-		runOptionsStruct.Name = t.Project.Name
-		runOptionsStruct.Pull = "always"
-		runOptionsStruct.Volume = append(runOptionsStruct.Volume, fmt.Sprintf("/data/log/devops/%d/%d:/data/log", t.Project.ID, t.ID))
-		dockerRun := fmt.Sprintf(
-			"docker login %s --username=%s --password=%s\n"+
-				"docker rm -f %s >/dev/null 2>&1\n"+
-				"docker run -i %s %s",
-			_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
-			t.Project.Name, runOptionsStruct.String(), imageName,
-		)
 		for _, node := range t.Nodes {
+			var healthURL string
+			var runOptionsStruct DockerOptionsStruct
+			healthURL, _, runOptionsStruct, err = template.GetPortAndHealth(node)
+			if err != nil {
+				return
+			}
+			runOptionsStruct.Pull = "always"
+			runOptionsStruct.Name = t.Project.Name
+			runOptionsStruct.Volume = append(runOptionsStruct.Volume, fmt.Sprintf("/data/log/devops/%d/%d:/data/log", t.Project.ID, t.ID))
+			dockerRun := fmt.Sprintf(
+				"docker login %s --username=%s --password=%s\ndocker rm -f %s >/dev/null 2>&1\ndocker run -i %s %s",
+				_cfg.RegistryHost, _cfg.RegistryUsername, _cfg.RegistryPassword,
+				t.Project.Name, runOptionsStruct.String(), imageName,
+			)
 			pipeline.Push(PipelineStep{Node: &node, Cmd: dockerRun})
-			if port, apiPath, er := template.GetHealth(); er == nil {
-				pipeline.Push(PipelineStep{Node: &node, Type: PipeTypeHealth, Health: PipelineHealth{Port: port, Path: apiPath}})
+			if healthURL != "" { //health check
+				pipeline.Push(PipelineStep{Node: &node, Type: PipeTypeHealth, HealthURL: healthURL})
 			}
 		}
 	}
